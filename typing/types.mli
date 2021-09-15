@@ -267,6 +267,76 @@ module Uid : sig
   include Identifiable.S with type t := t
 end
 
+module Shape : sig
+  module Sig_component_kind : sig
+    type t =
+      | Value
+      | Type
+      | Module
+      | Module_type
+      | Extension_constructor
+      | Class
+      | Class_type
+
+    val to_string : t -> string
+
+    (** Whether the name of a component of that kind can appear in a type. *)
+    val can_appear_in_types : t -> bool
+  end
+
+  module Item : sig
+    type t
+
+    module Map : Map.S with type key = t
+  end
+
+  type var = Ident.t
+  type t =
+    | Var of var
+    | Abs of var * t
+    | App of t * t
+    | Struct of t Item.Map.t
+    | Leaf of Uid.t
+    | Proj of t * Item.t
+    | Comp_unit of string
+
+  val fresh_var : unit -> var
+
+  val module_proj_of_path : root:t -> Path.t -> t
+
+  val make_empty_sig : unit -> t
+  val make_external : string -> t
+  val make_functor : param:(Ident.t option) -> t -> t
+  val make_functor_app : arg:t -> t -> t
+  val make_structure : t Item.Map.t -> t
+  val make_coercion : sig_:t -> t -> t
+
+  val reduce_one : t -> t
+
+  (** "Reset" a module shape to be used as a module type shape *)
+  val unproj : t -> t
+
+  module Map : sig
+    type shape = t
+    type nonrec t = t Item.Map.t
+
+    val add_value : t -> Ident.t -> Uid.t -> t
+    val add_value_proj : t -> Ident.t -> var -> t
+
+    val add_type : t -> Ident.t -> Uid.t -> t
+    val add_type_proj : t -> Ident.t -> var -> t
+
+    val add_module : t -> Ident.t -> Uid.t -> t
+    val add_module_proj : t -> Ident.t -> var -> t
+
+    val add_module_type : t -> Ident.t -> shape -> t
+    val add_module_type_proj : t -> Ident.t -> var -> t
+
+    val add_extcons : t -> Ident.t -> shape -> t
+    val add_extcons_proj : t -> Ident.t -> var -> t
+  end
+end
+
 (* Maps of methods and instance variables *)
 
 module Meths : Map.S with type key = string
@@ -510,6 +580,7 @@ and module_declaration =
     md_attributes: Parsetree.attributes;
     md_loc: Location.t;
     md_uid: Uid.t;
+    md_shape: Shape.t;
   }
 
 and modtype_declaration =
@@ -518,6 +589,7 @@ and modtype_declaration =
     mtd_attributes: Parsetree.attributes;
     mtd_loc: Location.t;
     mtd_uid: Uid.t;
+    mtd_shape : Shape.t;
   }
 
 and rec_status =
