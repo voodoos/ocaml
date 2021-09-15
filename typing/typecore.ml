@@ -145,7 +145,7 @@ exception Error_forward of Location.error
 
 let type_module =
   ref ((fun _env _md -> assert false) :
-       Env.t -> Parsetree.module_expr -> Typedtree.module_expr)
+       Env.t -> Parsetree.module_expr -> Typedtree.module_expr * Shape.t)
 
 (* Forward declaration, to be filled in by Typemod.type_open *)
 
@@ -3609,7 +3609,7 @@ and type_expect_
       (* remember original level *)
       begin_def ();
       let context = Typetexp.narrow () in
-      let modl = !type_module env smodl in
+      let modl, md_shape = !type_module env smodl in
       Mtype.lower_nongen ty.level modl.mod_type;
       let pres =
         match modl.mod_type with
@@ -3618,8 +3618,13 @@ and type_expect_
       in
       let scope = create_scope () in
       let md =
-        { md_type = modl.mod_type; md_attributes = []; md_loc = name.loc;
-          md_uid = Uid.mk ~current_unit:(Env.get_unit_name ()); }
+        {
+          md_type = modl.mod_type;
+          md_attributes = [];
+          md_loc = name.loc;
+          md_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
+          md_shape;
+        }
       in
       let (id, new_env) =
         match name.txt with
@@ -4737,7 +4742,7 @@ and type_unpacks ?(in_function : (Location.t * type_expr) option)
     List.fold_left (fun (env, tunpacks) unpack ->
       begin_def ();
       let context = Typetexp.narrow () in
-      let modl =
+      let modl, md_shape =
         !type_module env
           Ast_helper.(
             Mod.unpack ~loc:unpack.tu_loc
@@ -4755,7 +4760,8 @@ and type_unpacks ?(in_function : (Location.t * type_expr) option)
       let md =
         { md_type = modl.mod_type; md_attributes = [];
           md_loc = unpack.tu_name.loc;
-          md_uid = unpack.tu_uid; }
+          md_uid = unpack.tu_uid;
+          md_shape; }
       in
       let (id, env) =
         Env.enter_module_declaration ~scope unpack.tu_name.txt pres md env

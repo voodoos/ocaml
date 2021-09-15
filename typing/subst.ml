@@ -538,6 +538,7 @@ and module_declaration scoping s decl =
     md_attributes = attrs s decl.md_attributes;
     md_loc = loc s decl.md_loc;
     md_uid = decl.md_uid;
+    md_shape = decl.md_shape; (* TODO @ulysse *)
   }
 
 and modtype_declaration scoping s decl  =
@@ -546,6 +547,7 @@ and modtype_declaration scoping s decl  =
     mtd_attributes = attrs s decl.mtd_attributes;
     mtd_loc = loc s decl.mtd_loc;
     mtd_uid = decl.mtd_uid;
+    mtd_shape = decl.mtd_shape
   }
 
 
