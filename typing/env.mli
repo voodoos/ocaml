@@ -77,12 +77,12 @@ val without_cmis: ('a -> 'b) -> 'a -> 'b
    allow opening cmis during its execution *)
 
 (* Lookup by paths *)
-
+val find_shape: t -> Ident.t -> Shape.t
 val find_value: Path.t -> t -> value_description
 val find_type: Path.t -> t -> type_declaration
 val find_type_descrs: Path.t -> t -> type_descriptions
 val find_module: Path.t -> t -> module_declaration
-val find_modtype: Path.t -> t -> modtype_declaration
+val find_modtype: Path.t -> t -> modtype_declaration * Shape.t
 val find_class: Path.t -> t -> class_declaration
 val find_cltype: Path.t -> t -> class_type_declaration
 
@@ -198,10 +198,10 @@ val lookup_type:
   Path.t * type_declaration
 val lookup_module:
   ?use:bool -> loc:Location.t -> Longident.t -> t ->
-  Path.t * module_declaration
+  Path.t * module_declaration * Shape.t
 val lookup_modtype:
   ?use:bool -> loc:Location.t -> Longident.t -> t ->
-  Path.t * modtype_declaration
+  Path.t * (modtype_declaration * Shape.t)
 val lookup_class:
   ?use:bool -> loc:Location.t -> Longident.t -> t ->
   Path.t * class_declaration
@@ -243,9 +243,9 @@ val find_value_by_name:
 val find_type_by_name:
   Longident.t -> t -> Path.t * type_declaration
 val find_module_by_name:
-  Longident.t -> t -> Path.t * module_declaration
+  Longident.t -> t -> Path.t * module_declaration * Shape.t
 val find_modtype_by_name:
-  Longident.t -> t -> Path.t * modtype_declaration
+  Longident.t -> t -> Path.t * (modtype_declaration * Shape.t)
 val find_class_by_name:
   Longident.t -> t -> Path.t * class_declaration
 val find_cltype_by_name:
@@ -275,10 +275,10 @@ val add_type: check:bool -> Ident.t -> type_declaration -> t -> t
 val add_extension:
   check:bool -> rebind:bool -> Ident.t -> extension_constructor -> t -> t
 val add_module:
-  ?arg:bool -> Ident.t -> module_presence -> module_type -> t -> t
+  ?arg:bool -> Ident.t -> module_presence -> module_type -> Shape.t -> t -> t
 val add_module_declaration: ?arg:bool -> check:bool -> Ident.t ->
-  module_presence -> module_declaration -> t -> t
-val add_modtype: Ident.t -> modtype_declaration -> t -> t
+  module_presence -> module_declaration -> Shape.t -> t -> t
+val add_modtype: Ident.t -> modtype_declaration -> Shape.t -> t -> t
 val add_class: Ident.t -> class_declaration -> t -> t
 val add_cltype: Ident.t -> class_type_declaration -> t -> t
 val add_local_type: Path.t -> type_declaration -> t -> t
@@ -331,12 +331,12 @@ val enter_extension:
   extension_constructor -> t -> Ident.t * t
 val enter_module:
   scope:int -> ?arg:bool -> string -> module_presence ->
-  module_type -> t -> Ident.t * t
+  module_type -> Shape.t -> t -> Ident.t * t
 val enter_module_declaration:
   scope:int -> ?arg:bool -> string -> module_presence ->
-  module_declaration -> t -> Ident.t * t
+  module_declaration -> Shape.t -> t -> Ident.t * t
 val enter_modtype:
-  scope:int -> string -> modtype_declaration -> t -> Ident.t * t
+  scope:int -> string -> modtype_declaration -> Shape.t -> t -> Ident.t * t
 val enter_class: scope:int -> string -> class_declaration -> t -> Ident.t * t
 val enter_cltype:
   scope:int -> string -> class_type_declaration -> t -> Ident.t * t
@@ -347,7 +347,7 @@ val enter_signature: scope:int -> signature -> t -> signature * t
 
 val enter_unbound_value : string -> value_unbound_reason -> t -> t
 
-val enter_unbound_module : string -> module_unbound_reason -> t -> t
+val enter_unbound_module : string -> module_unbound_reason -> Shape.t -> t -> t
 
 (* Initialize the cache of in-core module interfaces. *)
 val reset_cache: unit -> unit
@@ -468,7 +468,7 @@ val fold_modules:
   Longident.t option -> t -> 'a -> 'a
 
 val fold_modtypes:
-  (string -> Path.t -> modtype_declaration -> 'a -> 'a) ->
+  (string -> Path.t -> modtype_declaration * Shape.t -> 'a -> 'a) ->
   Longident.t option -> t -> 'a -> 'a
 val fold_classes:
   (string -> Path.t -> class_declaration -> 'a -> 'a) ->
