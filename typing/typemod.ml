@@ -1237,8 +1237,8 @@ let has_remove_aliases_attribute attr =
 (* Check and translate a module type expression *)
 
 let transl_modtype_longident loc env lid =
-  let (path, info) = Env.lookup_modtype ~loc lid env in
-  path, info.mtd_shape
+  let (path, (_mtd, shape)) = Env.lookup_modtype ~loc lid env in
+  path, shape
 
 let transl_module_alias loc env lid =
   Env.lookup_module_path ~load:false ~loc lid env
@@ -1279,14 +1279,7 @@ and transl_modtype_aux env smty =
       shape
   | Pmty_alias lid ->
       let path = transl_module_alias loc env lid.txt in
-      let shape =
-        let path_head = Path.head path in
-        if Ident.global path_head then
-          let root = Shape.Comp_unit (Ident.name path_head) in
-          Shape.module_proj_of_path ~root path
-        else
-          (Env.find_module path env).md_shape
-      in
+      let shape = Shape.of_path ~find_shape:(Env.find_shape env) path in
       mkmty (Tmty_alias (path, lid)) (Mty_alias path) env loc
         smty.pmty_attributes,
       shape
@@ -1312,11 +1305,10 @@ and transl_modtype_aux env smty =
                     md_attributes = [];
                     md_loc = param.loc;
                     md_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
-                    md_shape;
                   }
                 in
                 Env.enter_module_declaration ~scope ~arg:true name Mp_present
-                  arg_md env
+                  arg_md md_shape env
               in
               Some id, newenv
           in
@@ -1355,10 +1347,10 @@ and transl_with ~loc env remove_aliases (rev_tcstrs,sg) constr =
     | Pwith_type (l,decl) ->l , With_type decl
     | Pwith_typesubst (l,decl) ->l , With_typesubst decl
     | Pwith_module (l,l') ->
-        let path, md = Env.lookup_module ~loc l'.txt env in
+        let path, md, _shape = Env.lookup_module ~loc l'.txt env in
         l , With_module {lid=l';path;md; remove_aliases}
     | Pwith_modsubst (l,l') ->
-        let path, md' = Env.lookup_module ~loc l'.txt env in
+        let path, md', _shape = Env.lookup_module ~loc l'.txt env in
         l , With_modsubst (l',path,md')
     | Pwith_modtype (l,smty) ->
         let mty, _shape = transl_modtype env smty in
@@ -1506,7 +1498,6 @@ and transl_signature env sg =
               md_attributes=pmd.pmd_attributes;
               md_loc=pmd.pmd_loc;
               md_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
-              md_shape = md_shape;
             }
             in
             let id, newenv =
@@ -1514,7 +1505,7 @@ and transl_signature env sg =
               | None -> None, env
               | Some name ->
                 let id, newenv =
-                  Env.enter_module_declaration ~scope name pres md env
+                  Env.enter_module_declaration ~scope name pres md md_shape env
                 in
                 Signature_names.check_module names pmd.pmd_name.loc id;
                 Some id, newenv
@@ -1539,7 +1530,7 @@ and transl_signature env sg =
             final_env
         | Psig_modsubst pms ->
             let scope = Ctype.create_scope () in
-            let path, md =
+            let path, md, shape =
               Env.lookup_module ~loc:pms.pms_manifest.loc
                 pms.pms_manifest.txt env
             in
@@ -1552,8 +1543,6 @@ and transl_signature env sg =
                   md_attributes = pms.pms_attributes;
                   md_loc = pms.pms_loc;
                   md_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
-                  (* TODO @ulysse check and test ! *)
-                  md_shape = md.md_shape ;
                 }
             in
             let pres =
@@ -1562,7 +1551,9 @@ and transl_signature env sg =
               | _ -> Mp_present
             in
             let id, newenv =
-              Env.enter_module_declaration ~scope pms.pms_name.txt pres md env
+              (* TODO @ulysse check and test ! *)
+              Env.enter_module_declaration
+                ~scope pms.pms_name.txt pres md shape env
             in
             let info =
               `Substituted_away (Subst.add_module id path Subst.identity)
@@ -1601,7 +1592,6 @@ and transl_signature env sg =
                          md_attributes = md.md_attributes;
                          md_loc = md.md_loc;
                          md_uid = uid;
-                         md_shape = failwith "TODO @ulysse transl_signature Psig_recmodule";
                         } in
                 Sig_module(id, Mp_present, d, rs, Exported))
               decls rem,
@@ -1661,7 +1651,8 @@ and transl_signature env sg =
             let mty = tmty.mty_type in
             let scope = Ctype.create_scope () in
             let sg, newenv = Env.enter_signature ~scope
-                       (extract_sig env smty.pmty_loc mty) env in
+              (extract_sig env smty.pmty_loc mty) env
+            in
             Signature_group.iter
               (Signature_names.check_sig_item names item.psig_loc)
               sg;
@@ -1797,11 +1788,12 @@ and transl_modtype_decl_aux env
      mtd_attributes=pmtd_attributes;
      mtd_loc=pmtd_loc;
      mtd_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
-     mtd_shape;
     }
   in
   let scope = Ctype.create_scope () in
-  let (id, newenv) = Env.enter_modtype ~scope pmtd_name.txt decl env in
+  let (id, newenv) =
+    Env.enter_modtype ~scope pmtd_name.txt decl mtd_shape env
+  in
   let mtd =
     {
      mtd_id=id;
@@ -2189,14 +2181,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
                  mod_attributes = smod.pmod_attributes;
                  mod_loc = smod.pmod_loc } in
       let aliasable = not (Env.is_functor_arg path env) in
-      let shape =
-        let path_head = Path.head path in
-        if Ident.global path_head then
-          let root = Shape.Comp_unit (Ident.name path_head) in
-          Shape.module_proj_of_path ~root path
-        else
-          (Env.find_module path env).md_shape
-      in
+      let shape = Shape.of_path ~find_shape:(Env.find_shape env) path in
       let md =
         if alias && aliasable then
           (Env.add_required_global (Path.head path); md)
@@ -2246,12 +2231,11 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
                   md_attributes = [];
                   md_loc = param.loc;
                   md_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
-                  md_shape;
                 }
               in
               let id, newenv =
                 Env.enter_module_declaration ~scope ~arg:true name Mp_present
-                  arg_md env
+                  arg_md md_shape env
               in
               Some id, newenv
           in
@@ -2382,7 +2366,7 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
               | Some param ->
                   let env =
                     Env.add_module ~arg:true param Mp_present
-                      app_view.arg.mod_type env
+                      app_view.arg.mod_type (failwith "TODO @ulysse") env
                   in
                   check_well_formed_module env app_view.loc
                     "the signature of this functor application" mty_res;
