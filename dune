@@ -150,7 +150,7 @@
    ;; asmcomp/
    afl_instrument arch asmgen asmlibrarian asmlink asmpackager branch_relaxation
    branch_relaxation_intf cmm_helpers cmm cmmgen cmmgen_state coloring comballoc
-   cmm_invariants
+   cmm_invariants polling
    CSE CSEgen
    dataflow deadcode domainstate
    emit emitaux emitenv
