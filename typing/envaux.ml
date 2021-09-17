@@ -50,10 +50,13 @@ let rec env_from_summary sum subst =
       | Env_module(s, id, pres, desc) ->
           Env.add_module_declaration ~check:false id pres
             (Subst.module_declaration Keep subst desc)
+            Shape.dummy_mod
             (env_from_summary s subst)
       | Env_modtype(s, id, desc) ->
-          Env.add_modtype id (Subst.modtype_declaration Keep subst desc)
-                          (env_from_summary s subst)
+          Env.add_modtype id
+            (Subst.modtype_declaration Keep subst desc)
+            (Shape.dummy_mty ())
+            (env_from_summary s subst)
       | Env_class(s, id, desc) ->
           Env.add_class id (Subst.class_declaration subst desc)
                         (env_from_summary s subst)
@@ -72,7 +75,7 @@ let rec env_from_summary sum subst =
             when Ident.same id id' ->
           Env.add_module_declaration ~check:false
             id pres (Subst.module_declaration Keep subst desc)
-            ~arg:true (env_from_summary s subst)
+            ~arg:true Shape.dummy_mod (env_from_summary s subst)
       | Env_functor_arg _ -> assert false
       | Env_constraints(s, map) ->
           Path.Map.fold

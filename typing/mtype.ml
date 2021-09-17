@@ -78,9 +78,11 @@ and strengthen_sig ~aliasable env sg p =
       let str =
         strengthen_decl ~aliasable env md (Pdot(p, Ident.name id))
       in
+      (* TODO @ulysse maybe dummy ? probably, the Env is not returned *)
+      let shape = Env.shape_of_path env p in
       Sig_module(id, pres, str, rs, vis)
       :: strengthen_sig ~aliasable
-        (Env.add_module_declaration ~check:false id pres md env) rem p
+        (Env.add_module_declaration ~check:false id pres md shape env) rem p
       (* Need to add the module in case it defines manifest module types *)
   | Sig_modtype(id, decl, vis) :: rem ->
       let newdecl =
@@ -90,8 +92,10 @@ and strengthen_sig ~aliasable env sg p =
         | Some _ ->
             decl
       in
+      let shape = Env.shape_of_path env p ~ns:Module_type in
       Sig_modtype(id, newdecl, vis) ::
-      strengthen_sig ~aliasable (Env.add_modtype id decl env) rem p
+      (* TODO @ulysse maybe dummy ? probably, the Env is not returned *)
+      strengthen_sig ~aliasable (Env.add_modtype id decl shape env) rem p
       (* Need to add the module type in case it is manifest *)
   | (Sig_class _ as sigelt) :: rem ->
       sigelt :: strengthen_sig ~aliasable env rem p
@@ -183,7 +187,8 @@ let rec nondep_mty_with_presence env va ids pres mty =
       let res_env =
         match param with
         | None -> env
-        | Some param -> Env.add_module ~arg:true param Mp_present arg env
+        | Some param ->
+        Env.add_module ~arg:true param Mp_present arg Shape.dummy_mod env
       in
       let mty =
         Mty_functor(Named (param, nondep_mty env var_inv ids arg),
@@ -212,8 +217,7 @@ and nondep_sig_item env va ids = function
       with Ctype.Nondep_cannot_erase _ as exn ->
         match va with
           Co -> Sig_modtype(id, {mtd_type=None; mtd_loc=Location.none;
-                                 mtd_attributes=[]; mtd_uid = d.mtd_uid;
-                                 mtd_shape=d.mtd_shape}, vis)
+                                 mtd_attributes=[]; mtd_uid = d.mtd_uid;}, vis)
         | _  -> raise exn
       end
   | Sig_class(id, d, rs, vis) ->
@@ -300,10 +304,11 @@ and type_paths_sig env p sg =
       Pdot(p, Ident.name id) :: type_paths_sig env p rem
   | Sig_module(id, pres, md, _, _) :: rem ->
       type_paths env (Pdot(p, Ident.name id)) md.md_type @
-      type_paths_sig (Env.add_module_declaration ~check:false id pres md env)
+      type_paths_sig
+        (Env.add_module_declaration ~check:false id pres md Shape.dummy_mod env)
         p rem
   | Sig_modtype(id, decl, _) :: rem ->
-      type_paths_sig (Env.add_modtype id decl env) p rem
+      type_paths_sig (Env.add_modtype id decl (Shape.dummy_mty ()) env) p rem
   | (Sig_value _ | Sig_typext _ | Sig_class _ | Sig_class_type _) :: rem ->
       type_paths_sig env p rem
 
@@ -330,7 +335,9 @@ and no_code_needed_sig env sg =
   | Sig_module(id, pres, md, _, _) :: rem ->
       no_code_needed_mod env pres md.md_type &&
       no_code_needed_sig
-        (Env.add_module_declaration ~check:false id pres md env) rem
+        (Env.add_module_declaration
+          ~check:false id pres md Shape.dummy_mod env)
+        rem
   | (Sig_type _ | Sig_modtype _ | Sig_class_type _) :: rem ->
       no_code_needed_sig env rem
   | (Sig_typext _ | Sig_class _) :: _ ->
@@ -484,10 +491,12 @@ and remove_aliases_sig env args sg =
             remove_aliases_mty env args pres mty
       in
       Sig_module(id, pres, {md with md_type = mty} , rs, priv) ::
-      remove_aliases_sig (Env.add_module id pres mty env) args rem
+      remove_aliases_sig
+        (Env.add_module id pres mty Shape.dummy_mod env) args rem
   | Sig_modtype(id, mtd, priv) :: rem ->
       Sig_modtype(id, mtd, priv) ::
-      remove_aliases_sig (Env.add_modtype id mtd env) args rem
+      remove_aliases_sig
+        (Env.add_modtype id mtd (Shape.dummy_mty ()) env) args rem
   | it :: rem ->
       it :: remove_aliases_sig env args rem
 

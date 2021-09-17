@@ -264,13 +264,14 @@ let init_shape id modl =
     | Sig_module(id, Mp_present, md, _, _) :: rem ->
         init_shape_mod id md.md_loc env md.md_type ::
         init_shape_struct (Env.add_module_declaration ~check:false
-                             id Mp_present md env) rem
+                             id Mp_present md Shape.dummy_mod env) rem
     | Sig_module(id, Mp_absent, md, _, _) :: rem ->
         init_shape_struct
           (Env.add_module_declaration ~check:false
-                             id Mp_absent md env) rem
+                             id Mp_absent md Shape.dummy_mod env) rem
     | Sig_modtype(id, minfo, _) :: rem ->
-        init_shape_struct (Env.add_modtype id minfo env) rem
+        init_shape_struct
+          (Env.add_modtype id minfo (Shape.dummy_mty ()) env) rem
     | Sig_class _ :: rem ->
         const_int 2 (* camlinternalMod.Class *)
         :: init_shape_struct env rem

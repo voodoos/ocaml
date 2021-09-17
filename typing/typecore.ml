@@ -3623,14 +3623,15 @@ and type_expect_
           md_attributes = [];
           md_loc = name.loc;
           md_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
-          md_shape;
         }
       in
       let (id, new_env) =
         match name.txt with
         | None -> None, env
         | Some name ->
-          let id, env = Env.enter_module_declaration ~scope name pres md env in
+          let id, env =
+            Env.enter_module_declaration ~scope name pres md md_shape env
+          in
           Some id, env
       in
       Typetexp.widen context;
@@ -4760,11 +4761,11 @@ and type_unpacks ?(in_function : (Location.t * type_expr) option)
       let md =
         { md_type = modl.mod_type; md_attributes = [];
           md_loc = unpack.tu_name.loc;
-          md_uid = unpack.tu_uid;
-          md_shape; }
+          md_uid = unpack.tu_uid; }
       in
       let (id, env) =
-        Env.enter_module_declaration ~scope unpack.tu_name.txt pres md env
+        Env.enter_module_declaration
+          ~scope unpack.tu_name.txt pres md md_shape env
       in
       Typetexp.widen context;
       env, (id, unpack.tu_name, pres, modl) :: tunpacks

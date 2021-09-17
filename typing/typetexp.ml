@@ -507,7 +507,7 @@ and transl_type_aux env policy styp =
                              s, transl_type env policy pty
                           ) l in
       (* TODO @ulysse Ptyp_package *)
-      let path, _shape = !transl_modtype_longident styp.ptyp_loc env p.txt in
+      let path = !transl_modtype_longident styp.ptyp_loc env p.txt in
       let ty = newty (Tpackage (path,
                        List.map (fun (s, cty) -> (s.txt, cty.ctyp_type)) ptys))
       in

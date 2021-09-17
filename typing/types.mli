@@ -24,7 +24,8 @@
 (** Asttypes exposes basic definitions shared both by Parsetree and Types. *)
 open Asttypes
 
-module Uid = Shape.Uid
+(* TODO @ulysse Separate file ! *)
+
 
 (** Type expressions for the core language.
 

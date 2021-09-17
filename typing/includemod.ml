@@ -470,14 +470,15 @@ and functor_param ~loc env ~mark subst param1 param2 = match param1, param2 with
         | Error err -> Error (Error.Mismatch err)
       in
       let env, subst =
+        (* TODO @ulysse dummies ? *)
         match name1, name2 with
         | Some id1, Some id2 ->
-            Env.add_module id1 Mp_present arg2' env,
+            Env.add_module id1 Mp_present arg2' Shape.dummy_mod env,
             Subst.add_module id2 (Path.Pident id1) subst
         | None, Some id2 ->
-            Env.add_module id2 Mp_present arg2' env, subst
+            Env.add_module id2 Mp_present arg2' Shape.dummy_mod env, subst
         | Some id1, None ->
-            Env.add_module id1 Mp_present arg2' env, subst
+            Env.add_module id1 Mp_present arg2' Shape.dummy_mod env, subst
         | None, None ->
             env, subst
       in
@@ -842,7 +843,9 @@ module Functor_inclusion_diff = struct
     | None -> state, [||]
     | Some (res, expansion) -> { state with res }, expansion
 
-  let update d st = match d with
+  let update d st =
+    (* TODO @ulysse dummies ? *)
+    match d with
     | Insert (Unit | Named (None,_))
     | Delete (Unit | Named (None,_))
     | Keep (Unit,_,_)
@@ -853,21 +856,26 @@ module Functor_inclusion_diff = struct
     | Delete (Named (Some id, arg))
     | Change (Unit, Named (Some id, arg), _) ->
         let arg' = Subst.modtype Keep st.subst arg in
-        let env = Env.add_module id Mp_present arg' st.env in
+        let env = Env.add_module id Mp_present arg' Shape.dummy_mod  st.env in
         expand_params { st with env }
     | Keep (Named (name1, _), Named (name2, arg2), _)
     | Change (Named (name1, _), Named (name2, arg2), _) -> begin
         let arg' = Subst.modtype Keep st.subst arg2 in
         match name1, name2 with
         | Some id1, Some id2 ->
-            let env = Env.add_module id1 Mp_present arg' st.env in
+            let env = Env.add_module
+              id1 Mp_present arg' Shape.dummy_mod  st.env in
             let subst = Subst.add_module id2 (Path.Pident id1) st.subst in
             expand_params { st with env; subst }
         | None, Some id2 ->
-            let env = Env.add_module id2 Mp_present arg' st.env in
+            let env =
+              Env.add_module id2 Mp_present arg' Shape.dummy_mod st.env
+            in
             { st with env }, [||]
         | Some id1, None ->
-            let env = Env.add_module id1 Mp_present arg' st.env in
+            let env =
+              Env.add_module id1 Mp_present arg' Shape.dummy_mod st.env
+            in
             expand_params { st with env }
         | None, None ->
             st, [||]
@@ -915,6 +923,7 @@ module Functor_app_diff = struct
         end
 
   let update (d: (_,Types.functor_parameter,_,_) change) (st:I.state) =
+    (* TODO @ulysse dummies ? *)
     let open Error in
     match d with
     | Insert _
@@ -947,7 +956,9 @@ module Functor_app_diff = struct
         | Some param ->
             let mty' = Subst.modtype Keep st.subst mty in
             let env =
-              Env.add_module ~arg:true param Mp_present mty' st.env in
+              Env.add_module
+                ~arg:true param Mp_present mty' Shape.dummy_mod  st.env
+            in
             let res =
               Option.map (Mtype.nondep_supertype env [param]) st.res in
             I.expand_params { st with env; res}
