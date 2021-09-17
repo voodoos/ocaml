@@ -114,6 +114,10 @@ let fresh_var =
     Printf.sprintf "shape-var-%i" !unique_var_counter
     |> Ident.create_local)
 
+let dummy_mod = Struct Item.Map.empty
+let dummy_mty () = Abs(fresh_var (), Struct Item.Map.empty)
+
+
 let rec of_path ~find_shape ?(ns = Sig_component_kind.Module) =
   let ns_mod = Sig_component_kind.Module in
   function
@@ -128,6 +132,10 @@ let rec of_path ~find_shape ?(ns = Sig_component_kind.Module) =
 
 let make_empty_sig () = Abs(fresh_var (), Struct Item.Map.empty)
 
+let make_sig ts var = Abs(var, Struct ts)
+
+let make_const_fun t = Abs(fresh_var (), t)
+
 let make_persistent s = Comp_unit s
 
 let make_functor ~param body =
@@ -141,6 +149,11 @@ let make_functor_app ~arg f = App(f, arg)
 let make_structure shapes = Struct shapes
 
 let make_coercion ~sig_ mod_ = App(sig_, mod_) (* TODO @ulysse and reduce ? *)
+
+let switch_var t newvar =
+  match t with
+  | Abs _ -> App(t, Var newvar) (* TODO @ulysse reduce ? *)
+  | _ -> failwith "Not an abstraction"
 
 let reduce_one = function
   | App _ -> failwith "TODO @ulysse not implemented reduce"

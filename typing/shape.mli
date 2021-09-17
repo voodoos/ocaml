@@ -45,22 +45,6 @@ type t =
   | Proj of t * Item.t
   | Comp_unit of string
 
-val fresh_var : unit -> var
-
-val of_path : find_shape:(Ident.t -> t) -> ?ns:Sig_component_kind.t -> Path.t -> t
-
-val make_empty_sig : unit -> t
-val make_persistent : string -> t
-val make_functor : param:(Ident.t option) -> t -> t
-val make_functor_app : arg:t -> t -> t
-val make_structure : t Item.Map.t -> t
-val make_coercion : sig_:t -> t -> t
-
-val reduce_one : t -> t
-
-(** "Reset" a module shape to be used as a module type shape *)
-val unproj : t -> t
-
 module Map : sig
   type shape = t
   type nonrec t = t Item.Map.t
@@ -80,3 +64,26 @@ module Map : sig
   val add_extcons : t -> Ident.t -> shape -> t
   val add_extcons_proj : t -> Ident.t -> var -> t
 end
+
+val fresh_var : unit -> var
+
+
+val dummy_mod : t
+val dummy_mty : unit -> t
+
+val of_path : find_shape:(Ident.t -> t) -> ?ns:Sig_component_kind.t -> Path.t -> t
+
+val make_const_fun : t -> t
+val make_empty_sig : unit -> t
+val make_sig : Map.t -> var -> t
+val make_persistent : string -> t
+val make_functor : param:(Ident.t option) -> t -> t
+val make_functor_app : arg:t -> t -> t
+val make_structure : Map.t -> t
+val make_coercion : sig_:t -> t -> t
+
+val switch_var : t -> var -> t
+val reduce_one : t -> t
+
+(** "Reset" a module shape to be used as a module type shape *)
+val unproj : t -> t
