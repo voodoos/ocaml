@@ -75,7 +75,7 @@ let rec env_from_summary sum subst =
             when Ident.same id id' ->
           Env.add_module_declaration ~check:false
             id pres (Subst.module_declaration Keep subst desc)
-            ~arg:true Shape.dummy_mod (env_from_summary s subst)
+            ~arg:true Types.Shape.dummy_mod (env_from_summary s subst)
       | Env_functor_arg _ -> assert false
       | Env_constraints(s, map) ->
           Path.Map.fold
