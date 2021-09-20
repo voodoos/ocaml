@@ -76,9 +76,6 @@ val without_cmis: ('a -> 'b) -> 'a -> 'b
 (* [without_cmis f arg] applies [f] to [arg], but does not
    allow opening cmis during its execution *)
 
-val find_shape: t -> Ident.t -> Shape.t
-val shape_of_path: t -> ?ns:Shape.Sig_component_kind.t -> Path.t -> Shape.t
-
 (* Lookup by paths *)
 val find_value: Path.t -> t -> value_description
 val find_type: Path.t -> t -> type_declaration
@@ -106,6 +103,8 @@ val find_value_address: Path.t -> t -> address
 val find_module_address: Path.t -> t -> address
 val find_class_address: Path.t -> t -> address
 val find_constructor_address: Path.t -> t -> address
+
+val shape_of_path: t -> ?ns:Shape.Sig_component_kind.t -> Path.t -> Shape.t
 
 val add_functor_arg: Ident.t -> t -> t
 val is_functor_arg: Path.t -> t -> bool

@@ -787,9 +787,6 @@ end
 let set_unit_name = Current_unit_name.set
 let get_unit_name = Current_unit_name.get
 
-let find_shape _env _id = assert false
-let shape_of_path env ?ns =  Shape.of_path ?ns ~find_shape:(find_shape env)
-
 let find_same_module id tbl =
   match IdTbl.find_same id tbl with
   | x -> x
@@ -1210,6 +1207,18 @@ let find_hash_type path env =
       tda.tda_declaration
   | Papply _ ->
       raise Not_found
+
+
+let find_shape env ns id = match ns with
+  | Shape.Sig_component_kind.Module ->
+    let _, shape = find_ident_module id env in
+    shape
+  | Shape.Sig_component_kind.Module_type ->
+    let _, shape = IdTbl.find_same id env.modtypes in
+    shape
+  | _ -> failwith "unexpected namespace"
+
+let shape_of_path env ?ns =  Shape.of_path ?ns ~find_shape:(find_shape env)
 
 let required_globals = s_ref []
 let reset_required_globals () = required_globals := []
