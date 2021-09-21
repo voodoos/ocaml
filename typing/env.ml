@@ -1214,14 +1214,20 @@ let find_shape env ns id = match ns with
     if Ident.persistent id then
       Shape.make_persistent (Ident.name id)
     else
-      let _, shape = find_ident_module id env in
+      (try let _, shape = find_ident_module id env in
       shape
+      with
+      | _ -> Printexc.(get_callstack 100 |> print_raw_backtrace stderr);
+      failwith "find_shape: Module not found by ident")
   | Shape.Sig_component_kind.Module_type ->
-    let _, shape = IdTbl.find_same id env.modtypes in
-    shape
+      (try let _, shape = IdTbl.find_same id env.modtypes in
+      shape
+      with
+      | _ -> Printexc.(get_callstack 100 |> print_raw_backtrace stderr);
+      failwith "find_shape: ModuleType not found by ident")
   | _ -> failwith "unexpected namespace"
 
-let shape_of_path env ?ns =  Shape.of_path ?ns ~find_shape:(find_shape env)
+let shape_of_path env ?ns = Shape.of_path ?ns ~find_shape:(find_shape env)
 
 let required_globals = s_ref []
 let reset_required_globals () = required_globals := []
