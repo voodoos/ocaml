@@ -112,6 +112,7 @@ val make_functor_app : arg:t -> t -> t
 val make_structure : Map.t -> t
 val make_coercion : sig_:t -> t -> t
 
+val unwrap_structure : t -> Map.t
 val switch_var : t -> var -> t
 val reduce_one : t -> t
 

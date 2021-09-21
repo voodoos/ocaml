@@ -169,13 +169,22 @@ let make_structure shapes = Struct shapes
 
 let make_coercion ~sig_ mod_ = App(sig_, mod_) (* TODO @ulysse and reduce ? *)
 
+let unwrap_structure = function
+  | Struct map -> map
+  | _ ->
+  (* TODO this should not happen if we reduce shjapes eagerly
+     failwith "Not a Structure"*)
+    Item.Map.empty
+
 let switch_var t newvar =
   match t with
-  | Abs _ -> App(t, Var newvar) (* TODO @ulysse reduce ? *)
-  | _ -> failwith "Not an abstraction"
+  (* | Abs _ -> App(t, Var newvar) (* TODO @ulysse reduce  now ! *) *)
+  | t -> App(t, Var newvar)
+  (* TODO this should not happen if we reduce shapes eagerly ?
+     failwith "Not an abstraction" *)
 
 let reduce_one = function
-  | App _ -> failwith "TODO @ulysse not implemented reduce"
+  | App _ as t -> t (* failwith "TODO @ulysse not implemented reduce"*)
   | t -> t
 
 let unproj t =
