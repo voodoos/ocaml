@@ -78,11 +78,10 @@ and strengthen_sig ~aliasable env sg p =
       let str =
         strengthen_decl ~aliasable env md (Pdot(p, Ident.name id))
       in
-      (* TODO @ulysse maybe dummy ? probably, the Env is not returned *)
-      let shape = Env.shape_of_path env p in
       Sig_module(id, pres, str, rs, vis)
       :: strengthen_sig ~aliasable
-        (Env.add_module_declaration ~check:false id pres md shape env) rem p
+        (Env.add_module_declaration
+          ~check:false id pres Shape.dummy_mod shape env) rem p
       (* Need to add the module in case it defines manifest module types *)
   | Sig_modtype(id, decl, vis) :: rem ->
       let newdecl =
@@ -92,10 +91,8 @@ and strengthen_sig ~aliasable env sg p =
         | Some _ ->
             decl
       in
-      let shape = Env.shape_of_path env p ~ns:Module_type in
-      Sig_modtype(id, newdecl, vis) ::
-      (* TODO @ulysse maybe dummy ? probably, the Env is not returned *)
-      strengthen_sig ~aliasable (Env.add_modtype id decl shape env) rem p
+      Sig_modtype(id, newdecl, vis) :: strengthen_sig
+        ~aliasable (Env.add_modtype id decl (Shape.dummy_mty ()) env) rem p
       (* Need to add the module type in case it is manifest *)
   | (Sig_class _ as sigelt) :: rem ->
       sigelt :: strengthen_sig ~aliasable env rem p
