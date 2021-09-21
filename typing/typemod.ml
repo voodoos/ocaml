@@ -1321,17 +1321,17 @@ and transl_modtype_aux env smty =
         smty.pmty_attributes,
         Shape.make_functor ~param res_shape
   | Pmty_with(sbody, constraints) ->
-      let body, _shape = transl_modtype env sbody in
+      let body, shape = transl_modtype env sbody in
       let init_sg = extract_sig env sbody.pmty_loc body.mty_type in
       let remove_aliases = has_remove_aliases_attribute smty.pmty_attributes in
-      let (rev_tcstrs, final_sg) =
+      let (rev_tcstrs, final_sg, final_shape) =
         List.fold_left (transl_with ~loc:smty.pmty_loc env remove_aliases)
-        ([],init_sg) constraints in
+        ([],init_sg, shape) constraints in
       let scope = Ctype.create_scope () in
       mkmty (Tmty_with ( body, List.rev rev_tcstrs))
         (Mtype.freshen ~scope (Mty_signature final_sg)) env loc
         smty.pmty_attributes,
-      failwith "TODO @ulysse pmty with"
+      final_shape
   | Pmty_typeof smod ->
       let env = Env.in_signature false env in
       let tmty, mty, mty_shape = !type_module_type_of_fwd env smod in
@@ -1340,26 +1340,26 @@ and transl_modtype_aux env smty =
   | Pmty_extension ext ->
       raise (Error_forward (Builtin_attributes.error_of_extension ext))
 
-and transl_with ~loc env remove_aliases (rev_tcstrs,sg) constr =
-  (* TODO @ulysse transl_with see Pmty_with *)
-  let lid, with_info = match constr with
-    | Pwith_type (l,decl) ->l , With_type decl
-    | Pwith_typesubst (l,decl) ->l , With_typesubst decl
+and transl_with ~loc env remove_aliases (rev_tcstrs, sg, shape) constr =
+  (* TODO @ulysse transl_with *)
+  let lid, with_info, shape = match constr with
+    | Pwith_type (l,decl) ->l , With_type decl, shape
+    | Pwith_typesubst (l,decl) ->l , With_typesubst decl, shape
     | Pwith_module (l,l') ->
         let path, md = Env.lookup_module ~loc l'.txt env in
-        l , With_module {lid=l';path;md; remove_aliases}
+        l , With_module {lid=l';path;md; remove_aliases}, shape
     | Pwith_modsubst (l,l') ->
         let path, md' = Env.lookup_module ~loc l'.txt env in
-        l , With_modsubst (l',path,md')
+        l , With_modsubst (l',path,md'), shape
     | Pwith_modtype (l,smty) ->
         let mty, _shape = transl_modtype env smty in
-        l, With_modtype mty
+        l, With_modtype mty, shape
     | Pwith_modtypesubst (l,smty) ->
         let mty, _shape = transl_modtype env smty in
-        l, With_modtypesubst mty
+        l, With_modtypesubst mty, shape
   in
   let (tcstr, sg) = merge_constraint env loc sg lid with_info in
-  (tcstr :: rev_tcstrs, sg)
+  (tcstr :: rev_tcstrs, sg, shape)
 
 
 
@@ -1600,7 +1600,7 @@ and transl_signature env sg =
             failwith "TODO @ulysse Psig_recmodule",
             final_env
         | Psig_modtype pmtd ->
-            let newenv, mtd, sg = transl_modtype_decl env pmtd in
+            let newenv, mtd, sg, _shape = transl_modtype_decl env pmtd in
             Signature_names.check_modtype names pmtd.pmtd_loc mtd.mtd_id;
             let shape_map =
               Shape.Map.add_module_type_proj shape_map mtd.mtd_id shape_var
@@ -1613,7 +1613,7 @@ and transl_signature env sg =
             shape_map,
             final_env
         | Psig_modtypesubst pmtd ->
-            let newenv, mtd, _sg = transl_modtype_decl env pmtd in
+            let newenv, mtd, _sg, _shape = transl_modtype_decl env pmtd in
             let info =
               let mty = match mtd.mtd_type with
                 | Some tmty -> tmty.mty_type
@@ -1805,7 +1805,7 @@ and transl_modtype_decl_aux env
      mtd_loc=pmtd_loc;
     }
   in
-  newenv, mtd, Sig_modtype(id, decl, Exported)
+  newenv, mtd, Sig_modtype(id, decl, Exported), mtd_shape
 
 and transl_recmodule_modtypes env sdecls =
   (* TODO @ulysse are dummies ok ? *)
@@ -2299,7 +2299,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
         mod_env = env;
         mod_attributes = smod.pmod_attributes;
         mod_loc = smod.pmod_loc },
-      failwith "TODO @ulysse Pmod_unpack"
+      Shape.dummy_mod (* TODO @ulysse Pmod_unpack*)
   | Pmod_extension ext ->
       raise (Error_forward (Builtin_attributes.error_of_extension ext))
 
@@ -2550,14 +2550,16 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           Typedecl.transl_type_extension true env loc styext
         in
         let constructors = tyext.tyext_constructors in
-        List.iter
-          Signature_names.(fun ext -> check_typext names ext.ext_loc ext.ext_id)
-          constructors;
+        let shape_map = List.fold_left (fun shape_map ext ->
+          Signature_names.check_typext names ext.ext_loc ext.ext_id;
+            Shape.Map.add_type shape_map ext.ext_id ext.ext_type.ext_uid
+          ) shape_map constructors
+        in
         (Tstr_typext tyext,
          map_ext
            (fun es ext -> Sig_typext(ext.ext_id, ext.ext_type, es, Exported))
            constructors [],
-        failwith "TODO @ulysse type extension",
+        shape_map (* TODO @ulysse check *),
          newenv)
     | Pstr_exception sext ->
         let (ext, newenv) = Typedecl.transl_type_exception env sext in
@@ -2569,7 +2571,10 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
                     constructor.ext_type,
                     Text_exception,
                     Exported)],
-        shape_map (* TODO @ulysse This is wrong *),
+        Shape.Map.add_type shape_map
+          constructor.ext_id
+          constructor.ext_type.ext_uid
+          (* TODO @ulysse check *),
         newenv
     | Pstr_module {pmb_name = name; pmb_expr = smodl; pmb_attributes = attrs;
                    pmb_loc;
@@ -2704,8 +2709,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         newenv
     | Pstr_modtype pmtd ->
         (* check that it is non-abstract *)
-        let newenv, mtd, sg = transl_modtype_decl env pmtd in
-        let shape = failwith "TODO @ulysse Pstr_modtype" in
+        let newenv, mtd, sg, shape = transl_modtype_decl env pmtd in
         Signature_names.check_modtype names pmtd.pmtd_loc mtd.mtd_id;
         Tstr_modtype mtd, [sg],
         (* TODO @ulysse probably wrong *)
@@ -2715,7 +2719,8 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           type_open_decl ~toplevel funct_body names env sod
         in
         Tstr_open od, sg,
-        failwith "TODO @ulysse Pstr_open", newenv
+        (* TODO @ulysse Pstr_open *)
+        shape_map, newenv
     | Pstr_class cl ->
         let (classes, new_env) = Typeclass.class_declarations env cl in
         List.iter (fun cls ->
@@ -2770,7 +2775,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         new_env
     | Pstr_include sincl ->
         let smodl = sincl.pincl_mod in
-        let modl, _shape =
+        let modl, shape =
           Builtin_attributes.warning_scope sincl.pincl_attributes
             (fun () -> type_module true funct_body None env smodl)
         in
@@ -2787,7 +2792,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           }
         in
         Tstr_include incl, sg,
-        failwith "TODO @ulysse Tstr_include", new_env
+        Shape.unwrap_structure shape, new_env
     | Pstr_extension (ext, _attrs) ->
         raise (Error_forward (Builtin_attributes.error_of_extension ext))
     | Pstr_attribute x ->
