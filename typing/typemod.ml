@@ -2202,6 +2202,10 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
                 if sttn then Mtype.strengthen ~aliasable:true env mty p1
                 else mty }
         | mty ->
+            let mty =
+              if sttn then Mtype.strengthen ~aliasable env mty path
+              else mty
+            in
             { md with mod_type = mty }
       in
       md, shape

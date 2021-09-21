@@ -81,7 +81,7 @@ and strengthen_sig ~aliasable env sg p =
       Sig_module(id, pres, str, rs, vis)
       :: strengthen_sig ~aliasable
         (Env.add_module_declaration
-          ~check:false id pres str Shape.dummy_mod env) rem p
+          ~check:false id pres md Shape.dummy_mod env) rem p
       (* Need to add the module in case it defines manifest module types *)
   | Sig_modtype(id, decl, vis) :: rem ->
       let newdecl =
