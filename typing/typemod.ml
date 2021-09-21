@@ -1710,7 +1710,7 @@ and transl_signature env sg =
               :: trem
             in
             typedtree, sg,
-            failwith "TODO @ulysse Psig_class", final_env
+            shape_map (* "TODO @ulysse Psig_class" *), final_env
         | Psig_class_type cl ->
             let (classes, newenv) = Typeclass.class_type_declarations env cl in
             List.iter (fun decl ->
@@ -1743,7 +1743,7 @@ and transl_signature env sg =
               :: trem
             in
             typedtree, sg,
-            failwith "TODO @ulysse Psig_class_type", final_env
+            shape_map (* "TODO @ulysse Psig_class_type" *), final_env
         | Psig_attribute x ->
             Builtin_attributes.warning_attribute x;
             let (trem,rem, shape_map, final_env) =
@@ -2748,7 +2748,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
                Sig_type(cls.cls_obj_id, cls.cls_obj_abbr, rs, Exported);
                Sig_type(cls.cls_typesharp_id, cls.cls_abbr, rs, Exported)])
              classes []),
-        failwith "TODO @ulysse Pstr_class",
+        shape_map (* TODO @ulysse Pstr_class *),
         new_env
     | Pstr_class_type cl ->
         let (classes, new_env) = Typeclass.class_type_declarations env cl in
@@ -2775,7 +2775,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
                           Exported)
                 ])
              classes []),
-        failwith "TODO @ulysse Pstr_class_type",
+        shape_map (* TODO @ulysse Pstr_class_type *),
         new_env
     | Pstr_include sincl ->
         let smodl = sincl.pincl_mod in
