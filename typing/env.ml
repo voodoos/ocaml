@@ -1211,8 +1211,11 @@ let find_hash_type path env =
 
 let find_shape env ns id = match ns with
   | Shape.Sig_component_kind.Module ->
-    let _, shape = find_ident_module id env in
-    shape
+    if Ident.persistent id then
+      Shape.make_persistent (Ident.name id)
+    else
+      let _, shape = find_ident_module id env in
+      shape
   | Shape.Sig_component_kind.Module_type ->
     let _, shape = IdTbl.find_same id env.modtypes in
     shape
@@ -2165,10 +2168,10 @@ let add_item comp env =
       add_extension ~check:false ~rebind:false id ext env
   | Sig_module(id, presence, md, _, _) ->
   (* TODO @ulysse  *)
-      let shape = failwith "TODO @ulysse additem Sig module" in
+      let shape = (* TODO @ulysse dummy ok ? *) Shape.dummy_mod in
       add_module_declaration ~check:false id presence md shape env
   | Sig_modtype(id, decl, _)  ->
-      let shape = failwith "TODO @ulysse additem Sig modtype" in
+      let shape = (* TODO @ulysse dummy ok ? *) Shape.dummy_mty () in
       add_modtype id decl shape env
   | Sig_class(id, decl, _, _) -> add_class id decl env
   | Sig_class_type(id, decl, _, _) -> add_cltype id decl env
