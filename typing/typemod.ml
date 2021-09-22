@@ -1668,6 +1668,7 @@ and transl_signature env sg =
             let shape_map =
               (* TODO @ulysse check and add utility function *)
               let includes = Shape.switch_var tmty_shape shape_var in
+              (* TODO in sig it will always be reduced *)
               match Shape.reduce_one includes with
               | Shape.Struct m ->
                 Shape.Item.Map.union (fun _key _a b -> Some b) shape_map m
@@ -2787,6 +2788,9 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         (* Rename all identifiers bound by this signature to avoid clashes *)
         let sg, new_env = Env.enter_signature ~scope
             (extract_sig_open env smodl.pmod_loc modl.mod_type) env in
+        (* TODO @ulysse
+          Signature_group.iter could build the shape with the projections
+          if we don't already have a structure *)
         Signature_group.iter (Signature_names.check_sig_item names loc) sg;
         let incl =
           { incl_mod = modl;
@@ -2796,6 +2800,10 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           }
         in
         Tstr_include incl, sg,
+        (* TODO @ulysse this is wrong:
+          if it is a struct it is ok we take it
+          if not we will have to rebuild a Shape
+            from the signature of the module *)
         Shape.unwrap_structure shape, new_env
     | Pstr_extension (ext, _attrs) ->
         raise (Error_forward (Builtin_attributes.error_of_extension ext))
