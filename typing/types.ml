@@ -158,6 +158,34 @@ let fresh_var =
     Printf.sprintf "shape-var-%i" !unique_var_counter
     |> Ident.create_local)
 
+
+let rec subst var ~arg = function
+  | Var v when var = v -> arg
+  | Abs (v, t) ->
+    (* TODO @ulysse
+       Do we need to do under lambdas ? If yes beware of alpha renaming... *)
+      Abs(v, subst var ~arg t)
+  | App (abs, t) -> App(subst var ~arg abs, subst var ~arg t)
+  | Struct m -> Struct (Item.Map.map (fun s -> subst var ~arg s) m)
+  | Proj (t, item) -> Proj(subst var ~arg t, item)
+  | (Comp_unit _ | Leaf _ | Var _) as body -> body
+
+let reduce_one = function
+  | App (Abs (var, body), arg) -> subst var ~arg body
+  | t -> t (* TODO @ulysse should we fail ? *)
+
+(* TODO @ulysse
+  Should probably be merged with a full reduce function *)
+let reduce_projs = function
+  | Struct m -> Struct(
+      Item.Map.map (function
+      | Proj (Struct map, item) as t ->
+        (try Item.Map.find item map
+        with Not_found -> t) (* SHould never happen ?*)
+
+      | t -> t) m)
+  | t -> t (* TODO @ulysse should we fail ? *)
+
 let dummy_mod = Struct Item.Map.empty
 let dummy_mty () = Abs(fresh_var (), Struct Item.Map.empty)
 
@@ -188,11 +216,15 @@ let make_functor ~param body =
   | None -> body
   | Some id -> Abs(id, body)
 
-let make_functor_app ~arg f = App(f, arg)
+let make_functor_app ~arg f = App(f, arg) |> reduce_one
 
 let make_structure shapes = Struct shapes
 
-let make_coercion ~sig_ mod_ = App(sig_, mod_) (* TODO @ulysse and reduce ? *)
+let make_coercion ~sig_ mod_ =
+  App(sig_, mod_)
+  |> reduce_one
+  |> reduce_projs
+  (* TODO @ulysse ok to reduce ? *)
 
 let unwrap_structure = function
   | Struct map -> map
