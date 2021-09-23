@@ -2143,7 +2143,7 @@ let enter_extension ~scope ~rebind name ext env =
 
 let enter_module_declaration ~scope ?arg s presence md shape env =
   let id = Ident.create_scoped ~scope s in
-  (id, add_module_declaration ?arg ~check:true id presence md shape env)
+  (id, add_module_declaration ?arg ~check:true id presence md (shape id) env)
 
 let enter_modtype ~scope name mtd shape env =
   let id = Ident.create_scoped ~scope name in

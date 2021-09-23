@@ -764,7 +764,8 @@ let rec approx_modtype env smty =
             let scope = Ctype.create_scope () in
             let (id, newenv) =
               Env.enter_module
-                ~scope ~arg:true name Mp_present rarg Shape.dummy_mod env
+                ~scope ~arg:true name Mp_present rarg
+                (fun _ -> Shape.dummy_mod) env
             in
             Types.Named (Some id, arg), newenv
       in
@@ -825,7 +826,8 @@ and approx_sig env ssg =
           in
           let id, newenv =
             Env.enter_module_declaration
-              ~scope (Option.get pmd.pmd_name.txt) pres md Shape.dummy_mod env
+              ~scope (Option.get pmd.pmd_name.txt) pres md
+              (fun _ -> Shape.dummy_mod) env
           in
           Sig_module(id, pres, md, Trec_not, Exported) :: approx_sig newenv srem
       | Psig_modsubst pms ->
@@ -841,7 +843,7 @@ and approx_sig env ssg =
           in
           let _, newenv =
             Env.enter_module_declaration
-              ~scope pms.pms_name.txt pres md Shape.dummy_mod env
+              ~scope pms.pms_name.txt pres md (fun _ -> Shape.dummy_mod) env
           in
           approx_sig newenv srem
       | Psig_recmodule sdecls ->
@@ -1508,7 +1510,8 @@ and transl_signature env sg =
               | None -> None, env
               | Some name ->
                 let id, newenv =
-                  Env.enter_module_declaration ~scope name pres md md_shape env
+                  Env.enter_module_declaration ~scope name pres md
+                  (fun _ -> md_shape) env
                 in
                 Signature_names.check_module names pmd.pmd_name.loc id;
                 Some id, newenv
@@ -1558,7 +1561,7 @@ and transl_signature env sg =
             let id, newenv =
               (* TODO @ulysse check and test ! *)
               Env.enter_module_declaration
-                ~scope pms.pms_name.txt pres md shape env
+                ~scope pms.pms_name.txt pres md (fun _ -> shape) env
             in
             let info =
               `Substituted_away (Subst.add_module id path Subst.identity)
@@ -1605,8 +1608,8 @@ and transl_signature env sg =
         | Psig_modtype pmtd ->
             let newenv, mtd, sg, _shape = transl_modtype_decl env pmtd in
             Signature_names.check_modtype names pmtd.pmtd_loc mtd.mtd_id;
-            let shape_map =
-              Shape.Map.add_module_type_proj shape_map mtd.mtd_id shape_var
+            let shape_map = Shape.Map.add_module_type_proj
+              shape_map mtd.mtd_id fresh_var_shape
             in
             let (trem, rem, shape_map, final_env) =
               transl_sig shape_map newenv srem
@@ -1771,7 +1774,7 @@ and transl_signature env sg =
        in
        Cmt_format.set_saved_types
          ((Cmt_format.Partial_signature sg) :: previous_saved_types);
-       sg, Shape.make_sig shapes shape_var
+       sg, Shape.make_sig shapes fresh_var
     )
 
 and transl_modtype_decl env pmtd =
@@ -2248,7 +2251,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
               in
               let id, newenv =
                 Env.enter_module_declaration ~scope ~arg:true name Mp_present
-                  arg_md md_shape env
+                  arg_md arg_shape env
               in
               Some id, newenv
           in
@@ -2616,7 +2619,8 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           | None -> None, env, []
           | Some name ->
             let id, e =
-              Env.enter_module_declaration ~scope name pres md md_shape env
+              Env.enter_module_declaration ~scope name pres md
+                (fun _ -> md_shape) env
             in
             Signature_names.check_module names pmb_loc id;
             Some id, e,
