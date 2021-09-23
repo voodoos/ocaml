@@ -1261,6 +1261,20 @@ let mksig desc env loc =
   Cmt_format.add_saved_type (Cmt_format.Partial_signature_item sg);
   sg
 
+let shape_of_sig ~root sg =
+  let map = List.fold_left (fun acc ->
+    let open Shape.Map in
+    function
+      | Sig_value (id, _vd, _) -> add_value_proj acc id root
+      | Sig_type (id, _td, _, _) -> add_type_proj acc id root
+      | Sig_typext (id, _ec, _, _) -> add_extcons_proj acc id root
+      | Sig_module (id, _, _md, _, _) -> add_module_proj acc id root
+      | Sig_modtype (id, _mtd, _) -> add_module_type_proj acc id root
+      | Sig_class _ | Sig_class_type _ -> acc)
+    Shape.Item.Map.empty sg
+  in
+  Shape.make_structure map
+
 (* let signature sg = List.map (fun item -> item.sig_type) sg *)
 
 let rec transl_modtype env smty =
@@ -1681,13 +1695,15 @@ and transl_signature env sg =
               }
             in
             let shape_map =
-              (* TODO @ulysse check and add utility function *)
-              let includes = Shape.switch_var tmty_shape shape_var in
-              (* TODO in sig it will always be reduced *)
-              match Shape.reduce_one includes with
-              | Shape.Struct m ->
-                Shape.Item.Map.union (fun _key _a b -> Some b) shape_map m
-              | _ -> shape_map
+              (* TODO @ulysse check *)
+              let sig_shape =
+                match tmty_shape with
+                | Shape.Abs _ as m ->
+                  Shape.switch_var m fresh_var |> Shape.reduce_one
+                | _ -> shape_of_sig ~root:fresh_var_shape sg
+              in
+              Shape.unwrap_structure sig_shape
+              |> Shape.Item.Map.union (fun _key _a b -> Some b) shape_map
             in
             let (trem, rem, shape_map, final_env) =
               transl_sig shape_map newenv srem
@@ -2805,7 +2821,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         new_env
     | Pstr_include sincl ->
         let smodl = sincl.pincl_mod in
-        let modl, shape =
+        let modl, modl_shape =
           Builtin_attributes.warning_scope sincl.pincl_attributes
             (fun () -> type_module true funct_body None env smodl)
         in
@@ -2824,12 +2840,14 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             incl_loc = sincl.pincl_loc;
           }
         in
+        (* todo utility, factor with Psig_include *)
+        let shape = match modl_shape with
+          | Shape.Struct _ -> modl_shape
+          | _ as root -> shape_of_sig ~root sg
+
+        in
         Tstr_include incl, sg,
-        (* TODO @ulysse this is wrong:
-          if it is a struct it is ok we take it
-          if not we will have to rebuild a Shape
-            from the signature of the module *)
-        Shape.unwrap_structure shape, new_env
+        shape |> Shape.unwrap_structure, new_env
     | Pstr_extension (ext, _attrs) ->
         raise (Error_forward (Builtin_attributes.error_of_extension ext))
     | Pstr_attribute x ->
