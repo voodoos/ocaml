@@ -126,6 +126,31 @@ type t =
   | Proj of t * Item.t
   | Comp_unit of string
 
+let print fmt =
+  let rec aux fmt = function
+    | Var id -> Format.fprintf fmt "Var %a" Ident.print id
+    | Abs (id, t) -> Format.fprintf fmt "Abs(@[%a,@ %a@])" Ident.print id aux t
+    | App (t1, t2) -> Format.fprintf fmt "App(@[%a,@ %a@])" aux t1 aux t2
+    | Leaf uid -> Format.fprintf fmt "Leaf %a" Uid.print uid
+    | Proj (t, (name, ns)) ->
+      Format.fprintf fmt "Proj(%a,@ (\"%s\", %s))"
+        aux t
+        name
+        (Sig_component_kind.to_string ns)
+    | Comp_unit name -> Format.fprintf fmt "Comp_unit %s" name
+    | Struct map ->
+      let print_map = fun fmt ->
+        Item.Map.iter (fun (name, ns) shape ->
+          Format.fprintf fmt "@[(\"%s\", %s) -> %a;@]@ "
+            name
+            (Sig_component_kind.to_string ns)
+            aux shape
+        )
+      in
+      Format.fprintf fmt "Struct@ [@[<v>@,%a@]]" print_map map
+  in
+  Format.fprintf fmt"@[%a@]@." aux
+
 let fresh_var =
   let unique_var_counter = ref 0 in
   fun () ->

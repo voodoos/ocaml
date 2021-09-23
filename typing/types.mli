@@ -73,6 +73,8 @@ type t =
   | Proj of t * Item.t
   | Comp_unit of string
 
+val print : Format.formatter -> t -> unit
+
 module Map : sig
   type shape = t
   type nonrec t = t Item.Map.t
