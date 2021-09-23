@@ -202,6 +202,8 @@ let rec of_path ~find_shape ?(ns = Sig_component_kind.Module) =
       of_path ~find_shape ~ns:ns_mod p2
     )
 
+let make_var var = Var var
+
 let make_empty_sig () = Abs(fresh_var (), Struct Item.Map.empty)
 
 let make_sig ts var = Abs(var, Struct ts)
@@ -236,13 +238,9 @@ let unwrap_structure = function
 let switch_var t newvar =
   match t with
   (* | Abs _ -> App(t, Var newvar) (* TODO @ulysse reduce  now ! *) *)
-  | t -> App(t, Var newvar)
+  | t -> App(t, Var newvar) |> reduce_one
   (* TODO this should not happen if we reduce shapes eagerly ?
      failwith "Not an abstraction" *)
-
-let reduce_one = function
-  | App _ as t -> t (* failwith "TODO @ulysse not implemented reduce"*)
-  | t -> t
 
 let unproj t =
   (* TODO @ulysse Write some examples !

@@ -105,6 +105,7 @@ val of_path :
   find_shape:(Sig_component_kind.t -> Ident.t -> t) ->
   ?ns:Sig_component_kind.t -> Path.t -> t
 
+val make_var : var -> t
 val make_const_fun : t -> t
 val make_empty_sig : unit -> t
 val make_sig : Map.t -> var -> t
