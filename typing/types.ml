@@ -267,30 +267,30 @@ module Map = struct
   type nonrec t = t Item.Map.t
 
   let add_value t id uid = Item.Map.add (Item.value id) (Leaf uid) t
-  let add_value_proj t id var =
+  let add_value_proj t id shape =
     let item = Item.value id in
-    Item.Map.add item (Proj(Var var, item)) t
+    Item.Map.add item (Proj(shape, item)) t
 
   let add_type t id uid = Item.Map.add (Item.type_ id) (Leaf uid) t
-  let add_type_proj t id var =
+  let add_type_proj t id shape =
     let item = Item.type_ id in
-    Item.Map.add item (Proj(Var var, item)) t
+    Item.Map.add item (Proj(shape, item)) t
 
   let add_module t id uid = Item.Map.add (Item.module_ id) (Leaf uid) t
-  let add_module_proj t id var =
+  let add_module_proj t id shape =
     let item = Item.module_ id in
-    Item.Map.add item (Proj(Var var, item)) t
+    Item.Map.add item (Proj(shape, item)) t
 
   let add_module_type t id shape = Item.Map.add (Item.module_type id) shape t
-  let add_module_type_proj t id var =
+  let add_module_type_proj t id shape =
     let item = Item.module_type id in
-    Item.Map.add item (Proj(Var var, item)) t
+    Item.Map.add item (Proj(shape, item)) t
 
   let add_extcons t id shape =
     Item.Map.add (Item.extension_constructor id) shape t
-  let add_extcons_proj t id var =
+  let add_extcons_proj t id shape =
     let item = Item.extension_constructor id in
-    Item.Map.add item (Proj(Var var, item)) t
+    Item.Map.add item (Proj(shape, item)) t
 end
 end
 

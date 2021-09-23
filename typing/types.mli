@@ -80,19 +80,19 @@ module Map : sig
   type nonrec t = t Item.Map.t
 
   val add_value : t -> Ident.t -> Uid.t -> t
-  val add_value_proj : t -> Ident.t -> var -> t
+  val add_value_proj : t -> Ident.t -> shape -> t
 
   val add_type : t -> Ident.t -> Uid.t -> t
-  val add_type_proj : t -> Ident.t -> var -> t
+  val add_type_proj : t -> Ident.t -> shape -> t
 
   val add_module : t -> Ident.t -> Uid.t -> t
-  val add_module_proj : t -> Ident.t -> var -> t
+  val add_module_proj : t -> Ident.t -> shape -> t
 
   val add_module_type : t -> Ident.t -> shape -> t
-  val add_module_type_proj : t -> Ident.t -> var -> t
+  val add_module_type_proj : t -> Ident.t -> shape -> t
 
   val add_extcons : t -> Ident.t -> shape -> t
-  val add_extcons_proj : t -> Ident.t -> var -> t
+  val add_extcons_proj : t -> Ident.t -> shape -> t
 end
 
 val fresh_var : unit -> var

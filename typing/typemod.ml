@@ -1365,7 +1365,8 @@ and transl_with ~loc env remove_aliases (rev_tcstrs, sg, shape) constr =
 
 and transl_signature env sg =
   let names = Signature_names.create () in
-  let shape_var = Shape.fresh_var () in
+  let fresh_var = Shape.fresh_var () in
+  let fresh_var_shape = Shape.make_var fresh_var in
   let rec transl_sig shape_map env sg =
     match sg with
       [] -> [], [], shape_map, env
@@ -1378,7 +1379,7 @@ and transl_signature env sg =
             in
             Signature_names.check_value names tdesc.val_loc tdesc.val_id;
             let shape_map =
-              Shape.Map.add_value_proj shape_map tdesc.val_id shape_var
+              Shape.Map.add_value_proj shape_map tdesc.val_id fresh_var_shape
             in
             let (trem, rem, shape_map, final_env) =
               transl_sig shape_map newenv  srem
@@ -1396,7 +1397,7 @@ and transl_signature env sg =
                 (* TODO @ulysse Is this correct ?
                     Maybe we should have modified
                     map_rec_type_with_row_types? (twice...) *)
-                Shape.Map.add_type_proj shape_map td.typ_id shape_var
+                Shape.Map.add_type_proj shape_map td.typ_id fresh_var_shape
               ) shape_map decls
             in
             let (trem, rem, shape_map, final_env) =
@@ -1453,7 +1454,7 @@ and transl_signature env sg =
                 Signature_names.check_typext names ext.ext_loc ext.ext_id;
               (* TODO @ulysse Is this correct ?
                   Maybe we should have built the shapes in transl_type_ext ? *)
-                Shape.Map.add_extcons_proj shape_map ext.ext_id shape_var
+                Shape.Map.add_extcons_proj shape_map ext.ext_id fresh_var_shape
               ) shape_map constructors
             in
             let (trem, rem, _shape_map, final_env) =
@@ -1471,7 +1472,8 @@ and transl_signature env sg =
             Signature_names.check_typext names constructor.ext_loc
               constructor.ext_id;
             let shape_map =
-              Shape.Map.add_extcons_proj shape_map constructor.ext_id shape_var
+              Shape.Map.add_extcons_proj
+                shape_map constructor.ext_id fresh_var_shape
             in
             let (trem, rem, _shape_map, final_env) =
               transl_sig shape_map newenv  srem
@@ -1513,7 +1515,8 @@ and transl_signature env sg =
             in
             let shape_map = match id with
               (* TODO @ulysse CHECK *)
-              | Some id -> Shape.Map.add_module_proj shape_map id shape_var
+              | Some id ->
+                  Shape.Map.add_module_proj shape_map id fresh_var_shape
               | None -> shape_map
             in
             let (trem, rem, shape_map, final_env) =
