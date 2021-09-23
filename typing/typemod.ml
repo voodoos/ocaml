@@ -1309,6 +1309,15 @@ and transl_modtype_aux env smty =
                     md_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
                   }
                 in
+                let arg_shape id =
+                  Shape.make_coercion
+                    ~sig_:arg_shape
+                    (Shape.make_var id)
+                  (* TODO @ulysse
+                      This variable is "free" but this shape should always be
+                      accessed from within a functor body and thus the variable
+                      is not free in that context. *)
+                in
                 Env.enter_module_declaration ~scope ~arg:true name Mp_present
                   arg_md arg_shape env
               in
@@ -2236,7 +2245,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
         match arg_opt with
         | Unit -> Unit, Types.Unit, env, false
         | Named (param, smty) ->
-          let mty, md_shape = transl_modtype_functor_arg env smty in
+          let mty, mty_shape = transl_modtype_functor_arg env smty in
           let scope = Ctype.create_scope () in
           let (id, newenv) =
             match param.txt with
@@ -2248,6 +2257,15 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
                   md_loc = param.loc;
                   md_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
                 }
+              in
+              let arg_shape id =
+                Shape.make_coercion
+                  ~sig_:mty_shape
+                  (Shape.make_var id)
+                (* TODO @ulysse
+                    This variable is "free" but this shape should always be
+                    accessed from within a functor body and thus the variable
+                    is not free in that context. *)
               in
               let id, newenv =
                 Env.enter_module_declaration ~scope ~arg:true name Mp_present
@@ -2277,7 +2295,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
         mod_loc = smod.pmod_loc;
         mod_attributes = smod.pmod_attributes;
       },
-      Shape.make_coercion ~sig_:arg_shape mty_shape
+      Shape.make_coercion ~sig_:mty_shape arg_shape
   | Pmod_unpack sexp ->
       if !Clflags.principal then Ctype.begin_def ();
       let exp = Typecore.type_exp env sexp in
