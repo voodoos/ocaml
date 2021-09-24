@@ -1344,7 +1344,7 @@ and transl_modtype_aux env smty =
       mkmty (Tmty_functor (t_arg, res))
         (Mty_functor(ty_arg, res.mty_type)) env loc
         smty.pmty_attributes,
-        Shape.make_functor ~param res_shape
+        Shape.make_functor ~signature:true ~param res_shape
   | Pmty_with(sbody, constraints) ->
       let body, shape = transl_modtype env sbody in
       let init_sg = extract_sig env sbody.pmty_loc body.mty_type in
@@ -2298,7 +2298,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
         mod_env = env;
         mod_attributes = smod.pmod_attributes;
         mod_loc = smod.pmod_loc },
-      Shape.make_functor ~param body_shape
+      Shape.make_functor ~signature:false ~param body_shape
   | Pmod_apply _ ->
       type_application smod.pmod_loc sttn funct_body env smod
   | Pmod_constraint(sarg, smty) ->

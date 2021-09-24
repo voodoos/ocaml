@@ -212,11 +212,14 @@ let make_const_fun t = Abs(fresh_var (), t)
 
 let make_persistent s = Comp_unit s
 
-let make_functor ~param body =
-  match param with
+let make_functor ~signature ~param body =
+  match param, body with
   (* If the functor is generative or has nameless arg, shape is preserved *)
-  | None -> body
-  | Some id -> Abs(id, body)
+  | None, _ -> body
+  | Some id, Abs(v, body) when signature ->
+    (* The functor bindings must be inside the signature binding *)
+    Abs(v, Abs(id, body))
+  | Some id, _ -> Abs(id, body)
 
 let make_functor_app ~arg f = App(f, arg) |> reduce_one
 
