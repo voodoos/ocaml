@@ -1488,7 +1488,12 @@ and transl_signature env sig_shape sg =
             let shape_map = List.fold_left (fun shape_map ext ->
                 Signature_names.check_typext names ext.ext_loc ext.ext_id;
               (* TODO @ulysse Is this correct ?
-                  Maybe we should have built the shapes in transl_type_ext ? *)
+                  Maybe we should have built the shapes in transl_type_ext ?
+
+                 @thomas: I think it's correct. Although you probably want to
+                 build the shape (N.B. it's probably just Leaf) in
+                 transl_type_extension too, so they are stored in the local
+                 environment and jump-to-def does work locally. *)
                 Shape.Map.add_extcons_proj shape_map ext.ext_id sig_shape
               ) shape_map constructors
             in
@@ -1549,10 +1554,12 @@ and transl_signature env sig_shape sg =
                 Signature_names.check_module names pmd.pmd_name.loc id;
                 Some id, newenv
             in
-            let shape_map = match id with
-              (* TODO @ulysse CHECK *)
-              | Some id ->
-                  Shape.Map.add_module_proj shape_map id sig_shape
+            let shape_map =
+              match id with
+              (* TODO @ulysse CHECK
+
+                 @thomas: looks correct. *)
+              | Some id -> Shape.Map.add_module_proj shape_map id sig_shape
               | None -> shape_map
             in
             let (trem, rem, shape_map, final_env) =
