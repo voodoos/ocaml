@@ -2627,10 +2627,9 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
                     constructor.ext_type,
                     Text_exception,
                     Exported)],
-        Shape.Map.add_type shape_map
+        Shape.Map.add_extcons shape_map
           constructor.ext_id
-          constructor.ext_type.ext_uid
-          (* TODO @ulysse check *),
+          constructor.ext_type.ext_uid,
         newenv
     | Pstr_module {pmb_name = name; pmb_expr = smodl; pmb_attributes = attrs;
                    pmb_loc;

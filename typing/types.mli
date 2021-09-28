@@ -91,7 +91,7 @@ module Map : sig
   val add_module_type : t -> Ident.t -> shape -> t
   val add_module_type_proj : t -> Ident.t -> shape -> t
 
-  val add_extcons : t -> Ident.t -> shape -> t
+  val add_extcons : t -> Ident.t -> Uid.t -> t
   val add_extcons_proj : t -> Ident.t -> shape -> t
 end
 

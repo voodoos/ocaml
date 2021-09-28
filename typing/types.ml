@@ -302,8 +302,8 @@ module Shape = struct
       let item = Item.module_type id in
       Item.Map.add item (proj shape item) t
 
-    let add_extcons t id shape =
-      Item.Map.add (Item.extension_constructor id) shape t
+    let add_extcons t id uid =
+      Item.Map.add (Item.extension_constructor id) (Leaf uid) t
     let add_extcons_proj t id shape =
       let item = Item.extension_constructor id in
       Item.Map.add item (proj shape item) t
