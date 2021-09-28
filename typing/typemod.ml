@@ -2902,10 +2902,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
 
 let type_toplevel_phrase env s =
   Env.reset_required_globals ();
-  (* TODO @ulysse ? *)
-  let (str, sg, to_remove_from_sg, _shape, env) =
-    type_structure ~toplevel:true false None env s in
-  (str, sg, to_remove_from_sg, env)
+  type_structure ~toplevel:true false None env s
 
 let type_module_alias = type_module ~alias:true true false None
 let type_module = type_module true false None
