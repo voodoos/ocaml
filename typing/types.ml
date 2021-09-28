@@ -152,19 +152,17 @@ module Shape = struct
     in
     Format.fprintf fmt"@[%a@]@." aux
 
-  let fresh_var =
-    let unique_var_counter = ref 0 in
-    fun () ->
-      (unique_var_counter := !unique_var_counter + 1;
-       Printf.sprintf "shape-var-%i" !unique_var_counter
-       |> Ident.create_local)
-
+  let fresh_var () =
+    Ident.create_local "shape-var"
 
   let rec subst var ~arg = function
     | Var v when var = v -> arg
     | Abs (v, t) ->
         (* TODO @ulysse
-           Do we need to do under lambdas ? If yes beware of alpha renaming... *)
+           Do we need to do under lambdas ? If yes beware of alpha renaming...
+
+           @thomas: [type var = Ident.t], les idents sont uniques, donc il n'y
+           aura pas de soucis.  *)
         Abs(v, subst var ~arg t)
     | App (abs, t) -> App(subst var ~arg abs, subst var ~arg t) |> reduce_one
     | Struct m -> Struct (Item.Map.map (fun s -> subst var ~arg s) m)

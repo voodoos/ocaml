@@ -3167,7 +3167,7 @@ let save_signature modname tsg outputprefix source_file initial_env cmi =
     (Cmt_format.Interface tsg) (Some source_file) initial_env (Some cmi)
 
 let type_interface env ast =
-  let shape_var = Shape.(make_var (fresh_var ())) in
+  let shape_var = Shape.make_persistent (Env.get_unit_name ()) in
   transl_signature env shape_var ast
 
 (* "Packaging" of several compilation units into one unit
