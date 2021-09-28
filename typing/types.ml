@@ -211,13 +211,7 @@ module Shape = struct
 
   let make_abs var t = Abs(var, t)
 
-  let proj t elt =
-    match t with
-    | Struct map ->
-        begin try Item.Map.find elt map
-        with Not_found -> Proj(t, elt) (* BUG: never going to reduce that!! *)
-        end
-    | _ -> Proj (t, elt)
+  let proj t elt = Proj (t, elt) |> reduce_proj
 
   let make_empty_sig () = Abs(fresh_var (), Struct Item.Map.empty)
 
