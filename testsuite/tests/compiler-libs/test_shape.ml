@@ -356,7 +356,7 @@ module type Foo =
   sig module type Sig = sig type t end module type Sig_alias = Sig type t end
 |}]
 
-(* FIXME: missing some trivial reductions *)
+(* FIXME: str and sig disagree about the kind of exceptions. *)
 module Coercion : sig
   val v : int
   type t
@@ -381,33 +381,10 @@ end
            ("v", value) -> <.48>;
            }
           . "E"[extension constructor];
-      ("M", module) ->
-          {
-           ("E", type) -> <.51>;
-           ("M", module) -> {
-                             };
-           ("t", type) -> <.49>;
-           ("v", value) -> <.48>;
-           }
-          . "M"[module];
-      ("t", type) ->
-          {
-           ("E", type) -> <.51>;
-           ("M", module) -> {
-                             };
-           ("t", type) -> <.49>;
-           ("v", value) -> <.48>;
-           }
-          . "t"[type];
-      ("v", value) ->
-          {
-           ("E", type) -> <.51>;
-           ("M", module) -> {
-                             };
-           ("t", type) -> <.49>;
-           ("v", value) -> <.48>;
-           }
-          . "v"[value];
+      ("M", module) -> {
+                        };
+      ("t", type) -> <.49>;
+      ("v", value) -> <.48>;
       };
  }
 module Coercion : sig val v : int type t module M : sig end exception E end

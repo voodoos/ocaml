@@ -212,6 +212,14 @@ let make_var var = Var var
 
 let make_abs var t = Abs(var, t)
 
+let proj t elt =
+  match t with
+  | Struct map ->
+      begin try Item.Map.find elt map
+      with Not_found -> Proj(t, elt) (* BUG: never going to reduce that!! *)
+      end
+  | _ -> Proj (t, elt)
+
 let make_empty_sig () = Abs(fresh_var (), Struct Item.Map.empty)
 
 let make_sig ts var = Abs(var, Struct ts)
@@ -276,28 +284,28 @@ module Map = struct
   let add_value t id uid = Item.Map.add (Item.value id) (Leaf uid) t
   let add_value_proj t id shape =
     let item = Item.value id in
-    Item.Map.add item (Proj(shape, item)) t
+    Item.Map.add item (proj shape item) t
 
   let add_type t id uid = Item.Map.add (Item.type_ id) (Leaf uid) t
   let add_type_proj t id shape =
     let item = Item.type_ id in
-    Item.Map.add item (Proj(shape, item)) t
+    Item.Map.add item (proj shape item) t
 
   let add_module t id shape = Item.Map.add (Item.module_ id) shape t
   let add_module_proj t id shape =
     let item = Item.module_ id in
-    Item.Map.add item (Proj(shape, item)) t
+    Item.Map.add item (proj shape item) t
 
   let add_module_type t id shape = Item.Map.add (Item.module_type id) shape t
   let add_module_type_proj t id shape =
     let item = Item.module_type id in
-    Item.Map.add item (Proj(shape, item)) t
+    Item.Map.add item (proj shape item) t
 
   let add_extcons t id shape =
     Item.Map.add (Item.extension_constructor id) shape t
   let add_extcons_proj t id shape =
     let item = Item.extension_constructor id in
-    Item.Map.add item (Proj(shape, item)) t
+    Item.Map.add item (proj shape item) t
 end
 end
 
