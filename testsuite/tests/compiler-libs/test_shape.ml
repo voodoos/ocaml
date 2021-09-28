@@ -355,3 +355,60 @@ end
 module type Foo =
   sig module type Sig = sig type t end module type Sig_alias = Sig type t end
 |}]
+
+(* FIXME: missing some trivial reductions *)
+module Coercion : sig
+  val v : int
+  type t
+  module M : sig end
+  exception E
+end = struct
+  let v = 3
+  type t
+  module M = struct end
+  exception E
+end
+[%%expect{|
+{
+ ("Coercion", module) ->
+     {
+      ("E", extension constructor) ->
+          {
+           ("E", type) -> <.51>;
+           ("M", module) -> {
+                             };
+           ("t", type) -> <.49>;
+           ("v", value) -> <.48>;
+           }
+          . "E"[extension constructor];
+      ("M", module) ->
+          {
+           ("E", type) -> <.51>;
+           ("M", module) -> {
+                             };
+           ("t", type) -> <.49>;
+           ("v", value) -> <.48>;
+           }
+          . "M"[module];
+      ("t", type) ->
+          {
+           ("E", type) -> <.51>;
+           ("M", module) -> {
+                             };
+           ("t", type) -> <.49>;
+           ("v", value) -> <.48>;
+           }
+          . "t"[type];
+      ("v", value) ->
+          {
+           ("E", type) -> <.51>;
+           ("M", module) -> {
+                             };
+           ("t", type) -> <.49>;
+           ("v", value) -> <.48>;
+           }
+          . "v"[value];
+      };
+ }
+module Coercion : sig val v : int type t module M : sig end exception E end
+|}]
