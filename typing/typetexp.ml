@@ -501,7 +501,7 @@ and transl_type_aux env policy styp =
       let l, mty = create_package_mty true styp.ptyp_loc env (p, l) in
       let z = narrow () in
       (* TODO @ulysse Ptyp_package *)
-      let mty, _shape = !transl_modtype env mty in
+      let mty, _shape = !transl_modtype env Shape.dummy_mod mty in
       widen z;
       let ptys = List.map (fun (s, pty) ->
                              s, transl_type env policy pty
