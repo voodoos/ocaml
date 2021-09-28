@@ -67,246 +67,247 @@ module Uid = struct
     | _ -> false
 end
 module Shape = struct
-module Sig_component_kind = struct
-  type t =
-    | Value
-    | Type
-    | Module
-    | Module_type
-    | Extension_constructor
-    | Class
-    | Class_type
+  module Sig_component_kind = struct
+    type t =
+      | Value
+      | Type
+      | Module
+      | Module_type
+      | Extension_constructor
+      | Class
+      | Class_type
 
-  let to_string = function
-    | Value -> "value"
-    | Type -> "type"
-    | Module -> "module"
-    | Module_type -> "module type"
-    | Extension_constructor -> "extension constructor"
-    | Class -> "class"
-    | Class_type -> "class type"
+    let to_string = function
+      | Value -> "value"
+      | Type -> "type"
+      | Module -> "module"
+      | Module_type -> "module type"
+      | Extension_constructor -> "extension constructor"
+      | Class -> "class"
+      | Class_type -> "class type"
 
-  let can_appear_in_types = function
-    | Value
-    | Extension_constructor ->
-        false
-    | Type
-    | Module
-    | Module_type
-    | Class
-    | Class_type ->
-        true
-end
-
-module Item = struct
-  module T = struct
-    type t = string * Sig_component_kind.t
-    let compare = compare
-
-    let value id = Ident.name id, Sig_component_kind.Value
-    let type_ id = Ident.name id, Sig_component_kind.Type
-    let module_ id = Ident.name id, Sig_component_kind.Module
-    let module_type id = Ident.name id, Sig_component_kind.Module_type
-    let extension_constructor id =
-      Ident.name id, Sig_component_kind.Extension_constructor
+    let can_appear_in_types = function
+      | Value
+      | Extension_constructor ->
+          false
+      | Type
+      | Module
+      | Module_type
+      | Class
+      | Class_type ->
+          true
   end
 
-  include T
+  module Item = struct
+    module T = struct
+      type t = string * Sig_component_kind.t
+      let compare = compare
 
-  module Map = Map.Make(T)
-end
+      let value id = Ident.name id, Sig_component_kind.Value
+      let type_ id = Ident.name id, Sig_component_kind.Type
+      let module_ id = Ident.name id, Sig_component_kind.Module
+      let module_type id = Ident.name id, Sig_component_kind.Module_type
+      let extension_constructor id =
+        Ident.name id, Sig_component_kind.Extension_constructor
+    end
 
-type var = Ident.t
-type t =
-  | Var of var
-  | Abs of var * t
-  | App of t * t
-  | Struct of t Item.Map.t
-  | Leaf of Uid.t
-  | Proj of t * Item.t
-  | Comp_unit of string
+    include T
 
-let print fmt =
-  let rec aux fmt = function
-    | Var id -> Format.fprintf fmt "%a" Ident.print id
-    | Abs (id, t) -> Format.fprintf fmt "Abs(@[%a,@ @[%a@]@])" Ident.print id aux t
-    | App (t1, t2) -> Format.fprintf fmt "@[%a(@,%a)@]" aux t1 aux t2
-    | Leaf uid -> Format.fprintf fmt "<%a>" Uid.print uid
-    | Proj (t, (name, ns)) ->
-      Format.fprintf fmt "@[%a@ .@ %S[%s]@]"
-        aux t
-        name
-        (Sig_component_kind.to_string ns)
-    | Comp_unit name -> Format.fprintf fmt "CU %s" name
-    | Struct map ->
-      let print_map = fun fmt ->
-        Item.Map.iter (fun (name, ns) shape ->
-          Format.fprintf fmt "@[<hv 4>(%S, %s) ->@ %a;@]@,"
+    module Map = Map.Make(T)
+  end
+
+  type var = Ident.t
+  type t =
+    | Var of var
+    | Abs of var * t
+    | App of t * t
+    | Struct of t Item.Map.t
+    | Leaf of Uid.t
+    | Proj of t * Item.t
+    | Comp_unit of string
+
+  let print fmt =
+    let rec aux fmt = function
+      | Var id -> Format.fprintf fmt "%a" Ident.print id
+      | Abs (id, t) ->
+          Format.fprintf fmt "Abs(@[%a,@ @[%a@]@])" Ident.print id aux t
+      | App (t1, t2) -> Format.fprintf fmt "@[%a(@,%a)@]" aux t1 aux t2
+      | Leaf uid -> Format.fprintf fmt "<%a>" Uid.print uid
+      | Proj (t, (name, ns)) ->
+          Format.fprintf fmt "@[%a@ .@ %S[%s]@]"
+            aux t
             name
             (Sig_component_kind.to_string ns)
-            aux shape
-        )
-      in
-      Format.fprintf fmt "{@[<v>@,%a@]}" print_map map
-  in
-  Format.fprintf fmt"@[%a@]@." aux
+      | Comp_unit name -> Format.fprintf fmt "CU %s" name
+      | Struct map ->
+          let print_map = fun fmt ->
+            Item.Map.iter (fun (name, ns) shape ->
+                Format.fprintf fmt "@[<hv 4>(%S, %s) ->@ %a;@]@,"
+                  name
+                  (Sig_component_kind.to_string ns)
+                  aux shape
+              )
+          in
+          Format.fprintf fmt "{@[<v>@,%a@]}" print_map map
+    in
+    Format.fprintf fmt"@[%a@]@." aux
 
-let fresh_var =
-  let unique_var_counter = ref 0 in
-  fun () ->
-    (unique_var_counter := !unique_var_counter + 1;
-    Printf.sprintf "shape-var-%i" !unique_var_counter
-    |> Ident.create_local)
+  let fresh_var =
+    let unique_var_counter = ref 0 in
+    fun () ->
+      (unique_var_counter := !unique_var_counter + 1;
+       Printf.sprintf "shape-var-%i" !unique_var_counter
+       |> Ident.create_local)
 
 
-let rec subst var ~arg = function
-  | Var v when var = v -> arg
-  | Abs (v, t) ->
-    (* TODO @ulysse
-       Do we need to do under lambdas ? If yes beware of alpha renaming... *)
-      Abs(v, subst var ~arg t)
-  | App (abs, t) -> App(subst var ~arg abs, subst var ~arg t) |> reduce_one
-  | Struct m -> Struct (Item.Map.map (fun s -> subst var ~arg s) m)
-  | Proj (t, item) -> Proj(subst var ~arg t, item) |> reduce_proj
-  | (Comp_unit _ | Leaf _ | Var _) as body -> body
+  let rec subst var ~arg = function
+    | Var v when var = v -> arg
+    | Abs (v, t) ->
+        (* TODO @ulysse
+           Do we need to do under lambdas ? If yes beware of alpha renaming... *)
+        Abs(v, subst var ~arg t)
+    | App (abs, t) -> App(subst var ~arg abs, subst var ~arg t) |> reduce_one
+    | Struct m -> Struct (Item.Map.map (fun s -> subst var ~arg s) m)
+    | Proj (t, item) -> Proj(subst var ~arg t, item) |> reduce_proj
+    | (Comp_unit _ | Leaf _ | Var _) as body -> body
 
-and reduce_one = function
-  | App (Abs (var, body), arg) -> subst var ~arg body
-  | t -> t (* TODO @ulysse should we fail ? *)
+  and reduce_one = function
+    | App (Abs (var, body), arg) -> subst var ~arg body
+    | t -> t (* TODO @ulysse should we fail ? *)
 
-and reduce_proj = function
-  | Proj (Struct map, item) as t ->
+  and reduce_proj = function
+    | Proj (Struct map, item) as t ->
         (try Item.Map.find item map
-        with Not_found -> t) (* SHould never happen ?*)
-  | t -> t
+         with Not_found -> t) (* SHould never happen ?*)
+    | t -> t
 
-(* TODO @ulysse
-  Should probably be merged with a full reduce function *)
-let _reduce_projs = function
-  | Struct m -> Struct(
-      Item.Map.map (function
-      | Proj (Struct map, item) as t ->
-        (try Item.Map.find item map
-        with Not_found -> t) (* SHould never happen ?*)
+  (* TODO @ulysse
+     Should probably be merged with a full reduce function *)
+  let _reduce_projs = function
+    | Struct m -> Struct(
+        Item.Map.map (function
+            | Proj (Struct map, item) as t ->
+                (try Item.Map.find item map
+                 with Not_found -> t) (* SHould never happen ?*)
 
-      | t -> t) m)
-  | t -> t (* TODO @ulysse should we fail ? *)
+            | t -> t) m)
+    | t -> t (* TODO @ulysse should we fail ? *)
 
-let dummy_mod = Struct Item.Map.empty
-let dummy_mty () = Abs(fresh_var (), Struct Item.Map.empty)
+  let dummy_mod = Struct Item.Map.empty
+  let dummy_mty () = Abs(fresh_var (), Struct Item.Map.empty)
 
 
-let rec of_path ~find_shape ?(ns = Sig_component_kind.Module) =
-  let ns_mod = Sig_component_kind.Module in
-  function
-  | Path.Pident id -> find_shape ns id
-  | Path.Pdot (path, name) ->
-    let t = of_path ~find_shape ~ns:ns_mod path in
-    Proj (t, (name, ns)) |> reduce_proj
-  | Path.Papply (p1, p2) -> App(
-      of_path ~find_shape ~ns:ns_mod p1,
-      of_path ~find_shape ~ns:ns_mod p2
-    )
+  let rec of_path ~find_shape ?(ns = Sig_component_kind.Module) =
+    let ns_mod = Sig_component_kind.Module in
+    function
+    | Path.Pident id -> find_shape ns id
+    | Path.Pdot (path, name) ->
+        let t = of_path ~find_shape ~ns:ns_mod path in
+        Proj (t, (name, ns)) |> reduce_proj
+    | Path.Papply (p1, p2) -> App(
+        of_path ~find_shape ~ns:ns_mod p1,
+        of_path ~find_shape ~ns:ns_mod p2
+      )
 
-let make_var var = Var var
+  let make_var var = Var var
 
-let make_abs var t = Abs(var, t)
+  let make_abs var t = Abs(var, t)
 
-let proj t elt =
-  match t with
-  | Struct map ->
-      begin try Item.Map.find elt map
-      with Not_found -> Proj(t, elt) (* BUG: never going to reduce that!! *)
-      end
-  | _ -> Proj (t, elt)
+  let proj t elt =
+    match t with
+    | Struct map ->
+        begin try Item.Map.find elt map
+        with Not_found -> Proj(t, elt) (* BUG: never going to reduce that!! *)
+        end
+    | _ -> Proj (t, elt)
 
-let make_empty_sig () = Abs(fresh_var (), Struct Item.Map.empty)
+  let make_empty_sig () = Abs(fresh_var (), Struct Item.Map.empty)
 
-let make_sig ts var = Abs(var, Struct ts)
+  let make_sig ts var = Abs(var, Struct ts)
 
-let make_const_fun t = Abs(fresh_var (), t)
+  let make_const_fun t = Abs(fresh_var (), t)
 
-let make_persistent s = Comp_unit s
+  let make_persistent s = Comp_unit s
 
-let make_functor ~signature:_ ~param body =
-  match param, body with
-  (* If the functor is generative or has nameless arg, shape is preserved *)
-  | None, _ -> body
-  (* | Some id, Abs(v, body) when signature ->
-    (* The functor bindings must be inside the signature binding *)
-    Abs(v, Abs(id, body)) *)
-  | Some id, _ -> Abs(id, body)
+  let make_functor ~signature:_ ~param body =
+    match param, body with
+    (* If the functor is generative or has nameless arg, shape is preserved *)
+    | None, _ -> body
+    (* | Some id, Abs(v, body) when signature ->
+       (* The functor bindings must be inside the signature binding *)
+       Abs(v, Abs(id, body)) *)
+    | Some id, _ -> Abs(id, body)
 
-let make_functor_app ~arg f = App(f, arg) |> reduce_one
+  let make_functor_app ~arg f = App(f, arg) |> reduce_one
 
-let make_structure shapes = Struct shapes
+  let make_structure shapes = Struct shapes
 
-let make_coercion ~sig_ mod_ =
-  App(sig_, mod_) |> reduce_one
+  let make_coercion ~sig_ mod_ =
+    App(sig_, mod_) |> reduce_one
   (* TODO @ulysse ok to reduce ? *)
 
-let unwrap_structure = function
-  | Struct map -> map
-  | _ ->
-  (* TODO this should not happen if we reduce shjapes eagerly
-     failwith "Not a Structure"*)
-    Item.Map.empty
+  let unwrap_structure = function
+    | Struct map -> map
+    | _ ->
+        (* TODO this should not happen if we reduce shjapes eagerly
+           failwith "Not a Structure"*)
+        Item.Map.empty
 
-let switch_var t ~newvar =
-  (* TODO @ulysse newvar shoudl always be a Var ... *)
-  match t with
-  | t -> App(t, newvar) |> reduce_one
+  let switch_var t ~newvar =
+    (* TODO @ulysse newvar shoudl always be a Var ... *)
+    match t with
+    | t -> App(t, newvar) |> reduce_one
   (* TODO this should not happen if we reduce shapes eagerly ?
      failwith "Not an abstraction" *)
 
-let unproj t =
-  (* TODO @ulysse Write some examples !
-      (for module typeof)
-      Is it right not to go under lambdas ? *)
-  let var = fresh_var () in
-  let rec aux item = function
-    | Struct shapes ->
-      let shapes = Item.Map.mapi
-        (fun item t -> aux (Some item) t) shapes
-      in
-      Struct shapes
-    | Leaf _ as t -> (match item with
-      | None -> t
-      | Some item -> Proj(Var var, item))
-    | (Comp_unit _ | Var _ | Proj _ | Abs _ | App _) as t -> t
-  in
-  Abs(var, aux None t)
+  let unproj t =
+    (* TODO @ulysse Write some examples !
+        (for module typeof)
+        Is it right not to go under lambdas ? *)
+    let var = fresh_var () in
+    let rec aux item = function
+      | Struct shapes ->
+          let shapes = Item.Map.mapi
+              (fun item t -> aux (Some item) t) shapes
+          in
+          Struct shapes
+      | Leaf _ as t -> (match item with
+          | None -> t
+          | Some item -> Proj(Var var, item))
+      | (Comp_unit _ | Var _ | Proj _ | Abs _ | App _) as t -> t
+    in
+    Abs(var, aux None t)
 
-module Map = struct
-  type shape = t
-  type nonrec t = t Item.Map.t
+  module Map = struct
+    type shape = t
+    type nonrec t = t Item.Map.t
 
-  let add_value t id uid = Item.Map.add (Item.value id) (Leaf uid) t
-  let add_value_proj t id shape =
-    let item = Item.value id in
-    Item.Map.add item (proj shape item) t
+    let add_value t id uid = Item.Map.add (Item.value id) (Leaf uid) t
+    let add_value_proj t id shape =
+      let item = Item.value id in
+      Item.Map.add item (proj shape item) t
 
-  let add_type t id uid = Item.Map.add (Item.type_ id) (Leaf uid) t
-  let add_type_proj t id shape =
-    let item = Item.type_ id in
-    Item.Map.add item (proj shape item) t
+    let add_type t id uid = Item.Map.add (Item.type_ id) (Leaf uid) t
+    let add_type_proj t id shape =
+      let item = Item.type_ id in
+      Item.Map.add item (proj shape item) t
 
-  let add_module t id shape = Item.Map.add (Item.module_ id) shape t
-  let add_module_proj t id shape =
-    let item = Item.module_ id in
-    Item.Map.add item (proj shape item) t
+    let add_module t id shape = Item.Map.add (Item.module_ id) shape t
+    let add_module_proj t id shape =
+      let item = Item.module_ id in
+      Item.Map.add item (proj shape item) t
 
-  let add_module_type t id shape = Item.Map.add (Item.module_type id) shape t
-  let add_module_type_proj t id shape =
-    let item = Item.module_type id in
-    Item.Map.add item (proj shape item) t
+    let add_module_type t id shape = Item.Map.add (Item.module_type id) shape t
+    let add_module_type_proj t id shape =
+      let item = Item.module_type id in
+      Item.Map.add item (proj shape item) t
 
-  let add_extcons t id shape =
-    Item.Map.add (Item.extension_constructor id) shape t
-  let add_extcons_proj t id shape =
-    let item = Item.extension_constructor id in
-    Item.Map.add item (proj shape item) t
-end
+    let add_extcons t id shape =
+      Item.Map.add (Item.extension_constructor id) shape t
+    let add_extcons_proj t id shape =
+      let item = Item.extension_constructor id in
+      Item.Map.add item (proj shape item) t
+  end
 end
 
 (* Type expressions for the core language *)
