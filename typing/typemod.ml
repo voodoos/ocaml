@@ -2684,7 +2684,10 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
                         }, Trec_not, Exported)]
         in
         let shape_map = match id with
-          | Some id -> Shape.Map.add_module shape_map id md_uid
+          | Some id ->
+              (* FIXME: we're losing the uid, we should store it in the Struct
+                 node? *)
+              Shape.Map.add_module shape_map id md_shape
           | None -> shape_map
         in
         Tstr_module {mb_id=id; mb_name=name; mb_expr=modl;

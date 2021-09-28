@@ -283,7 +283,7 @@ module Map = struct
     let item = Item.type_ id in
     Item.Map.add item (Proj(shape, item)) t
 
-  let add_module t id uid = Item.Map.add (Item.module_ id) (Leaf uid) t
+  let add_module t id shape = Item.Map.add (Item.module_ id) shape t
   let add_module_proj t id shape =
     let item = Item.module_ id in
     Item.Map.add item (Proj(shape, item)) t

@@ -55,37 +55,62 @@ Struct
 module type Sx = sig type t val x : int end
 |}]
 
-(* FIXME: why is this a Leaf? *)
 module M : Sx = struct
   type t
   let x = 42
 end
 [%%expect{|
-Struct [
-        ("M", module) -> Leaf .6;
-        ]
+Struct
+[
+ ("M", module) -> Struct [
+                          ("t", type) -> Leaf .4;
+                          ("x", value) -> Leaf .5;
+                          ];
+ ]
 module M : Sx
 |}]
 
-(* FIXME: why is this a Leaf? *)
 module M' = struct
   include M
 end
 [%%expect{|
-Struct [
-        ("M'", module) -> Leaf .7;
-        ]
+Struct
+[
+ ("M'", module) -> Struct [
+                           ("t", type) -> Leaf .4;
+                           ("x", value) -> Leaf .5;
+                           ];
+ ]
 module M' : sig type t = M.t val x : int end
 |}]
 
-(* FIXME: why is this a Leaf? *)
 module MUnit = struct
   include Stdlib.Unit
 end
 [%%expect{|
-Struct [
-        ("MUnit", module) -> Leaf .8;
-        ]
+Struct
+[
+ ("MUnit", module) ->
+     Struct
+     [
+      ("compare", value) ->
+          Proj(Proj(Comp_unit Stdlib,
+          ("Unit", module)),
+          ("compare", value));
+      ("equal", value) ->
+          Proj(Proj(Comp_unit Stdlib,
+          ("Unit", module)),
+          ("equal", value));
+      ("t", type) ->
+          Proj(Proj(Comp_unit Stdlib,
+          ("Unit", module)),
+          ("t", type));
+      ("to_string", value) ->
+          Proj(Proj(Comp_unit Stdlib,
+          ("Unit", module)),
+          ("to_string", value));
+      ];
+ ]
 module MUnit :
   sig
     type t = unit = ()
@@ -95,15 +120,21 @@ module MUnit :
   end
 |}]
 
-(* FIXME: why is this a Leaf? *)
 module M'' (X : S) = struct
   include X
   type y = X.t
 end
 [%%expect{|
-Struct [
-        ("M''", module) -> Leaf .11;
-        ]
+Struct
+[
+ ("M''", module) ->
+     Abs(X/121,
+         Struct
+         [
+          ("t", type) -> Proj(Var X/121, ("t", type));
+          ("y", type) -> Leaf .10;
+          ]);
+ ]
 module M'' : functor (X : S) -> sig type t = X.t type y = X.t end
 |}]
 
@@ -129,15 +160,22 @@ Struct
 module type MFS = functor (X : S) (Y : S) -> sig type t type u end
 |}]
 
-(* FIXME: why is this a Leaf? *)
 module MF : MFS  = functor (X : S) (Y : S) -> struct
   type t = X.t
   type u
 end
 [%%expect{|
-Struct [
-        ("MF", module) -> Leaf .20;
-        ]
+Struct
+[
+ ("MF", module) ->
+     Abs(X/129,
+         Abs(Y/131,
+             Struct
+             [
+              ("t", type) -> Proj(Var X/129, ("t", type));
+              ("u", type) -> Leaf .19;
+              ]));
+ ]
 module MF : MFS
 |}]
 
@@ -224,26 +262,47 @@ module F1 (X : S) = struct
   include X
 end
 [%%expect{|
-Struct [
-        ("F1", module) -> Leaf .31;
-        ]
+Struct
+[
+ ("F1", module) ->
+     Abs(X/190,
+         Struct
+         [
+          ("t", type) -> Proj(Var X/190, ("t", type));
+          ("x", value) -> Proj(Var X/190, ("x", value));
+          ]);
+ ]
 module F1 : functor (X : S) -> sig type t = X.t val x : t end
 |}]
 
 (* FIXME: why is this a Leaf? *)
 module F3 = (F1 : S2)
 [%%expect{|
-Struct [
-        ("F3", module) -> Leaf .32;
-        ]
+Struct
+[
+ ("F3", module) ->
+     Abs(X/173,
+         Struct
+         [
+          ("t", type) -> Proj(Var X/173, ("t", type));
+          ("x", value) -> Proj(Var X/173, ("x", value));
+          ]);
+ ]
 module F3 : S2
 |}]
 
 (* FIXME: why is this a Leaf? *)
 module F4 = (F1 : S1)
 [%%expect{|
-Struct [
-        ("F4", module) -> Leaf .33;
-        ]
+Struct
+[
+ ("F4", module) ->
+     Abs(X/161,
+         Struct
+         [
+          ("t", type) -> Proj(Var X/161, ("t", type));
+          ("x", value) -> Proj(Var X/161, ("x", value));
+          ]);
+ ]
 module F4 : S1
 |}]
