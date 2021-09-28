@@ -93,26 +93,32 @@ module M'' (X : S) = struct
   type y = X.t
 end
 
-module type M''' = functor (X : S) -> sig
+module type MFS = functor (X : S) (Y : S) -> sig
   include module type of X
+  type u
+end
+
+module MF : MFS  = functor (X : S) (Y : S) -> struct
+  type t = X.t
   type u
 end
 
 |}
 in test_prog prog
-  [MT, "S"; MT, "Sx"; M, "M"; M, "M'"; M, "MUnit"; M, "M''"; MT, "M'''"]
+  [ MT, "S"; MT, "Sx"; M, "M"; M, "M'";
+    M, "MUnit"; M, "M''"; MT, "MFS"; M, "MF" ]
 
 [%%expect{|
 S:
- Abs(shape-var-1/1418, Struct
+ Abs(shape-var-1/1420, Struct
      [
-      ("t", type) -> Proj(Var shape-var-1/1418, ("t", type));
+      ("t", type) -> Proj(Var shape-var-1/1420, ("t", type));
       ])
 Sx:
- Abs(shape-var-2/1421, Struct
+ Abs(shape-var-2/1423, Struct
      [
-      ("t", type) -> Proj(Var shape-var-2/1421, ("t", type));
-      ("x", value) -> Proj(Var shape-var-2/1421, ("x", value));
+      ("t", type) -> Proj(Var shape-var-2/1423, ("t", type));
+      ("x", value) -> Proj(Var shape-var-2/1423, ("x", value));
       ])
 M:
  Struct [
@@ -136,17 +142,109 @@ MUnit:
   ("to_string", value));
   ]
 M'':
- Abs(X/1440, Struct
+ Abs(X/1443, Struct
      [
-      ("t", type) -> Proj(Var X/1440, ("t", type));
+      ("t", type) -> Proj(Var X/1443, ("t", type));
       ("y", type) -> Leaf .41;
       ])
-M''':
- Abs(X/1444,
-     Abs(shape-var-3/1445, Struct
+MFS:
+ Abs(shape-var-4/1447,
+     Abs(X/1449,
+         Abs(Y/1451, Struct
+             [
+              ("t", type) -> Proj(Var X/1449, ("t", type));
+              ("u", type) -> Proj(App(App(Var shape-var-4/1447, Var X/1449),
+                                      Var Y/1451),
+              ("u", type));
+              ])))
+MF:
+ Abs(X/1449,
+     Abs(Y/1451, Struct
          [
-          ("t", type) -> Proj(Var X/1444, ("t", type));
-          ("u", type) -> Proj(Var shape-var-3/1445, ("u", type));
+          ("t", type) -> Proj(Var X/1449, ("t", type));
+          ("u", type) -> Leaf .50;
           ]))
+- : unit = ()
+|}]
+
+
+let _ = let prog = {|
+module type S = sig
+  type t
+  val x : t
+end
+
+module type S1 = functor (X : S) -> sig
+  include module type of X
+end
+
+module type S2 = functor (X : S) -> sig
+  include S
+end
+
+module type S3 = functor (X : S) -> S
+
+module F1 (X : S) = struct
+  include X
+end
+
+module F3 = (F1 : S2)
+
+module F4 = (F1 : S1)
+|}
+in test_prog prog
+  [ MT, "S"; MT, "S1"; MT, "S2"; MT, "S3"; M, "F1"; M, "F3";
+     M, "F4"]
+
+[%%expect{|
+S:
+ Abs(shape-var-10/1464, Struct
+     [
+      ("t", type) -> Proj(Var shape-var-10/1464, ("t", type));
+      ("x", value) -> Proj(Var shape-var-10/1464, ("x", value));
+      ])
+S1:
+ Abs(shape-var-11/1468,
+     Abs(X/1470, Struct
+         [
+          ("t", type) -> Proj(Var X/1470, ("t", type));
+          ("x", value) -> Proj(Var X/1470, ("x", value));
+          ]))
+S2:
+ Abs(shape-var-14/1475,
+     Abs(X/1477, Struct
+         [
+          ("t", type) -> Proj(App(Var shape-var-14/1475, Var X/1477),
+          ("t", type));
+          ("x", value) -> Proj(App(Var shape-var-14/1475, Var X/1477),
+          ("x", value));
+          ]))
+S3:
+ Abs(shape-var-16/1481,
+     Abs(X/1483, Struct
+         [
+          ("t", type) -> Proj(App(Var shape-var-16/1481, Var X/1483),
+          ("t", type));
+          ("x", value) -> Proj(App(Var shape-var-16/1481, Var X/1483),
+          ("x", value));
+          ]))
+F1:
+ Abs(X/1486, Struct
+     [
+      ("t", type) -> Proj(Var X/1486, ("t", type));
+      ("x", value) -> Proj(Var X/1486, ("x", value));
+      ])
+F3:
+ Abs(X/1477, Struct
+     [
+      ("t", type) -> Proj(Var X/1477, ("t", type));
+      ("x", value) -> Proj(Var X/1477, ("x", value));
+      ])
+F4:
+ Abs(X/1470, Struct
+     [
+      ("t", type) -> Proj(Var X/1470, ("t", type));
+      ("x", value) -> Proj(Var X/1470, ("x", value));
+      ])
 - : unit = ()
 |}]
