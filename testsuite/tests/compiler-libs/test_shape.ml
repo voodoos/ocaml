@@ -55,6 +55,7 @@ Struct
 module type Sx = sig type t val x : int end
 |}]
 
+(* FIXME: why is this a Leaf? *)
 module M : Sx = struct
   type t
   let x = 42
@@ -66,6 +67,7 @@ Struct [
 module M : Sx
 |}]
 
+(* FIXME: why is this a Leaf? *)
 module M' = struct
   include M
 end
@@ -76,6 +78,7 @@ Struct [
 module M' : sig type t = M.t val x : int end
 |}]
 
+(* FIXME: why is this a Leaf? *)
 module MUnit = struct
   include Stdlib.Unit
 end
@@ -92,6 +95,7 @@ module MUnit :
   end
 |}]
 
+(* FIXME: why is this a Leaf? *)
 module M'' (X : S) = struct
   include X
   type y = X.t
@@ -125,6 +129,7 @@ Struct
 module type MFS = functor (X : S) (Y : S) -> sig type t type u end
 |}]
 
+(* FIXME: why is this a Leaf? *)
 module MF : MFS  = functor (X : S) (Y : S) -> struct
   type t = X.t
   type u
@@ -214,6 +219,7 @@ Struct
 module type S3 = functor (X : S) -> S
 |}]
 
+(* FIXME: why is this a Leaf? *)
 module F1 (X : S) = struct
   include X
 end
@@ -224,6 +230,7 @@ Struct [
 module F1 : functor (X : S) -> sig type t = X.t val x : t end
 |}]
 
+(* FIXME: why is this a Leaf? *)
 module F3 = (F1 : S2)
 [%%expect{|
 Struct [
@@ -232,6 +239,7 @@ Struct [
 module F3 : S2
 |}]
 
+(* FIXME: why is this a Leaf? *)
 module F4 = (F1 : S1)
 [%%expect{|
 Struct [
