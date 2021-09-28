@@ -128,16 +128,16 @@ type t =
 
 let print fmt =
   let rec aux fmt = function
-    | Var id -> Format.fprintf fmt "Var %a" Ident.print id
+    | Var id -> Format.fprintf fmt "%a" Ident.print id
     | Abs (id, t) -> Format.fprintf fmt "Abs(@[%a,@ @[%a@]@])" Ident.print id aux t
-    | App (t1, t2) -> Format.fprintf fmt "App(@[%a,@ %a@])" aux t1 aux t2
-    | Leaf uid -> Format.fprintf fmt "Leaf %a" Uid.print uid
+    | App (t1, t2) -> Format.fprintf fmt "@[%a(@,%a)@]" aux t1 aux t2
+    | Leaf uid -> Format.fprintf fmt "<%a>" Uid.print uid
     | Proj (t, (name, ns)) ->
-      Format.fprintf fmt "Proj(%a,@ (%S, %s))"
+      Format.fprintf fmt "@[%a@ .@ %S[%s]@]"
         aux t
         name
         (Sig_component_kind.to_string ns)
-    | Comp_unit name -> Format.fprintf fmt "Comp_unit %s" name
+    | Comp_unit name -> Format.fprintf fmt "CU %s" name
     | Struct map ->
       let print_map = fun fmt ->
         Item.Map.iter (fun (name, ns) shape ->
@@ -147,7 +147,7 @@ let print fmt =
             aux shape
         )
       in
-      Format.fprintf fmt "Struct@ [@[<v>@,%a@]]" print_map map
+      Format.fprintf fmt "{@[<v>@,%a@]}" print_map map
   in
   Format.fprintf fmt"@[%a@]@." aux
 
