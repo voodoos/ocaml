@@ -227,6 +227,30 @@ end
 module F1 : functor (X : S) -> sig type t = X.t val x : t end
 |}]
 
+module Arg = struct
+  type t = int
+  let x = 0
+end
+[%%expect{|
+{
+ ("Arg", module) -> {
+                     ("t", type) -> <.32>;
+                     ("x", value) -> <.33>;
+                     };
+ }
+module Arg : sig type t = int val x : int end
+|}]
+
+include F1 (Arg)
+[%%expect{|
+{
+ ("t", type) -> <.32>;
+ ("x", value) -> <.33>;
+ }
+type t = Arg.t
+val x : t = 0
+|}]
+
 module F3 = (F1 : S2)
 [%%expect{|
 {
@@ -240,6 +264,16 @@ module F3 = (F1 : S2)
 module F3 : S2
 |}]
 
+include F3 (Arg)
+[%%expect{|
+{
+ ("t", type) -> <.32>;
+ ("x", value) -> <.33>;
+ }
+type t = F3(Arg).t
+val x : t = <abstr>
+|}]
+
 module F4 = (F1 : S1)
 [%%expect{|
 {
@@ -251,4 +285,14 @@ module F4 = (F1 : S1)
           });
  }
 module F4 : S1
+|}]
+
+include F4 (Arg)
+[%%expect{|
+{
+ ("t", type) -> <.32>;
+ ("x", value) -> <.33>;
+ }
+type t = F4(Arg).t
+val x : t = <abstr>
 |}]
