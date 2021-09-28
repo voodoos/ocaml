@@ -106,6 +106,7 @@ val of_path :
   ?ns:Sig_component_kind.t -> Path.t -> t
 
 val make_var : var -> t
+val make_abs : var -> t -> t
 val make_const_fun : t -> t
 val make_empty_sig : unit -> t
 val make_sig : Map.t -> var -> t
@@ -116,7 +117,7 @@ val make_structure : Map.t -> t
 val make_coercion : sig_:t -> t -> t
 
 val unwrap_structure : t -> Map.t
-val switch_var : t -> var -> t
+val switch_var : t -> newvar:t -> t
 val reduce_one : t -> t
 
 (** "Reset" a module shape to be used as a module type shape *)

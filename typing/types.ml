@@ -165,18 +165,24 @@ let rec subst var ~arg = function
     (* TODO @ulysse
        Do we need to do under lambdas ? If yes beware of alpha renaming... *)
       Abs(v, subst var ~arg t)
-  | App (abs, t) -> App(subst var ~arg abs, subst var ~arg t)
+  | App (abs, t) -> App(subst var ~arg abs, subst var ~arg t) |> reduce_one
   | Struct m -> Struct (Item.Map.map (fun s -> subst var ~arg s) m)
-  | Proj (t, item) -> Proj(subst var ~arg t, item)
+  | Proj (t, item) -> Proj(subst var ~arg t, item) |> reduce_proj
   | (Comp_unit _ | Leaf _ | Var _) as body -> body
 
-let reduce_one = function
+and reduce_one = function
   | App (Abs (var, body), arg) -> subst var ~arg body
   | t -> t (* TODO @ulysse should we fail ? *)
 
+and reduce_proj = function
+  | Proj (Struct map, item) as t ->
+        (try Item.Map.find item map
+        with Not_found -> t) (* SHould never happen ?*)
+  | t -> t
+
 (* TODO @ulysse
   Should probably be merged with a full reduce function *)
-let reduce_projs = function
+let _reduce_projs = function
   | Struct m -> Struct(
       Item.Map.map (function
       | Proj (Struct map, item) as t ->
@@ -196,13 +202,15 @@ let rec of_path ~find_shape ?(ns = Sig_component_kind.Module) =
   | Path.Pident id -> find_shape ns id
   | Path.Pdot (path, name) ->
     let t = of_path ~find_shape ~ns:ns_mod path in
-    Proj (t, (name, ns))
+    Proj (t, (name, ns)) |> reduce_proj
   | Path.Papply (p1, p2) -> App(
       of_path ~find_shape ~ns:ns_mod p1,
       of_path ~find_shape ~ns:ns_mod p2
     )
 
 let make_var var = Var var
+
+let make_abs var t = Abs(var, t)
 
 let make_empty_sig () = Abs(fresh_var (), Struct Item.Map.empty)
 
@@ -212,13 +220,13 @@ let make_const_fun t = Abs(fresh_var (), t)
 
 let make_persistent s = Comp_unit s
 
-let make_functor ~signature ~param body =
+let make_functor ~signature:_ ~param body =
   match param, body with
   (* If the functor is generative or has nameless arg, shape is preserved *)
   | None, _ -> body
-  | Some id, Abs(v, body) when signature ->
+  (* | Some id, Abs(v, body) when signature ->
     (* The functor bindings must be inside the signature binding *)
-    Abs(v, Abs(id, body))
+    Abs(v, Abs(id, body)) *)
   | Some id, _ -> Abs(id, body)
 
 let make_functor_app ~arg f = App(f, arg) |> reduce_one
@@ -226,9 +234,7 @@ let make_functor_app ~arg f = App(f, arg) |> reduce_one
 let make_structure shapes = Struct shapes
 
 let make_coercion ~sig_ mod_ =
-  App(sig_, mod_)
-  |> reduce_one
-  |> reduce_projs
+  App(sig_, mod_) |> reduce_one
   (* TODO @ulysse ok to reduce ? *)
 
 let unwrap_structure = function
@@ -238,10 +244,10 @@ let unwrap_structure = function
      failwith "Not a Structure"*)
     Item.Map.empty
 
-let switch_var t newvar =
+let switch_var t ~newvar =
+  (* TODO @ulysse newvar shoudl always be a Var ... *)
   match t with
-  (* | Abs _ -> App(t, Var newvar) (* TODO @ulysse reduce  now ! *) *)
-  | t -> App(t, Var newvar) |> reduce_one
+  | t -> App(t, newvar) |> reduce_one
   (* TODO this should not happen if we reduce shapes eagerly ?
      failwith "Not an abstraction" *)
 
