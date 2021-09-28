@@ -123,9 +123,11 @@ module M3 (X : S) = struct
 end
 [%%expect{|
 {
- ("M3", module) -> Abs(X/128, {
-                               ("t", type) -> X/128 . "t"[type];
-                               });
+ ("M3", module) ->
+     Abs(X/128, {
+                 ("t", type) -> X/128 . "t"[type];
+                 ("y", type) -> <.13>;
+                 });
  }
 module M3 : functor (X : S) -> sig type y = X.t type t = X.t end
 |}]
@@ -141,7 +143,7 @@ end
          Abs(X/136,
              Abs(Y/138,
                  {
-                  ("t", type) -> X/136 . "t"[type];
+                  ("t", type) -> shape-var-9/134(X/136)(Y/138) . "t"[type];
                   ("u", type) -> shape-var-9/134(X/136)(Y/138) . "u"[type];
                   })));
  }
@@ -160,6 +162,9 @@ end
          Abs(X/342,
              Abs(Y/344,
                  {
+                  ("compare", value) ->
+                      shape-var-15/149(X/342)(Y/344) . "compare"[value];
+                  ("t", type) -> shape-var-15/149(X/342)(Y/344) . "t"[type];
                   ("u", type) -> shape-var-15/149(X/342)(Y/344) . "u"[type];
                   })));
  }
@@ -175,11 +180,10 @@ end
 [%%expect{|
 {
  ("MF", module) ->
-     Abs(X/136,
-         Abs(Y/138, {
-                     ("t", type) -> X/136 . "t"[type];
-                     ("u", type) -> <.26>;
-                     }));
+     Abs(X/136, Abs(Y/138, {
+                            ("t", type) -> <.25>;
+                            ("u", type) -> <.26>;
+                            }));
  }
 module MF : MFS
 |}]
@@ -209,8 +213,8 @@ end
      Abs(shape-var-28/469,
          Abs(X/471,
              {
-              ("t", type) -> X/471 . "t"[type];
-              ("x", value) -> X/471 . "x"[value];
+              ("t", type) -> shape-var-28/469(X/471) . "t"[type];
+              ("x", value) -> shape-var-28/469(X/471) . "x"[value];
               }));
  }
 module type S1 = functor (X : S) -> sig type t val x : t end

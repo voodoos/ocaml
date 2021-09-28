@@ -1261,8 +1261,8 @@ let mksig desc env loc =
   Cmt_format.add_saved_type (Cmt_format.Partial_signature_item sg);
   sg
 
-let shape_of_sig ~root sg =
-  let map = List.fold_left (fun acc ->
+let include_sig_shape ~into:map ~root sg =
+  List.fold_left (fun acc ->
     let open Shape.Map in
     function
       | Sig_value (id, _vd, _) -> add_value_proj acc id root
@@ -1271,9 +1271,7 @@ let shape_of_sig ~root sg =
       | Sig_module (id, _, _md, _, _) -> add_module_proj acc id root
       | Sig_modtype (id, _mtd, _) -> add_module_type_proj acc id root
       | Sig_class _ | Sig_class_type _ -> acc)
-    Shape.Item.Map.empty sg
-  in
-  Shape.make_structure map
+    map sg
 
 (* let signature sg = List.map (fun item -> item.sig_type) sg *)
 
@@ -1687,7 +1685,7 @@ and transl_signature env sig_shape sg =
             shape_map, final_env
         | Psig_include sincl ->
             let smty = sincl.pincl_mod in
-            let tmty, tmty_shape =
+            let tmty, _tmty_shape =
               Builtin_attributes.warning_scope sincl.pincl_attributes
                 (fun () -> transl_modtype env sig_shape smty)
             in
@@ -1707,18 +1705,10 @@ and transl_signature env sig_shape sg =
               }
             in
             let shape_map =
-              (* TODO @ulysse check *)
-              let sig_shape =
-                match tmty_shape with
-                | Shape.Abs _ as m ->
-                    (* this case is only ever useful for
-                       [include module type of ...] *)
-                  Shape.switch_var m ~newvar:sig_shape |> Shape.reduce_one
-                | _ ->
-                    shape_of_sig ~root:sig_shape sg
-              in
-              Shape.unwrap_structure sig_shape
-              |> Shape.Item.Map.union (fun _key _a b -> Some b) shape_map
+              (* TODO @ulysse check
+                 @thomas: is it always correct to drop tmty_shape?
+              *)
+              include_sig_shape ~into:shape_map ~root:sig_shape sg
             in
             let (trem, rem, shape_map, final_env) =
               transl_sig shape_map newenv srem
@@ -2865,13 +2855,13 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           }
         in
         (* todo utility, factor with Psig_include *)
-        let shape = match modl_shape with
-          | Shape.Struct _ -> modl_shape
-          | _ as root -> shape_of_sig ~root sg
-
+        let shape =
+          match modl_shape with
+          | Shape.Struct map ->
+              Shape.Item.Map.union (fun _key _a b -> Some b) shape_map map
+          | _ -> include_sig_shape ~into:shape_map ~root:modl_shape sg
         in
-        Tstr_include incl, sg,
-        shape |> Shape.unwrap_structure, new_env
+        Tstr_include incl, sg, shape, new_env
     | Pstr_extension (ext, _attrs) ->
         raise (Error_forward (Builtin_attributes.error_of_extension ext))
     | Pstr_attribute x ->
