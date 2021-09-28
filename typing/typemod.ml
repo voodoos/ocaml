@@ -1711,8 +1711,11 @@ and transl_signature env sig_shape sg =
               let sig_shape =
                 match tmty_shape with
                 | Shape.Abs _ as m ->
+                    (* this case is only ever useful for
+                       [include module type of ...] *)
                   Shape.switch_var m ~newvar:sig_shape |> Shape.reduce_one
-                | _ -> shape_of_sig ~root:sig_shape sg
+                | _ ->
+                    shape_of_sig ~root:sig_shape sg
               in
               Shape.unwrap_structure sig_shape
               |> Shape.Item.Map.union (fun _key _a b -> Some b) shape_map
