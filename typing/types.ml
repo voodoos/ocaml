@@ -129,11 +129,11 @@ type t =
 let print fmt =
   let rec aux fmt = function
     | Var id -> Format.fprintf fmt "Var %a" Ident.print id
-    | Abs (id, t) -> Format.fprintf fmt "Abs(@[%a,@ %a@])" Ident.print id aux t
+    | Abs (id, t) -> Format.fprintf fmt "Abs(@[%a,@ @[%a@]@])" Ident.print id aux t
     | App (t1, t2) -> Format.fprintf fmt "App(@[%a,@ %a@])" aux t1 aux t2
     | Leaf uid -> Format.fprintf fmt "Leaf %a" Uid.print uid
     | Proj (t, (name, ns)) ->
-      Format.fprintf fmt "Proj(%a,@ (\"%s\", %s))"
+      Format.fprintf fmt "Proj(%a,@ (%S, %s))"
         aux t
         name
         (Sig_component_kind.to_string ns)
@@ -141,7 +141,7 @@ let print fmt =
     | Struct map ->
       let print_map = fun fmt ->
         Item.Map.iter (fun (name, ns) shape ->
-          Format.fprintf fmt "@[(\"%s\", %s) -> %a;@]@ "
+          Format.fprintf fmt "@[<hv 4>(%S, %s) ->@ %a;@]@,"
             name
             (Sig_component_kind.to_string ns)
             aux shape
