@@ -1277,22 +1277,23 @@ let shape_of_sig ~root sg =
 
 (* let signature sg = List.map (fun item -> item.sig_type) sg *)
 
-let rec transl_modtype env smty =
+let rec transl_modtype env mod_shape smty =
   Builtin_attributes.warning_scope smty.pmty_attributes
-    (fun () -> transl_modtype_aux env smty)
+    (fun () -> transl_modtype_aux env mod_shape smty)
 
-and transl_modtype_functor_arg env sarg =
-  let mty, shape = transl_modtype env sarg in
+and transl_modtype_functor_arg env mod_shape sarg =
+  let mty, shape = transl_modtype env mod_shape sarg in
   {mty with mty_type = Mtype.scrape_for_functor_arg env mty.mty_type}, shape
 
-and transl_modtype_aux env smty =
+and transl_modtype_aux env mod_shape smty =
   let loc = smty.pmty_loc in
   match smty.pmty_desc with
     Pmty_ident lid ->
       let path = transl_modtype_longident loc env lid.txt in
       mkmty (Tmty_ident (path, lid)) (Mty_ident path) env loc
         smty.pmty_attributes,
-      Env.shape_of_path env path ~ns:Module_type
+      let s = Env.shape_of_path env path ~ns:Module_type in
+      Shape.switch_var s ~newvar:mod_shape
   | Pmty_alias lid ->
       let path = transl_module_alias loc env lid.txt in
       let shape = Env.shape_of_path env path in
@@ -1300,16 +1301,18 @@ and transl_modtype_aux env smty =
         smty.pmty_attributes,
       Shape.make_const_fun shape
   | Pmty_signature ssg ->
-      let sg, shape = transl_signature env ssg in
+      let sg, shape = transl_signature env mod_shape ssg in
       mkmty (Tmty_signature sg) (Mty_signature sg.sig_type) env loc
         smty.pmty_attributes,
       shape
   | Pmty_functor(sarg_opt, sres) ->
-      let t_arg, ty_arg, newenv =
+      let t_arg, ty_arg, newenv, mod_shape =
         match sarg_opt with
-        | Unit -> Unit, Types.Unit, env
+        | Unit -> Unit, Types.Unit, env, mod_shape
         | Named (param, sarg) ->
-          let arg, arg_shape = transl_modtype_functor_arg env sarg in
+          let shape_var = Shape.fresh_var () in
+          let shape = Shape.make_var shape_var in
+          let arg, arg_shape = transl_modtype_functor_arg env shape sarg in
           let (id, newenv) =
             match param.txt with
             | None -> None, env
@@ -1325,7 +1328,7 @@ and transl_modtype_aux env smty =
                 in
                 let arg_shape id =
                   Shape.make_coercion
-                    ~sig_:arg_shape
+                    ~sig_:(Shape.make_abs shape_var arg_shape)
                     (Shape.make_var id)
                   (* TODO @ulysse
                       This variable is "free" but this shape should always be
@@ -1337,20 +1340,30 @@ and transl_modtype_aux env smty =
               in
               Some id, newenv
           in
-          Named (id, param, arg), Types.Named (id, arg.mty_type), newenv
+          Named (id, param, arg),
+          Types.Named (id, arg.mty_type),
+          newenv,
+          match id with
+          | Some id ->
+          Shape.App (mod_shape, Shape.make_var id)
+          | None ->
+          (* FIXME: ill typed shape, test with functor (_ : S) -> ... *)
+          mod_shape
       in
-      let res, res_shape = transl_modtype newenv sres in
+      let res, res_shape =
+        transl_modtype newenv mod_shape sres in
       let param = match t_arg with Named (id, _, _) -> id | _ -> None in
       mkmty (Tmty_functor (t_arg, res))
         (Mty_functor(ty_arg, res.mty_type)) env loc
         smty.pmty_attributes,
         Shape.make_functor ~signature:true ~param res_shape
   | Pmty_with(sbody, constraints) ->
-      let body, shape = transl_modtype env sbody in
+      let body, shape = transl_modtype env mod_shape sbody in
       let init_sg = extract_sig env sbody.pmty_loc body.mty_type in
       let remove_aliases = has_remove_aliases_attribute smty.pmty_attributes in
       let (rev_tcstrs, final_sg, final_shape) =
-        List.fold_left (transl_with ~loc:smty.pmty_loc env remove_aliases)
+        List.fold_left
+        (transl_with ~loc:smty.pmty_loc env mod_shape remove_aliases)
         ([],init_sg, shape) constraints in
       let scope = Ctype.create_scope () in
       mkmty (Tmty_with ( body, List.rev rev_tcstrs))
@@ -1365,7 +1378,8 @@ and transl_modtype_aux env smty =
   | Pmty_extension ext ->
       raise (Error_forward (Builtin_attributes.error_of_extension ext))
 
-and transl_with ~loc env remove_aliases (rev_tcstrs, sg, shape) constr =
+and transl_with
+  ~loc env mod_shape remove_aliases (rev_tcstrs, sg, shape) constr =
   (* TODO @ulysse transl_with *)
   let lid, with_info, shape = match constr with
     | Pwith_type (l,decl) ->l , With_type decl, shape
@@ -1377,10 +1391,10 @@ and transl_with ~loc env remove_aliases (rev_tcstrs, sg, shape) constr =
         let path, md' = Env.lookup_module ~loc l'.txt env in
         l , With_modsubst (l',path,md'), shape
     | Pwith_modtype (l,smty) ->
-        let mty, _shape = transl_modtype env smty in
+        let mty, _shape = transl_modtype env mod_shape smty in
         l, With_modtype mty, shape
     | Pwith_modtypesubst (l,smty) ->
-        let mty, _shape = transl_modtype env smty in
+        let mty, _shape = transl_modtype env mod_shape smty in
         l, With_modtypesubst mty, shape
   in
   let (tcstr, sg) = merge_constraint env loc sg lid with_info in
@@ -1388,10 +1402,8 @@ and transl_with ~loc env remove_aliases (rev_tcstrs, sg, shape) constr =
 
 
 
-and transl_signature env sg =
+and transl_signature env sig_shape sg =
   let names = Signature_names.create () in
-  let fresh_var = Shape.fresh_var () in
-  let fresh_var_shape = Shape.make_var fresh_var in
   let rec transl_sig shape_map env sg =
     match sg with
       [] -> [], [], shape_map, env
@@ -1404,7 +1416,7 @@ and transl_signature env sg =
             in
             Signature_names.check_value names tdesc.val_loc tdesc.val_id;
             let shape_map =
-              Shape.Map.add_value_proj shape_map tdesc.val_id fresh_var_shape
+              Shape.Map.add_value_proj shape_map tdesc.val_id sig_shape
             in
             let (trem, rem, shape_map, final_env) =
               transl_sig shape_map newenv  srem
@@ -1422,7 +1434,7 @@ and transl_signature env sg =
                 (* TODO @ulysse Is this correct ?
                     Maybe we should have modified
                     map_rec_type_with_row_types? (twice...) *)
-                Shape.Map.add_type_proj shape_map td.typ_id fresh_var_shape
+                Shape.Map.add_type_proj shape_map td.typ_id sig_shape
               ) shape_map decls
             in
             let (trem, rem, shape_map, final_env) =
@@ -1479,7 +1491,7 @@ and transl_signature env sg =
                 Signature_names.check_typext names ext.ext_loc ext.ext_id;
               (* TODO @ulysse Is this correct ?
                   Maybe we should have built the shapes in transl_type_ext ? *)
-                Shape.Map.add_extcons_proj shape_map ext.ext_id fresh_var_shape
+                Shape.Map.add_extcons_proj shape_map ext.ext_id sig_shape
               ) shape_map constructors
             in
             let (trem, rem, _shape_map, final_env) =
@@ -1498,7 +1510,7 @@ and transl_signature env sg =
               constructor.ext_id;
             let shape_map =
               Shape.Map.add_extcons_proj
-                shape_map constructor.ext_id fresh_var_shape
+                shape_map constructor.ext_id sig_shape
             in
             let (trem, rem, _shape_map, final_env) =
               transl_sig shape_map newenv  srem
@@ -1514,7 +1526,7 @@ and transl_signature env sg =
             let scope = Ctype.create_scope () in
             let tmty, md_shape =
               Builtin_attributes.warning_scope pmd.pmd_attributes
-                (fun () -> transl_modtype env pmd.pmd_type)
+                (fun () -> transl_modtype env sig_shape pmd.pmd_type)
             in
             let pres =
               match tmty.mty_type with
@@ -1542,7 +1554,7 @@ and transl_signature env sg =
             let shape_map = match id with
               (* TODO @ulysse CHECK *)
               | Some id ->
-                  Shape.Map.add_module_proj shape_map id fresh_var_shape
+                  Shape.Map.add_module_proj shape_map id sig_shape
               | None -> shape_map
             in
             let (trem, rem, shape_map, final_env) =
@@ -1632,7 +1644,7 @@ and transl_signature env sg =
             let newenv, mtd, sg, _shape = transl_modtype_decl env pmtd in
             Signature_names.check_modtype names pmtd.pmtd_loc mtd.mtd_id;
             let shape_map = Shape.Map.add_module_type_proj
-              shape_map mtd.mtd_id fresh_var_shape
+              shape_map mtd.mtd_id sig_shape
             in
             let (trem, rem, shape_map, final_env) =
               transl_sig shape_map newenv srem
@@ -1677,7 +1689,7 @@ and transl_signature env sg =
             let smty = sincl.pincl_mod in
             let tmty, tmty_shape =
               Builtin_attributes.warning_scope sincl.pincl_attributes
-                (fun () -> transl_modtype env smty)
+                (fun () -> transl_modtype env sig_shape smty)
             in
             let mty = tmty.mty_type in
             let scope = Ctype.create_scope () in
@@ -1699,8 +1711,8 @@ and transl_signature env sg =
               let sig_shape =
                 match tmty_shape with
                 | Shape.Abs _ as m ->
-                  Shape.switch_var m fresh_var |> Shape.reduce_one
-                | _ -> shape_of_sig ~root:fresh_var_shape sg
+                  Shape.switch_var m ~newvar:sig_shape |> Shape.reduce_one
+                | _ -> shape_of_sig ~root:sig_shape sg
               in
               Shape.unwrap_structure sig_shape
               |> Shape.Item.Map.union (fun _key _a b -> Some b) shape_map
@@ -1799,7 +1811,7 @@ and transl_signature env sg =
        in
        Cmt_format.set_saved_types
          ((Cmt_format.Partial_signature sg) :: previous_saved_types);
-       sg, Shape.make_sig shapes fresh_var
+       sg, Shape.make_structure shapes
     )
 
 and transl_modtype_decl env pmtd =
@@ -1808,13 +1820,15 @@ and transl_modtype_decl env pmtd =
 
 and transl_modtype_decl_aux env
     {pmtd_name; pmtd_type; pmtd_attributes; pmtd_loc} =
+  let shape_var = Shape.fresh_var () in
+  let mod_shape = Shape.make_var shape_var in
   let tmty_and_shape =
-    Option.map (transl_modtype (Env.in_signature true env)) pmtd_type
+    Option.map (transl_modtype (Env.in_signature true env) mod_shape) pmtd_type
   in
   (* TODO @ulysse chech with example of abstract module type *)
   let mtd_shape, tmty = match tmty_and_shape with
     | None -> Shape.make_empty_sig (), None
-    | Some (tmty, shape) -> shape, Some tmty
+    | Some (tmty, shape) -> Shape.make_abs shape_var shape, Some tmty
   in
   let decl =
     {
@@ -1853,7 +1867,7 @@ and transl_recmodule_modtypes env sdecls =
       (fun pmd (id, id_loc, md, _) ->
         let tmty, _shape =
           Builtin_attributes.warning_scope pmd.pmd_attributes
-            (fun () -> transl_modtype env_c pmd.pmd_type)
+            (fun () -> transl_modtype env_c Shape.dummy_mod pmd.pmd_type)
         in
         let md = { md with Types.md_type = tmty.mty_type } in
         (id, id_loc, md, tmty))
@@ -2261,7 +2275,10 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
         match arg_opt with
         | Unit -> Unit, Types.Unit, env, false
         | Named (param, smty) ->
-          let mty, mty_shape = transl_modtype_functor_arg env smty in
+          let shape_var = Shape.fresh_var () in
+          let shape = Shape.make_var shape_var in
+          let mty, mty_shape =
+            transl_modtype_functor_arg env shape smty in
           let scope = Ctype.create_scope () in
           let (id, newenv) =
             match param.txt with
@@ -2276,7 +2293,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
               in
               let arg_shape id =
                 Shape.make_coercion
-                  ~sig_:mty_shape
+                  ~sig_:(Shape.make_abs shape_var mty_shape)
                   (Shape.make_var id)
                 (* TODO @ulysse
                     This variable is "free" but this shape should always be
@@ -2284,6 +2301,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
                     is not free in that context. *)
               in
               let id, newenv =
+              (* TODO @ulysse maybe we juste need a Var id here ? *)
                 Env.enter_module_declaration ~scope ~arg:true name Mp_present
                   arg_md arg_shape env
               in
@@ -2303,7 +2321,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
       type_application smod.pmod_loc sttn funct_body env smod
   | Pmod_constraint(sarg, smty) ->
       let arg, arg_shape = type_module ~alias true funct_body anchor env sarg in
-      let mty, mty_shape = transl_modtype env smty in
+      let mty, final_shape = transl_modtype env arg_shape smty in
       let md =
         wrap_constraint env true arg mty.mty_type (Tmodtype_explicit mty)
       in
@@ -2311,7 +2329,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
         mod_loc = smod.pmod_loc;
         mod_attributes = smod.pmod_attributes;
       },
-      Shape.make_coercion ~sig_:mty_shape arg_shape
+      final_shape
   | Pmod_unpack sexp ->
       if !Clflags.principal then Ctype.begin_def ();
       let exp = Typecore.type_exp env sexp in
@@ -3157,7 +3175,8 @@ let save_signature modname tsg outputprefix source_file initial_env cmi =
     (Cmt_format.Interface tsg) (Some source_file) initial_env (Some cmi)
 
 let type_interface env ast =
-  transl_signature env ast
+  let shape_var = Shape.(make_var (fresh_var ())) in
+  transl_signature env shape_var ast
 
 (* "Packaging" of several compilation units into one unit
    having them as sub-modules.  *)

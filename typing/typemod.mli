@@ -42,7 +42,7 @@ val type_implementation:
 val type_interface:
         Env.t -> Parsetree.signature -> Typedtree.signature * Shape.t
 val transl_signature:
-        Env.t -> Parsetree.signature -> Typedtree.signature * Shape.t
+        Env.t -> Shape.t -> Parsetree.signature -> Typedtree.signature * Shape.t
 val check_nongen_schemes:
         Env.t -> Types.signature -> unit
         (*
