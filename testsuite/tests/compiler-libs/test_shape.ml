@@ -615,3 +615,24 @@ and ASet :
     val of_seq : elt Seq.t -> t
   end
 |}]
+
+module type Rec1 = sig
+  module rec A : sig
+    type t = Leaf of B.t
+  end
+
+  and B : sig type t = int end
+end
+[%%expect{|
+|}]
+
+module type Rec2 = sig
+  module rec A : sig
+    type t = Leaf of string | Node of ASet.t
+    val compare: t -> t -> int
+  end
+
+  and ASet : Set.S with type elt = A.t
+end
+[%%expect{|
+|}]
