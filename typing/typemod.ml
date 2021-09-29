@@ -1606,21 +1606,25 @@ and transl_signature env sig_shape sg =
             let (tdecls, newenv) =
               transl_recmodule_modtypes env sdecls in
             let decls =
-              List.filter_map (fun (md, uid, _shape) ->
+              List.filter_map (fun (md, uid, shape) ->
                 match md.md_id with
                 | None -> None
-                | Some id -> Some (id, md, uid)
+                | Some id -> Some (id, md, uid, shape)
               ) tdecls
             in
-            List.iter (fun (id, md, _) ->
-              Signature_names.check_module names md.md_loc id
-            ) decls;
-            let (trem, rem, _shape_map, final_env) =
+            let shape_map =
+              List.fold_left
+                (fun acc (id, md, _, shape) ->
+                  Signature_names.check_module names md.md_loc id;
+                  Shape.Map.add_module acc id shape
+              ) shape_map decls
+            in
+            let (trem, rem, shape_map, final_env) =
               transl_sig shape_map newenv srem
             in
             mksig (Tsig_recmodule (List.map (fun (md, _, _) -> md) tdecls))
               env loc :: trem,
-            map_rec (fun rs (id, md, uid) ->
+            map_rec (fun rs (id, md, uid, _shape) ->
                 let d = {Types.md_type = md.md_type.mty_type;
                          md_attributes = md.md_attributes;
                          md_loc = md.md_loc;
@@ -1628,7 +1632,7 @@ and transl_signature env sig_shape sg =
                         } in
                 Sig_module(id, Mp_present, d, rs, Exported))
               decls rem,
-            failwith "TODO @ulysse Psig_recmodule",
+            shape_map,
             final_env
         | Psig_modtype pmtd ->
             let newenv, mtd, sg, _shape = transl_modtype_decl env pmtd in
