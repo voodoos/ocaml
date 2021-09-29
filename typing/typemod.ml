@@ -2248,7 +2248,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
       in
       md, shape
   | Pmod_structure sstr ->
-      let (str, sg, names, shape, _finalenv) =
+      let (str, sg, names, shapes, _finalenv) =
         type_structure funct_body anchor env sstr in
       let md =
         { mod_desc = Tmod_structure str;
@@ -2261,7 +2261,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
       let md = if List.length sg' = List.length sg then md
         else wrap_constraint env false md (Mty_signature sg') Tmodtype_implicit
       in
-      md, shape
+      md, Shape.make_structure shapes
   | Pmod_functor(arg_opt, sbody) ->
       let t_arg, ty_arg, newenv, param_shape_var, funct_body =
         match arg_opt with
@@ -2883,7 +2883,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
     let str = { str_items = items; str_type = sg; str_final_env = final_env } in
     Cmt_format.set_saved_types
       (Cmt_format.Partial_structure str :: previous_saved_types);
-    str, sg, names, Shape.make_structure shape_map, final_env
+    str, sg, names, shape_map, final_env
   in
   if toplevel then run ()
   else Builtin_attributes.warning_scope [] run
@@ -3069,8 +3069,9 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
       if !Clflags.print_types then (* #7656 *)
         ignore @@ Warnings.parse_options false "-32-34-37-38-60";
       (* TODO @ulysse temporary *)
-      let (str, sg, names, _shape, finalenv) =
+      let (str, sg, names, shapes, finalenv) =
         type_structure initial_env ast in
+      Cms_format.save_shape (outputprefix ^ ".cms") sourcefile shapes;
       let simple_sg = Signature_names.simplify finalenv names sg in
       if !Clflags.print_types then begin
         Typecore.force_delayed_checks ();

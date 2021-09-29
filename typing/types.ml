@@ -144,7 +144,7 @@ module Shape = struct
             (Sig_component_kind.to_string ns)
       | Comp_unit name -> Format.fprintf fmt "CU %s" name
       | Struct map ->
-          let print_map = fun fmt ->
+          let print_map fmt =
             Item.Map.iter (fun (name, ns) shape ->
                 Format.fprintf fmt "@[<hv 4>(%S, %s) ->@ %a;@]@,"
                   name
