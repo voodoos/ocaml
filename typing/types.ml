@@ -231,27 +231,13 @@ module Shape = struct
        Abs(v, Abs(id, body)) *)
     | Some id, _ -> Abs(id, body)
 
-  let make_functor_app ~arg f = App(f, arg) |> reduce_one
+  let make_app ~arg f = App(f, arg) |> reduce_one
 
   let make_structure shapes = Struct shapes
 
   let make_coercion ~sig_ mod_ =
     App(sig_, mod_) |> reduce_one
   (* TODO @ulysse ok to reduce ? *)
-
-  let unwrap_structure = function
-    | Struct map -> map
-    | _ ->
-        (* TODO this should not happen if we reduce shjapes eagerly
-           failwith "Not a Structure"*)
-        Item.Map.empty
-
-  let switch_var t ~newvar =
-    (* TODO @ulysse newvar shoudl always be a Var ... *)
-    match t with
-    | t -> App(t, newvar) |> reduce_one
-  (* TODO this should not happen if we reduce shapes eagerly ?
-     failwith "Not an abstraction" *)
 
   let unproj t =
     (* TODO @ulysse Write some examples !

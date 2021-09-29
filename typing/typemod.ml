@@ -1291,13 +1291,13 @@ and transl_modtype_aux env mod_shape smty =
       mkmty (Tmty_ident (path, lid)) (Mty_ident path) env loc
         smty.pmty_attributes,
       let s = Env.shape_of_path env path ~ns:Module_type in
-      Shape.switch_var s ~newvar:mod_shape
+      Shape.make_app s ~arg:mod_shape
   | Pmty_alias lid ->
       let path = transl_module_alias loc env lid.txt in
       let shape = Env.shape_of_path env path in
       mkmty (Tmty_alias (path, lid)) (Mty_alias path) env loc
         smty.pmty_attributes,
-      Shape.make_const_fun shape
+      shape
   | Pmty_signature ssg ->
       let sg, shape = transl_signature env mod_shape ssg in
       mkmty (Tmty_signature sg) (Mty_signature sg.sig_type) env loc
@@ -1557,7 +1557,9 @@ and transl_signature env sig_shape sg =
               match id with
               (* TODO @ulysse CHECK
 
-                 @thomas: looks correct. *)
+                 @thomas: looks correct... except for module aliases where we
+                 could just reuse the shape, but seems like more work than it's
+                 worth. *)
               | Some id -> Shape.Map.add_module_proj shape_map id sig_shape
               | None -> shape_map
             in
@@ -2466,7 +2468,7 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
         mod_env = env;
         mod_attributes = app_view.attributes;
         mod_loc = app_view.loc },
-      Shape.make_functor_app ~arg:app_view.shape funct_shape
+      Shape.make_app ~arg:app_view.shape funct_shape
   | Mty_alias path ->
       raise(Error(app_view.f_loc, env, Cannot_scrape_alias path))
   | _ ->
