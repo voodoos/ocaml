@@ -152,9 +152,9 @@ module Shape = struct
     in
     Format.fprintf fmt"@[%a@]@." aux
 
-  let fresh_var () =
-    let var = Ident.create_local "shape-var" in
-    var, Var var
+let fresh_var ?(name="shape-var") () =
+  let var = Ident.create_local name in
+  var, Var var
 
   let rec subst var ~arg = function
     | Var v when var = v -> arg
@@ -222,14 +222,24 @@ module Shape = struct
 
   let make_persistent s = Comp_unit s
 
-  let make_functor ~signature:_ ~param body =
-    match param, body with
-    (* If the functor is generative or has nameless arg, shape is preserved *)
-    | None, _ -> body
-    (* | Some id, Abs(v, body) when signature ->
-       (* The functor bindings must be inside the signature binding *)
-       Abs(v, Abs(id, body)) *)
-    | Some id, _ -> Abs(id, body)
+  let make_functor ~param body =
+    match param with
+    | None ->
+        (* FIXME? thomas: are we sure this is going to be well typed?
+           For instance if we have
+
+           {[
+             module F(_ : S) = struct let x = 3 end
+
+             module M = F(Int)
+           ]}
+
+           then we'll compute the shape { ("x", value) -> Leaf n } for F, and
+           an applicative shape for M...  *)
+        (* If the functor is generative or has nameless parameter, shape
+           is preserved (because it can't depend on it anyway). *)
+        body
+    | Some id -> Abs(id, body)
 
   let make_app ~arg f = App(f, arg) |> reduce_one
 

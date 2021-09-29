@@ -108,8 +108,8 @@ end
 [%%expect{|
 {
  ("M''", module) ->
-     Abs(X/121, {
-                 ("t", type) -> X/121 . "t"[type];
+     Abs(X/120, {
+                 ("t", type) -> X/120 . "t"[type];
                  ("y", type) -> <.10>;
                  });
  }
@@ -124,8 +124,8 @@ end
 [%%expect{|
 {
  ("M3", module) ->
-     Abs(X/128, {
-                 ("t", type) -> X/128 . "t"[type];
+     Abs(X/127, {
+                 ("t", type) -> X/127 . "t"[type];
                  ("y", type) -> <.13>;
                  });
  }
@@ -256,10 +256,10 @@ end
 [%%expect{|
 {
  ("F1", module) ->
-     Abs(X/500,
+     Abs(X/499,
          {
-          ("t", type) -> X/500 . "t"[type];
-          ("x", value) -> X/500 . "x"[value];
+          ("t", type) -> X/499 . "t"[type];
+          ("x", value) -> X/499 . "x"[value];
           });
  }
 module F1 : functor (X : S) -> sig type t = X.t val x : t end

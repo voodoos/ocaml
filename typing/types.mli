@@ -95,9 +95,7 @@ module Shape : sig
     val add_extcons_proj : t -> Ident.t -> shape -> t
   end
 
-  (** Returns a variable and it's shape *)
-  val fresh_var : unit -> var * t
-
+  val fresh_var : ?name:string -> unit -> var * t
 
   val dummy_mod : t
   val dummy_mty : unit -> t
@@ -113,7 +111,7 @@ module Shape : sig
   val make_empty_sig : unit -> t
   val make_sig : Map.t -> var -> t
   val make_persistent : string -> t
-  val make_functor : signature:bool -> param:(Ident.t option) -> t -> t
+  val make_functor : param:(Ident.t option) -> t -> t
   val make_structure : Map.t -> t
   val make_coercion : sig_:t -> t -> t
 

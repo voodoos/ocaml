@@ -1353,7 +1353,7 @@ and transl_modtype_aux env mod_shape smty =
       mkmty (Tmty_functor (t_arg, res))
         (Mty_functor(ty_arg, res.mty_type)) env loc
         smty.pmty_attributes,
-        Shape.make_functor ~signature:true ~param res_shape
+        Shape.make_functor ~param res_shape
   | Pmty_with(sbody, constraints) ->
       let body, shape = transl_modtype env mod_shape sbody in
       let init_sg = extract_sig env sbody.pmty_loc body.mty_type in
@@ -2271,17 +2271,18 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
       in
       md, shape
   | Pmod_functor(arg_opt, sbody) ->
-      let t_arg, ty_arg, newenv, funct_body =
+      let t_arg, ty_arg, newenv, param_shape_var, funct_body =
         match arg_opt with
-        | Unit -> Unit, Types.Unit, env, false
+        | Unit -> Unit, Types.Unit, env, None, false
         | Named (param, smty) ->
-          let var, var_shape = Shape.fresh_var () in
+          let var, var_shape = Shape.fresh_var ?name:param.txt () in
           let mty, mty_shape =
-            transl_modtype_functor_arg env var_shape smty in
+            transl_modtype_functor_arg env var_shape smty
+          in
           let scope = Ctype.create_scope () in
-          let (id, newenv) =
+          let (id, shape_var, newenv) =
             match param.txt with
-            | None -> None, env
+            | None -> None, None, env
             | Some name ->
               let arg_md =
                 { md_type = mty.mty_type;
@@ -2290,32 +2291,22 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
                   md_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
                 }
               in
-              let arg_shape id =
-                Shape.make_coercion
-                  ~sig_:(Shape.make_abs var mty_shape)
-                  (Shape.make_var id)
-                (* TODO @ulysse
-                    This variable is "free" but this shape should always be
-                    accessed from within a functor body and thus the variable
-                    is not free in that context. *)
-              in
               let id, newenv =
-              (* TODO @ulysse maybe we juste need a Var id here ? *)
                 Env.enter_module_declaration ~scope ~arg:true name Mp_present
-                  arg_md arg_shape env
+                  arg_md (fun _ -> mty_shape) env
               in
-              Some id, newenv
+              Some id, Some var, newenv
           in
-          Named (id, param, mty), Types.Named (id, mty.mty_type), newenv, true
+          Named (id, param, mty), Types.Named (id, mty.mty_type), newenv,
+          shape_var, true
       in
       let body, body_shape = type_module true funct_body None newenv sbody in
-      let param = match t_arg with Named (id, _, _) -> id | _ -> None in
       { mod_desc = Tmod_functor(t_arg, body);
         mod_type = Mty_functor(ty_arg, body.mod_type);
         mod_env = env;
         mod_attributes = smod.pmod_attributes;
         mod_loc = smod.pmod_loc },
-      Shape.make_functor ~signature:false ~param body_shape
+      Shape.make_functor ~param:param_shape_var body_shape
   | Pmod_apply _ ->
       type_application smod.pmod_loc sttn funct_body env smod
   | Pmod_constraint(sarg, smty) ->
