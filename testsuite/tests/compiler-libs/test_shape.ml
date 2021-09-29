@@ -480,3 +480,32 @@ module type SC =
     class type ct = object val v : int end
   end
 |}]
+
+module type Fignore = functor (_ : S) -> sig
+  val x : int
+end
+[%%expect{|
+{
+ ("Fignore", module type) ->
+     Abs(shape-var/651, {
+                         ("x", value) -> shape-var/651 . "x"[value];
+                         });
+ }
+module type Fignore = S -> sig val x : int end
+|}]
+
+module F : Fignore = functor (_ : S) -> struct
+  let x = 3
+end
+[%%expect{|
+{
+ ("F", module) ->
+     {
+      ("x", value) ->
+          Abs(shape-var/658, {
+                              ("x", value) -> <.77>;
+                              }) . "x"[value];
+      };
+ }
+module F : Fignore
+|}]
