@@ -1297,7 +1297,7 @@ and transl_modtype_aux env mod_shape smty =
       let shape = Env.shape_of_path env path in
       mkmty (Tmty_alias (path, lid)) (Mty_alias path) env loc
         smty.pmty_attributes,
-      Shape.make_const_fun shape
+      shape
   | Pmty_signature ssg ->
       let sg, shape = transl_signature env mod_shape ssg in
       mkmty (Tmty_signature sg) (Mty_signature sg.sig_type) env loc
@@ -1558,7 +1558,9 @@ and transl_signature env sig_shape sg =
               match id with
               (* TODO @ulysse CHECK
 
-                 @thomas: looks correct. *)
+                 @thomas: looks correct... except for module aliases where we
+                 could just reuse the shape, but seems like more work than it's
+                 worth. *)
               | Some id -> Shape.Map.add_module_proj shape_map id sig_shape
               | None -> shape_map
             in

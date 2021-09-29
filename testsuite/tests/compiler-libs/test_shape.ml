@@ -381,7 +381,7 @@ end
 module Coercion : sig val v : int type t module M : sig end exception E end
 |}]
 
-(* FIXME: the shape of With_alias.A should probablay be the one of Coercion.
+(* N.B.: the shape of With_alias.A could be the one of Coercion.
    I guess it's functionally equivalent with the one here, since any use of
    With_alias to coerce a module M is going to require M.A to be equal to (and
    share the shape of) Coercion.
