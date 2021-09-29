@@ -2280,9 +2280,9 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
             transl_modtype_functor_arg env var_shape smty
           in
           let scope = Ctype.create_scope () in
-          let (id, shape_var, newenv) =
+          let (id, newenv) =
             match param.txt with
-            | None -> None, None, env
+            | None -> None, env
             | Some name ->
               let arg_md =
                 { md_type = mty.mty_type;
@@ -2295,10 +2295,10 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
                 Env.enter_module_declaration ~scope ~arg:true name Mp_present
                   arg_md (fun _ -> mty_shape) env
               in
-              Some id, Some var, newenv
+              Some id, newenv
           in
           Named (id, param, mty), Types.Named (id, mty.mty_type), newenv,
-          shape_var, true
+          Some var, true
       in
       let body, body_shape = type_module true funct_body None newenv sbody in
       { mod_desc = Tmod_functor(t_arg, body);
