@@ -40,6 +40,10 @@ let mk_binannot f =
   "-bin-annot", Arg.Unit f, " Save typedtree in <filename>.cmt"
 ;;
 
+let mk_shapes f =
+  "-shapes", Arg.Unit f, " Save shapes in <filename>.cms"
+;;
+
 let mk_c f =
   "-c", Arg.Unit f, " Compile only (do not link)"
 ;;
@@ -990,6 +994,7 @@ module type Compiler_options = sig
   val _with_runtime : unit -> unit
   val _without_runtime : unit -> unit
   val _safe_string : unit -> unit
+  val _shapes : unit -> unit
   val _short_paths : unit -> unit
   val _thread : unit -> unit
   val _v : unit -> unit
@@ -1150,6 +1155,7 @@ struct
     mk_absname F._absname;
     mk_annot F._annot;
     mk_binannot F._binannot;
+    mk_shapes F._shapes;
     mk_c F._c;
     mk_cc F._cc;
     mk_cclib F._cclib;
@@ -1868,6 +1874,7 @@ module Default = struct
     let _plugin _p = plugin := true
     let _pp s = preprocessor := (Some s)
     let _runtime_variant s = runtime_variant := s
+    let _shapes = set shapes
     let _stop_after pass =
       let module P = Compiler_pass in
         match P.of_string pass with
