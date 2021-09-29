@@ -398,3 +398,47 @@ end
  }
 module type With_alias = sig module A = Coercion end
 |}]
+
+module Fignore(_ : S) = struct let x = 3 end
+[%%expect{|
+{
+ ("Fignore", module) -> {
+                         ("x", value) -> <.59>;
+                         };
+ }
+module Fignore : S -> sig val x : int end
+|}]
+
+module Fgen() = struct let x = 3 end
+[%%expect{|
+{
+ ("Fgen", module) -> {
+                      ("x", value) -> <.61>;
+                      };
+ }
+module Fgen : functor () -> sig val x : int end
+|}]
+
+module M = Fignore(struct type t = int let x = 3 end)
+[%%expect{|
+{
+ ("M", module) ->
+     {
+      ("x", value) -> <.59>;
+      }({
+         ("t", type) -> <.63>;
+         ("x", value) -> <.64>;
+         });
+ }
+module M : sig val x : int end
+|}]
+
+module N = Fgen()
+[%%expect{|
+{
+ ("N", module) -> {
+                   ("x", value) -> <.61>;
+                   };
+ }
+module N : sig val x : int end
+|}]
