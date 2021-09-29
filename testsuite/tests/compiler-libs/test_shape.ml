@@ -116,7 +116,6 @@ end
 module M'' : functor (X : S) -> sig type t = X.t type y = X.t end
 |}]
 
-(* FIXME: shape before the include is dropped. *)
 module M3 (X : S) = struct
   type y = X.t
   include X
@@ -150,7 +149,6 @@ end
 module type MFS = functor (X : S) (Y : S) -> sig type t type u end
 |}]
 
-(* FIXME: include not handled properly *)
 module type MFS_indir = functor (X : Set.OrderedType) (Y : S) -> sig
   include module type of X
   type u
@@ -437,4 +435,48 @@ module N = Fgen()
                    };
  }
 module N : sig val x : int end
+|}]
+
+class c = object
+  val v = 3
+end
+[%%expect{|
+{
+ ("c", class) -> <.67>;
+ }
+class c : object val v : int end
+|}]
+
+class type ct = object
+  val v : int
+end
+[%%expect{|
+{
+ ("ct", class type) -> <.71>;
+ }
+class type ct = object val v : int end
+|}]
+
+module type SC = sig
+  class c : object
+    val v : int
+  end
+  class type ct = object
+    val v : int
+  end
+end
+
+[%%expect{|
+{
+ ("SC", module type) ->
+     Abs(shape-var/632, {
+                         ("c", class) -> <.72>;
+                         ("ct", class type) -> <.73>;
+                         });
+ }
+module type SC =
+  sig
+    class c : object val v : int end
+    class type ct = object val v : int end
+  end
 |}]

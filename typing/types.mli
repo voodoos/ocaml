@@ -93,6 +93,9 @@ module Shape : sig
 
     val add_extcons : t -> Ident.t -> Uid.t -> t
     val add_extcons_proj : t -> Ident.t -> shape -> t
+
+    val add_class : t -> Ident.t -> Uid.t -> t
+    val add_class_type : t -> Ident.t -> Uid.t -> t
   end
 
   val fresh_var : ?name:string -> unit -> var * t

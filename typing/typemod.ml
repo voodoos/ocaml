@@ -1727,15 +1727,17 @@ and transl_signature env sig_shape sg =
             final_env
         | Psig_class cl ->
             let (classes, newenv) = Typeclass.class_descriptions env cl in
-            List.iter (fun cls ->
+            let shape_map = List.fold_left (fun acc cls ->
               let open Typeclass in
               let loc = cls.cls_id_loc.Location.loc in
               Signature_names.check_type names loc cls.cls_obj_id;
               Signature_names.check_class names loc cls.cls_id;
               Signature_names.check_class_type names loc cls.cls_ty_id;
               Signature_names.check_type names loc cls.cls_typesharp_id;
-            ) classes;
-            let (trem, rem, _shape_map, final_env) =
+              Shape.Map.add_class acc cls.cls_id cls.cls_decl.cty_uid
+            ) shape_map classes
+            in
+            let (trem, rem, shape_map, final_env) =
               transl_sig shape_map newenv srem
             in
             let sg =
@@ -1755,17 +1757,20 @@ and transl_signature env sig_shape sg =
               :: trem
             in
             typedtree, sg,
-            shape_map (* "TODO @ulysse Psig_class" *), final_env
+            shape_map, final_env
         | Psig_class_type cl ->
             let (classes, newenv) = Typeclass.class_type_declarations env cl in
-            List.iter (fun decl ->
-              let open Typeclass in
-              let loc = decl.clsty_id_loc.Location.loc in
-              Signature_names.check_class_type names loc decl.clsty_ty_id;
-              Signature_names.check_type names loc decl.clsty_obj_id;
-              Signature_names.check_type names loc decl.clsty_typesharp_id;
-            ) classes;
-            let (trem, rem, _shape_map, final_env) =
+            let shape_map = List.fold_left (fun acc decl ->
+                let open Typeclass in
+                let loc = decl.clsty_id_loc.Location.loc in
+                Signature_names.check_class_type names loc decl.clsty_ty_id;
+                Signature_names.check_type names loc decl.clsty_obj_id;
+                Signature_names.check_type names loc decl.clsty_typesharp_id;
+                Shape.Map.add_class_type
+                  acc decl.clsty_ty_id decl.clsty_ty_decl.clty_uid
+              ) shape_map classes
+            in
+            let (trem, rem, shape_map, final_env) =
               transl_sig shape_map newenv srem
             in
             let sg =
@@ -1788,7 +1793,7 @@ and transl_signature env sig_shape sg =
               :: trem
             in
             typedtree, sg,
-            shape_map (* "TODO @ulysse Psig_class_type" *), final_env
+            shape_map, final_env
         | Psig_attribute x ->
             Builtin_attributes.warning_attribute x;
             let (trem,rem, shape_map, final_env) =
@@ -2779,14 +2784,16 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         shape_map, newenv
     | Pstr_class cl ->
         let (classes, new_env) = Typeclass.class_declarations env cl in
-        List.iter (fun cls ->
-          let open Typeclass in
-          let loc = cls.cls_id_loc.Location.loc in
-          Signature_names.check_class names loc cls.cls_id;
-          Signature_names.check_class_type names loc cls.cls_ty_id;
-          Signature_names.check_type names loc cls.cls_obj_id;
-          Signature_names.check_type names loc cls.cls_typesharp_id;
-        ) classes;
+        let shape_map = List.fold_left (fun acc cls ->
+            let open Typeclass in
+            let loc = cls.cls_id_loc.Location.loc in
+            Signature_names.check_class names loc cls.cls_id;
+            Signature_names.check_class_type names loc cls.cls_ty_id;
+            Signature_names.check_type names loc cls.cls_obj_id;
+            Signature_names.check_type names loc cls.cls_typesharp_id;
+            Shape.Map.add_class acc cls.cls_id cls.cls_decl.cty_uid
+          ) shape_map classes
+        in
         Tstr_class
           (List.map (fun cls ->
                (cls.Typeclass.cls_info,
@@ -2800,17 +2807,20 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
                Sig_type(cls.cls_obj_id, cls.cls_obj_abbr, rs, Exported);
                Sig_type(cls.cls_typesharp_id, cls.cls_abbr, rs, Exported)])
              classes []),
-        shape_map (* TODO @ulysse Pstr_class *),
+        shape_map,
         new_env
     | Pstr_class_type cl ->
         let (classes, new_env) = Typeclass.class_type_declarations env cl in
-        List.iter (fun decl ->
-          let open Typeclass in
-          let loc = decl.clsty_id_loc.Location.loc in
-          Signature_names.check_class_type names loc decl.clsty_ty_id;
-          Signature_names.check_type names loc decl.clsty_obj_id;
-          Signature_names.check_type names loc decl.clsty_typesharp_id;
-        ) classes;
+        let shape_map = List.fold_left (fun acc decl ->
+            let open Typeclass in
+            let loc = decl.clsty_id_loc.Location.loc in
+            Signature_names.check_class_type names loc decl.clsty_ty_id;
+            Signature_names.check_type names loc decl.clsty_obj_id;
+            Signature_names.check_type names loc decl.clsty_typesharp_id;
+            Shape.Map.add_class_type
+              acc decl.clsty_ty_id decl.clsty_ty_decl.clty_uid
+          ) shape_map classes
+        in
         Tstr_class_type
           (List.map (fun cl ->
                (cl.Typeclass.clsty_ty_id,
@@ -2827,7 +2837,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
                           Exported)
                 ])
              classes []),
-        shape_map (* TODO @ulysse Pstr_class_type *),
+        shape_map,
         new_env
     | Pstr_include sincl ->
         let smodl = sincl.pincl_mod in

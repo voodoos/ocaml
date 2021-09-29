@@ -109,6 +109,10 @@ module Shape = struct
       let module_type id = Ident.name id, Sig_component_kind.Module_type
       let extension_constructor id =
         Ident.name id, Sig_component_kind.Extension_constructor
+      let class_ id =
+        Ident.name id, Sig_component_kind.Class
+      let class_type id =
+        Ident.name id, Sig_component_kind.Class_type
     end
 
     include T
@@ -282,6 +286,9 @@ let fresh_var ?(name="shape-var") () =
     let add_extcons_proj t id shape =
       let item = Item.extension_constructor id in
       Item.Map.add item (proj shape item) t
+
+    let add_class t id uid = Item.Map.add (Item.class_ id) (Leaf uid) t
+    let add_class_type t id uid = Item.Map.add (Item.class_type id) (Leaf uid) t
   end
 end
 
