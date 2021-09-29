@@ -2143,7 +2143,7 @@ let enter_extension ~scope ~rebind name ext env =
 
 let enter_module_declaration ~scope ?arg s presence md shape env =
   let id = Ident.create_scoped ~scope s in
-  (id, add_module_declaration ?arg ~check:true id presence md (shape id) env)
+  (id, add_module_declaration ?arg ~check:true id presence md shape env)
 
 let enter_modtype ~scope name mtd shape env =
   let id = Ident.create_scoped ~scope name in
@@ -2161,8 +2161,8 @@ let enter_cltype ~scope name desc env =
   let env = store_cltype id desc env in
   (id, env)
 
-let enter_module ~scope ?arg s presence mty env =
-  enter_module_declaration ~scope ?arg s presence (md mty) env
+let enter_module ~scope ?arg s presence mty shape env =
+  enter_module_declaration ~scope ?arg s presence (md mty) shape env
 
 (* Insertion of all components of a signature *)
 

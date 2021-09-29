@@ -3630,8 +3630,7 @@ and type_expect_
         | None -> None, env
         | Some name ->
           let id, env =
-            Env.enter_module_declaration ~scope name pres md
-            (fun _ -> md_shape) env
+            Env.enter_module_declaration ~scope name pres md md_shape env
           in
           Some id, env
       in
@@ -4766,7 +4765,7 @@ and type_unpacks ?(in_function : (Location.t * type_expr) option)
       in
       let (id, env) =
         Env.enter_module_declaration
-          ~scope unpack.tu_name.txt pres md (fun _ -> md_shape) env
+          ~scope unpack.tu_name.txt pres md md_shape env
       in
       Typetexp.widen context;
       env, (id, unpack.tu_name, pres, modl) :: tunpacks
