@@ -2894,10 +2894,7 @@ let type_toplevel_phrase env s =
 
 let type_module_alias = type_module ~alias:true true false None
 let type_module = type_module true false None
-let type_structure =
-  fun a b ->
-    let (a, b, c, _shape, e) = (type_structure false None a b) in
-    (a, b, c, e)
+let type_structure = type_structure false None
 
 (* Normalize types in a signature *)
 
@@ -3072,7 +3069,7 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
       if !Clflags.print_types then (* #7656 *)
         ignore @@ Warnings.parse_options false "-32-34-37-38-60";
       (* TODO @ulysse temporary *)
-      let (str, sg, names, finalenv) =
+      let (str, sg, names, _shape, finalenv) =
         type_structure initial_env ast in
       let simple_sg = Signature_names.simplify finalenv names sg in
       if !Clflags.print_types then begin
