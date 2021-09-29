@@ -224,21 +224,7 @@ let fresh_var ?(name="shape-var") () =
 
   let make_functor ~param body =
     match param with
-    | None ->
-        (* FIXME? thomas: are we sure this is going to be well typed?
-           For instance if we have
-
-           {[
-             module F(_ : S) = struct let x = 3 end
-
-             module M = F(Int)
-           ]}
-
-           then we'll compute the shape { ("x", value) -> Leaf n } for F, and
-           an applicative shape for M...  *)
-        (* If the functor is generative or has nameless parameter, shape
-           is preserved (because it can't depend on it anyway). *)
-        body
+    | None -> body
     | Some id -> Abs(id, body)
 
   let make_app ~arg f = App(f, arg) |> reduce_one
