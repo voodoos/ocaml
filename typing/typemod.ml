@@ -1304,11 +1304,11 @@ and transl_modtype_aux env mod_shape smty =
         smty.pmty_attributes,
       shape
   | Pmty_functor(sarg_opt, sres) ->
-      let t_arg, ty_arg, newenv, mod_shape =
+      let t_arg, ty_arg, newenv, param_shape_var, mod_shape =
         match sarg_opt with
-        | Unit -> Unit, Types.Unit, env, mod_shape
+        | Unit -> Unit, Types.Unit, env, None, mod_shape
         | Named (param, sarg) ->
-          let var, var_shape = Shape.fresh_var () in
+          let var, var_shape = Shape.fresh_var ?name:param.txt () in
           let arg, arg_shape = transl_modtype_functor_arg env var_shape sarg in
           let (id, newenv) =
             match param.txt with
@@ -1323,37 +1323,23 @@ and transl_modtype_aux env mod_shape smty =
                     md_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
                   }
                 in
-                let arg_shape id =
-                  Shape.make_coercion
-                    ~sig_:(Shape.make_abs var arg_shape)
-                    (Shape.make_var id)
-                  (* TODO @ulysse
-                      This variable is "free" but this shape should always be
-                      accessed from within a functor body and thus the variable
-                      is not free in that context. *)
-                in
                 Env.enter_module_declaration ~scope ~arg:true name Mp_present
-                  arg_md arg_shape env
+                  arg_md (fun _ -> arg_shape) env
               in
               Some id, newenv
           in
           Named (id, param, arg),
           Types.Named (id, arg.mty_type),
           newenv,
-          match id with
-          | Some id ->
-          Shape.App (mod_shape, Shape.make_var id)
-          | None ->
-          (* FIXME: ill typed shape, test with functor (_ : S) -> ... *)
-          mod_shape
+          Some var,
+          Shape.make_app mod_shape ~arg:var_shape
       in
       let res, res_shape =
         transl_modtype newenv mod_shape sres in
-      let param = match t_arg with Named (id, _, _) -> id | _ -> None in
       mkmty (Tmty_functor (t_arg, res))
         (Mty_functor(ty_arg, res.mty_type)) env loc
         smty.pmty_attributes,
-        Shape.make_functor ~param res_shape
+        Shape.make_functor ~param:param_shape_var res_shape
   | Pmty_with(sbody, constraints) ->
       let body, shape = transl_modtype env mod_shape sbody in
       let init_sg = extract_sig env sbody.pmty_loc body.mty_type in
