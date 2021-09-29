@@ -380,3 +380,21 @@ end
  }
 module Coercion : sig val v : int type t module M : sig end exception E end
 |}]
+
+(* FIXME: the shape of With_alias.A should probablay be the one of Coercion.
+   I guess it's functionally equivalent with the one here, since any use of
+   With_alias to coerce a module M is going to require M.A to be equal to (and
+   share the shape of) Coercion.
+   Still, it's not minimal. *)
+module type With_alias = sig
+  module A = Coercion
+end
+[%%expect{|
+{
+ ("With_alias", module type) ->
+     Abs(shape-var/565, {
+                         ("A", module) -> shape-var/565 . "A"[module];
+                         });
+ }
+module type With_alias = sig module A = Coercion end
+|}]
