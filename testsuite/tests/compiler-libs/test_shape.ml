@@ -1,7 +1,5 @@
 (* TEST
-   flags = "-I ${ocamlsrcdir}/typing \
-    -I ${ocamlsrcdir}/parsing"
-   include ocamlcommon
+   flags = "-dshape"
    * expect
 *)
 
@@ -24,227 +22,361 @@ let _ = x
 
 *)
 
-open Types
-module Ns = Shape.Sig_component_kind
-
-(* A utility to find and print the shape of a module(type) *)
-let print_shape_by_lid ?(ns = Ns.Module) env fmt lid =
-  match ns with
-  | Ns.Module ->
-    Env.find_module_by_name lid env |> fst
-    |> Env.shape_of_path ~ns env |> Shape.print fmt
-  | Ns.Module_type ->
-    Env.find_modtype_by_name lid env |> fst
-    |> Env.shape_of_path ~ns env |> Shape.print fmt
-  | _ -> Format.pp_print_string fmt "Only modules and modtypes have shapes."
-
-[%%expect{|
-module Ns = Types.Shape.Sig_component_kind
-val print_shape_by_lid :
-  ?ns:Ns.t -> Env.t -> Format.formatter -> Longident.t -> unit = <fun>
-|}]
-
-type kind = M | MT
-let test_prog prog shapes_to_print =
-  let ps = Parse.implementation (Lexing.from_string prog) in
-  let ts, typs, sn, env = Typemod.type_structure (Env.initial_safe_string) ps in
-  let print ?ns s =
-    let lid = Parse.longident (Lexing.from_string s) in
-    Format.fprintf Format.std_formatter "%s:@, %a"
-    (Longident.flatten lid |> String.concat "; ")
-    (print_shape_by_lid ?ns env) lid
-  in
-  List.iter
-    (fun (kind, shape) -> match kind with
-      | M -> print shape
-      | MT -> print ~ns:Ns.Module_type shape)
-    shapes_to_print
-
-[%%expect{|
-type kind = M | MT
-val test_prog : string -> (kind * string) list -> unit = <fun>
-|}]
-
-let _ = let prog = {|
 module type S = sig
   type t
 end
+[%%expect{|
+{
+ ("S", module type) ->
+     Abs(shape-var/88, {
+                        ("t", type) -> shape-var/88 . "t"[type];
+                        });
+ }
+module type S = sig type t end
+|}]
 
 module type Sx = sig
   include S
   val x : int
 end
+[%%expect{|
+{
+ ("Sx", module type) ->
+     Abs(shape-var/94,
+         {
+          ("t", type) -> shape-var/94 . "t"[type];
+          ("x", value) -> shape-var/94 . "x"[value];
+          });
+ }
+module type Sx = sig type t val x : int end
+|}]
 
 module M : Sx = struct
   type t
   let x = 42
 end
+[%%expect{|
+{
+ ("M", module) -> {
+                   ("t", type) -> <.4>;
+                   ("x", value) -> <.5>;
+                   };
+ }
+module M : Sx
+|}]
 
 module M' = struct
   include M
 end
+[%%expect{|
+{
+ ("M'", module) -> {
+                    ("t", type) -> <.4>;
+                    ("x", value) -> <.5>;
+                    };
+ }
+module M' : sig type t = M.t val x : int end
+|}]
 
 module MUnit = struct
   include Stdlib.Unit
 end
+[%%expect{|
+{
+ ("MUnit", module) ->
+     {
+      ("compare", value) -> CU Stdlib . "Unit"[module] . "compare"[value];
+      ("equal", value) -> CU Stdlib . "Unit"[module] . "equal"[value];
+      ("t", type) -> CU Stdlib . "Unit"[module] . "t"[type];
+      ("to_string", value) ->
+          CU Stdlib . "Unit"[module] . "to_string"[value];
+      };
+ }
+module MUnit :
+  sig
+    type t = unit = ()
+    val equal : t -> t -> bool
+    val compare : t -> t -> int
+    val to_string : t -> string
+  end
+|}]
 
 module M'' (X : S) = struct
   include X
   type y = X.t
 end
+[%%expect{|
+{
+ ("M''", module) ->
+     Abs(X/121, {
+                 ("t", type) -> X/121 . "t"[type];
+                 ("y", type) -> <.10>;
+                 });
+ }
+module M'' : functor (X : S) -> sig type t = X.t type y = X.t end
+|}]
+
+(* FIXME: shape before the include is dropped. *)
+module M3 (X : S) = struct
+  type y = X.t
+  include X
+end
+[%%expect{|
+{
+ ("M3", module) ->
+     Abs(X/128, {
+                 ("t", type) -> X/128 . "t"[type];
+                 ("y", type) -> <.13>;
+                 });
+ }
+module M3 : functor (X : S) -> sig type y = X.t type t = X.t end
+|}]
 
 module type MFS = functor (X : S) (Y : S) -> sig
   include module type of X
   type u
 end
+[%%expect{|
+{
+ ("MFS", module type) ->
+     Abs(shape-var/134,
+         Abs(X/136,
+             Abs(Y/138,
+                 {
+                  ("t", type) -> shape-var/134(X/136)(Y/138) . "t"[type];
+                  ("u", type) -> shape-var/134(X/136)(Y/138) . "u"[type];
+                  })));
+ }
+module type MFS = functor (X : S) (Y : S) -> sig type t type u end
+|}]
+
+(* FIXME: include not handled properly *)
+module type MFS_indir = functor (X : Set.OrderedType) (Y : S) -> sig
+  include module type of X
+  type u
+end
+[%%expect{|
+{
+ ("MFS_indir", module type) ->
+     Abs(shape-var/149,
+         Abs(X/342,
+             Abs(Y/344,
+                 {
+                  ("compare", value) ->
+                      shape-var/149(X/342)(Y/344) . "compare"[value];
+                  ("t", type) -> shape-var/149(X/342)(Y/344) . "t"[type];
+                  ("u", type) -> shape-var/149(X/342)(Y/344) . "u"[type];
+                  })));
+ }
+module type MFS_indir =
+  functor (X : Set.OrderedType) (Y : S) ->
+    sig type t val compare : t -> t -> int type u end
+|}]
 
 module MF : MFS  = functor (X : S) (Y : S) -> struct
   type t = X.t
   type u
 end
-
-|}
-in test_prog prog
-  [ MT, "S"; MT, "Sx"; M, "M"; M, "M'";
-    M, "MUnit"; M, "M''"; MT, "MFS"; M, "MF" ]
-
 [%%expect{|
-S:
- Abs(shape-var-1/1420, Struct
-     [
-      ("t", type) -> Proj(Var shape-var-1/1420, ("t", type));
-      ])
-Sx:
- Abs(shape-var-2/1423, Struct
-     [
-      ("t", type) -> Proj(Var shape-var-2/1423, ("t", type));
-      ("x", value) -> Proj(Var shape-var-2/1423, ("x", value));
-      ])
-M:
- Struct [
-         ("t", type) -> Leaf .35;
-         ("x", value) -> Leaf .36;
-         ]
-M':
- Struct [
-         ("t", type) -> Leaf .35;
-         ("x", value) -> Leaf .36;
-         ]
-MUnit:
- Struct
- [
-  ("compare", value) -> Proj(Proj(Comp_unit Stdlib, ("Unit", module)),
-  ("compare", value));
-  ("equal", value) -> Proj(Proj(Comp_unit Stdlib, ("Unit", module)),
-  ("equal", value));
-  ("t", type) -> Proj(Proj(Comp_unit Stdlib, ("Unit", module)), ("t", type));
-  ("to_string", value) -> Proj(Proj(Comp_unit Stdlib, ("Unit", module)),
-  ("to_string", value));
-  ]
-M'':
- Abs(X/1443, Struct
-     [
-      ("t", type) -> Proj(Var X/1443, ("t", type));
-      ("y", type) -> Leaf .41;
-      ])
-MFS:
- Abs(shape-var-4/1447,
-     Abs(X/1449,
-         Abs(Y/1451, Struct
-             [
-              ("t", type) -> Proj(Var X/1449, ("t", type));
-              ("u", type) -> Proj(App(App(Var shape-var-4/1447, Var X/1449),
-                                      Var Y/1451),
-              ("u", type));
-              ])))
-MF:
- Abs(X/1449,
-     Abs(Y/1451, Struct
-         [
-          ("t", type) -> Proj(Var X/1449, ("t", type));
-          ("u", type) -> Leaf .50;
-          ]))
-- : unit = ()
+{
+ ("MF", module) ->
+     Abs(X/136, Abs(Y/138, {
+                            ("t", type) -> <.25>;
+                            ("u", type) -> <.26>;
+                            }));
+ }
+module MF : MFS
 |}]
 
-
-let _ = let prog = {|
 module type S = sig
   type t
   val x : t
 end
+[%%expect{|
+{
+ ("S", module type) ->
+     Abs(shape-var/461,
+         {
+          ("t", type) -> shape-var/461 . "t"[type];
+          ("x", value) -> shape-var/461 . "x"[value];
+          });
+ }
+module type S = sig type t val x : t end
+|}]
 
 module type S1 = functor (X : S) -> sig
   include module type of X
 end
+[%%expect{|
+{
+ ("S1", module type) ->
+     Abs(shape-var/469,
+         Abs(X/471,
+             {
+              ("t", type) -> shape-var/469(X/471) . "t"[type];
+              ("x", value) -> shape-var/469(X/471) . "x"[value];
+              }));
+ }
+module type S1 = functor (X : S) -> sig type t val x : t end
+|}]
 
 module type S2 = functor (X : S) -> sig
   include S
 end
+[%%expect{|
+{
+ ("S2", module type) ->
+     Abs(shape-var/481,
+         Abs(X/483,
+             {
+              ("t", type) -> shape-var/481(X/483) . "t"[type];
+              ("x", value) -> shape-var/481(X/483) . "x"[value];
+              }));
+ }
+module type S2 = functor (X : S) -> sig type t val x : t end
+|}]
 
 module type S3 = functor (X : S) -> S
+[%%expect{|
+{
+ ("S3", module type) ->
+     Abs(shape-var/492,
+         Abs(X/494,
+             {
+              ("t", type) -> shape-var/492(X/494) . "t"[type];
+              ("x", value) -> shape-var/492(X/494) . "x"[value];
+              }));
+ }
+module type S3 = functor (X : S) -> S
+|}]
 
 module F1 (X : S) = struct
   include X
 end
+[%%expect{|
+{
+ ("F1", module) ->
+     Abs(X/500,
+         {
+          ("t", type) -> X/500 . "t"[type];
+          ("x", value) -> X/500 . "x"[value];
+          });
+ }
+module F1 : functor (X : S) -> sig type t = X.t val x : t end
+|}]
+
+module Arg = struct
+  type t = int
+  let x = 0
+end
+[%%expect{|
+{
+ ("Arg", module) -> {
+                     ("t", type) -> <.39>;
+                     ("x", value) -> <.40>;
+                     };
+ }
+module Arg : sig type t = int val x : int end
+|}]
+
+include F1 (Arg)
+[%%expect{|
+{
+ ("t", type) -> <.39>;
+ ("x", value) -> <.40>;
+ }
+type t = Arg.t
+val x : t = 0
+|}]
 
 module F3 = (F1 : S2)
+[%%expect{|
+{
+ ("F3", module) ->
+     Abs(X/483,
+         {
+          ("t", type) -> X/483 . "t"[type];
+          ("x", value) -> X/483 . "x"[value];
+          });
+ }
+module F3 : S2
+|}]
+
+include F3 (Arg)
+[%%expect{|
+{
+ ("t", type) -> <.39>;
+ ("x", value) -> <.40>;
+ }
+type t = F3(Arg).t
+val x : t = <abstr>
+|}]
 
 module F4 = (F1 : S1)
-|}
-in test_prog prog
-  [ MT, "S"; MT, "S1"; MT, "S2"; MT, "S3"; M, "F1"; M, "F3";
-     M, "F4"]
-
 [%%expect{|
-S:
- Abs(shape-var-10/1464, Struct
-     [
-      ("t", type) -> Proj(Var shape-var-10/1464, ("t", type));
-      ("x", value) -> Proj(Var shape-var-10/1464, ("x", value));
-      ])
-S1:
- Abs(shape-var-11/1468,
-     Abs(X/1470, Struct
-         [
-          ("t", type) -> Proj(Var X/1470, ("t", type));
-          ("x", value) -> Proj(Var X/1470, ("x", value));
-          ]))
-S2:
- Abs(shape-var-14/1475,
-     Abs(X/1477, Struct
-         [
-          ("t", type) -> Proj(App(Var shape-var-14/1475, Var X/1477),
-          ("t", type));
-          ("x", value) -> Proj(App(Var shape-var-14/1475, Var X/1477),
-          ("x", value));
-          ]))
-S3:
- Abs(shape-var-16/1481,
-     Abs(X/1483, Struct
-         [
-          ("t", type) -> Proj(App(Var shape-var-16/1481, Var X/1483),
-          ("t", type));
-          ("x", value) -> Proj(App(Var shape-var-16/1481, Var X/1483),
-          ("x", value));
-          ]))
-F1:
- Abs(X/1486, Struct
-     [
-      ("t", type) -> Proj(Var X/1486, ("t", type));
-      ("x", value) -> Proj(Var X/1486, ("x", value));
-      ])
-F3:
- Abs(X/1477, Struct
-     [
-      ("t", type) -> Proj(Var X/1477, ("t", type));
-      ("x", value) -> Proj(Var X/1477, ("x", value));
-      ])
-F4:
- Abs(X/1470, Struct
-     [
-      ("t", type) -> Proj(Var X/1470, ("t", type));
-      ("x", value) -> Proj(Var X/1470, ("x", value));
-      ])
-- : unit = ()
+{
+ ("F4", module) ->
+     Abs(X/471,
+         {
+          ("t", type) -> X/471 . "t"[type];
+          ("x", value) -> X/471 . "x"[value];
+          });
+ }
+module F4 : S1
+|}]
+
+include F4 (Arg)
+[%%expect{|
+{
+ ("t", type) -> <.39>;
+ ("x", value) -> <.40>;
+ }
+type t = F4(Arg).t
+val x : t = <abstr>
+|}]
+
+module type Foo = sig
+  module type Sig = sig type t end
+  module type Sig_alias = Sig
+
+  include Sig_alias
+end
+[%%expect{|
+{
+ ("Foo", module type) ->
+     Abs(shape-var/534,
+         {
+          ("Sig", module type) -> shape-var/534 . "Sig"[module type];
+          ("Sig_alias", module type) ->
+              shape-var/534 . "Sig_alias"[module type];
+          ("t", type) -> shape-var/534 . "t"[type];
+          });
+ }
+module type Foo =
+  sig module type Sig = sig type t end module type Sig_alias = Sig type t end
+|}]
+
+module Coercion : sig
+  val v : int
+  type t
+  module M : sig end
+  exception E
+end = struct
+  let v = 3
+  type t
+  module M = struct end
+  exception E
+end
+[%%expect{|
+{
+ ("Coercion", module) ->
+     {
+      ("E", extension constructor) -> <.51>;
+      ("M", module) -> {
+                        };
+      ("t", type) -> <.49>;
+      ("v", value) -> <.48>;
+      };
+ }
+module Coercion : sig val v : int type t module M : sig end exception E end
 |}]

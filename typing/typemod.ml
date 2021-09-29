@@ -1261,8 +1261,8 @@ let mksig desc env loc =
   Cmt_format.add_saved_type (Cmt_format.Partial_signature_item sg);
   sg
 
-let shape_of_sig ~root sg =
-  let map = List.fold_left (fun acc ->
+let include_sig_shape ~into:map ~root sg =
+  List.fold_left (fun acc ->
     let open Shape.Map in
     function
       | Sig_value (id, _vd, _) -> add_value_proj acc id root
@@ -1271,9 +1271,7 @@ let shape_of_sig ~root sg =
       | Sig_module (id, _, _md, _, _) -> add_module_proj acc id root
       | Sig_modtype (id, _mtd, _) -> add_module_type_proj acc id root
       | Sig_class _ | Sig_class_type _ -> acc)
-    Shape.Item.Map.empty sg
-  in
-  Shape.make_structure map
+    map sg
 
 (* let signature sg = List.map (fun item -> item.sig_type) sg *)
 
@@ -1489,7 +1487,12 @@ and transl_signature env sig_shape sg =
             let shape_map = List.fold_left (fun shape_map ext ->
                 Signature_names.check_typext names ext.ext_loc ext.ext_id;
               (* TODO @ulysse Is this correct ?
-                  Maybe we should have built the shapes in transl_type_ext ? *)
+                  Maybe we should have built the shapes in transl_type_ext ?
+
+                 @thomas: I think it's correct. Although you probably want to
+                 build the shape (N.B. it's probably just Leaf) in
+                 transl_type_extension too, so they are stored in the local
+                 environment and jump-to-def does work locally. *)
                 Shape.Map.add_extcons_proj shape_map ext.ext_id sig_shape
               ) shape_map constructors
             in
@@ -1550,10 +1553,12 @@ and transl_signature env sig_shape sg =
                 Signature_names.check_module names pmd.pmd_name.loc id;
                 Some id, newenv
             in
-            let shape_map = match id with
-              (* TODO @ulysse CHECK *)
-              | Some id ->
-                  Shape.Map.add_module_proj shape_map id sig_shape
+            let shape_map =
+              match id with
+              (* TODO @ulysse CHECK
+
+                 @thomas: looks correct. *)
+              | Some id -> Shape.Map.add_module_proj shape_map id sig_shape
               | None -> shape_map
             in
             let (trem, rem, shape_map, final_env) =
@@ -1686,7 +1691,7 @@ and transl_signature env sig_shape sg =
             shape_map, final_env
         | Psig_include sincl ->
             let smty = sincl.pincl_mod in
-            let tmty, tmty_shape =
+            let tmty, _tmty_shape =
               Builtin_attributes.warning_scope sincl.pincl_attributes
                 (fun () -> transl_modtype env sig_shape smty)
             in
@@ -1706,15 +1711,10 @@ and transl_signature env sig_shape sg =
               }
             in
             let shape_map =
-              (* TODO @ulysse check *)
-              let sig_shape =
-                match tmty_shape with
-                | Shape.Abs _ as m ->
-                  Shape.switch_var m ~newvar:sig_shape |> Shape.reduce_one
-                | _ -> shape_of_sig ~root:sig_shape sg
-              in
-              Shape.unwrap_structure sig_shape
-              |> Shape.Item.Map.union (fun _key _a b -> Some b) shape_map
+              (* TODO @ulysse check
+                 @thomas: is it always correct to drop tmty_shape?
+              *)
+              include_sig_shape ~into:shape_map ~root:sig_shape sg
             in
             let (trem, rem, shape_map, final_env) =
               transl_sig shape_map newenv srem
@@ -2631,10 +2631,9 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
                     constructor.ext_type,
                     Text_exception,
                     Exported)],
-        Shape.Map.add_type shape_map
+        Shape.Map.add_extcons shape_map
           constructor.ext_id
-          constructor.ext_type.ext_uid
-          (* TODO @ulysse check *),
+          constructor.ext_type.ext_uid,
         newenv
     | Pstr_module {pmb_name = name; pmb_expr = smodl; pmb_attributes = attrs;
                    pmb_loc;
@@ -2681,7 +2680,10 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
                         }, Trec_not, Exported)]
         in
         let shape_map = match id with
-          | Some id -> Shape.Map.add_module shape_map id md_uid
+          | Some id ->
+              (* FIXME: we're losing the uid, we should store it in the Struct
+                 node? *)
+              Shape.Map.add_module shape_map id md_shape
           | None -> shape_map
         in
         Tstr_module {mb_id=id; mb_name=name; mb_expr=modl;
@@ -2856,13 +2858,13 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           }
         in
         (* todo utility, factor with Psig_include *)
-        let shape = match modl_shape with
-          | Shape.Struct _ -> modl_shape
-          | _ as root -> shape_of_sig ~root sg
-
+        let shape =
+          match modl_shape with
+          | Shape.Struct map ->
+              Shape.Item.Map.union (fun _key _a b -> Some b) shape_map map
+          | _ -> include_sig_shape ~into:shape_map ~root:modl_shape sg
         in
-        Tstr_include incl, sg,
-        shape |> Shape.unwrap_structure, new_env
+        Tstr_include incl, sg, shape, new_env
     | Pstr_extension (ext, _attrs) ->
         raise (Error_forward (Builtin_attributes.error_of_extension ext))
     | Pstr_attribute x ->
@@ -2899,10 +2901,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
 
 let type_toplevel_phrase env s =
   Env.reset_required_globals ();
-  (* TODO @ulysse ? *)
-  let (str, sg, to_remove_from_sg, _shape, env) =
-    type_structure ~toplevel:true false None env s in
-  (str, sg, to_remove_from_sg, env)
+  type_structure ~toplevel:true false None env s
 
 let type_module_alias = type_module ~alias:true true false None
 let type_module = type_module true false None
@@ -3172,7 +3171,7 @@ let save_signature modname tsg outputprefix source_file initial_env cmi =
     (Cmt_format.Interface tsg) (Some source_file) initial_env (Some cmi)
 
 let type_interface env ast =
-  let _, shape_var = Shape.fresh_var () in
+  let shape_var = Shape.make_persistent (Env.get_unit_name ()) in
   transl_signature env shape_var ast
 
 (* "Packaging" of several compilation units into one unit
