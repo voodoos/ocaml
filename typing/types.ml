@@ -153,10 +153,13 @@ let print fmt =
 
 let fresh_var =
   let unique_var_counter = ref 0 in
-  fun () ->
-    (unique_var_counter := !unique_var_counter + 1;
-    Printf.sprintf "shape-var-%i" !unique_var_counter
-    |> Ident.create_local)
+  fun () -> begin
+    unique_var_counter := !unique_var_counter + 1;
+    let var =
+      Printf.sprintf "shape-var-%i" !unique_var_counter |> Ident.create_local
+    in
+    var, Var var
+  end
 
 
 let rec subst var ~arg = function
@@ -193,7 +196,7 @@ let _reduce_projs = function
   | t -> t (* TODO @ulysse should we fail ? *)
 
 let dummy_mod = Struct Item.Map.empty
-let dummy_mty () = Abs(fresh_var (), Struct Item.Map.empty)
+let dummy_mty () = Abs(fresh_var () |> fst, Struct Item.Map.empty)
 
 
 let rec of_path ~find_shape ?(ns = Sig_component_kind.Module) =
@@ -212,11 +215,11 @@ let make_var var = Var var
 
 let make_abs var t = Abs(var, t)
 
-let make_empty_sig () = Abs(fresh_var (), Struct Item.Map.empty)
+let make_empty_sig () = Abs(fresh_var () |> fst, Struct Item.Map.empty)
 
 let make_sig ts var = Abs(var, Struct ts)
 
-let make_const_fun t = Abs(fresh_var (), t)
+let make_const_fun t = Abs(fresh_var () |> fst, t)
 
 let make_persistent s = Comp_unit s
 
@@ -255,7 +258,7 @@ let unproj t =
   (* TODO @ulysse Write some examples !
       (for module typeof)
       Is it right not to go under lambdas ? *)
-  let var = fresh_var () in
+  let var, var_shape = fresh_var () in
   let rec aux item = function
     | Struct shapes ->
       let shapes = Item.Map.mapi
@@ -264,7 +267,7 @@ let unproj t =
       Struct shapes
     | Leaf _ as t -> (match item with
       | None -> t
-      | Some item -> Proj(Var var, item))
+      | Some item -> Proj(var_shape, item))
     | (Comp_unit _ | Var _ | Proj _ | Abs _ | App _) as t -> t
   in
   Abs(var, aux None t)

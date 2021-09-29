@@ -1310,9 +1310,8 @@ and transl_modtype_aux env mod_shape smty =
         match sarg_opt with
         | Unit -> Unit, Types.Unit, env, mod_shape
         | Named (param, sarg) ->
-          let shape_var = Shape.fresh_var () in
-          let shape = Shape.make_var shape_var in
-          let arg, arg_shape = transl_modtype_functor_arg env shape sarg in
+          let var, var_shape = Shape.fresh_var () in
+          let arg, arg_shape = transl_modtype_functor_arg env var_shape sarg in
           let (id, newenv) =
             match param.txt with
             | None -> None, env
@@ -1328,7 +1327,7 @@ and transl_modtype_aux env mod_shape smty =
                 in
                 let arg_shape id =
                   Shape.make_coercion
-                    ~sig_:(Shape.make_abs shape_var arg_shape)
+                    ~sig_:(Shape.make_abs var arg_shape)
                     (Shape.make_var id)
                   (* TODO @ulysse
                       This variable is "free" but this shape should always be
@@ -1820,15 +1819,14 @@ and transl_modtype_decl env pmtd =
 
 and transl_modtype_decl_aux env
     {pmtd_name; pmtd_type; pmtd_attributes; pmtd_loc} =
-  let shape_var = Shape.fresh_var () in
-  let mod_shape = Shape.make_var shape_var in
+  let var, var_shape = Shape.fresh_var () in
   let tmty_and_shape =
-    Option.map (transl_modtype (Env.in_signature true env) mod_shape) pmtd_type
+    Option.map (transl_modtype (Env.in_signature true env) var_shape) pmtd_type
   in
   (* TODO @ulysse chech with example of abstract module type *)
   let mtd_shape, tmty = match tmty_and_shape with
     | None -> Shape.make_empty_sig (), None
-    | Some (tmty, shape) -> Shape.make_abs shape_var shape, Some tmty
+    | Some (tmty, shape) -> Shape.make_abs var shape, Some tmty
   in
   let decl =
     {
@@ -2275,10 +2273,9 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
         match arg_opt with
         | Unit -> Unit, Types.Unit, env, false
         | Named (param, smty) ->
-          let shape_var = Shape.fresh_var () in
-          let shape = Shape.make_var shape_var in
+          let var, var_shape = Shape.fresh_var () in
           let mty, mty_shape =
-            transl_modtype_functor_arg env shape smty in
+            transl_modtype_functor_arg env var_shape smty in
           let scope = Ctype.create_scope () in
           let (id, newenv) =
             match param.txt with
@@ -2293,7 +2290,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
               in
               let arg_shape id =
                 Shape.make_coercion
-                  ~sig_:(Shape.make_abs shape_var mty_shape)
+                  ~sig_:(Shape.make_abs var mty_shape)
                   (Shape.make_var id)
                 (* TODO @ulysse
                     This variable is "free" but this shape should always be
@@ -3175,7 +3172,7 @@ let save_signature modname tsg outputprefix source_file initial_env cmi =
     (Cmt_format.Interface tsg) (Some source_file) initial_env (Some cmi)
 
 let type_interface env ast =
-  let shape_var = Shape.(make_var (fresh_var ())) in
+  let _, shape_var = Shape.fresh_var () in
   transl_signature env shape_var ast
 
 (* "Packaging" of several compilation units into one unit

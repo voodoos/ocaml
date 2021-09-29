@@ -95,7 +95,8 @@ module Map : sig
   val add_extcons_proj : t -> Ident.t -> shape -> t
 end
 
-val fresh_var : unit -> var
+(** Returns a variable and it's shape *)
+val fresh_var : unit -> var * t
 
 
 val dummy_mod : t
