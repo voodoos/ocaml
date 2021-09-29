@@ -1809,14 +1809,18 @@ and transl_modtype_decl env pmtd =
 
 and transl_modtype_decl_aux env
     {pmtd_name; pmtd_type; pmtd_attributes; pmtd_loc} =
-  let var, var_shape = Shape.fresh_var () in
-  let tmty_and_shape =
-    Option.map (transl_modtype (Env.in_signature true env) var_shape) pmtd_type
-  in
-  (* TODO @ulysse chech with example of abstract module type *)
-  let mtd_shape, tmty = match tmty_and_shape with
-    | None -> Shape.make_empty_sig (), None
-    | Some (tmty, shape) -> Shape.make_abs var shape, Some tmty
+  let mtd_shape, tmty =
+    match pmtd_type with
+    | None ->
+        (* we're never going to build projections from that shape, so it's fine
+           to use a dummy. *)
+        Shape.make_empty_sig (), None
+    | Some pmty ->
+        let var, var_shape = Shape.fresh_var () in
+        let tmty, shape =
+          transl_modtype (Env.in_signature true env) var_shape pmty
+        in
+        Shape.make_abs var shape, Some tmty
   in
   let decl =
     {
