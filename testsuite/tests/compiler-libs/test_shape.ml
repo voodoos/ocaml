@@ -507,3 +507,111 @@ end
  }
 module F : Fignore
 |}]
+
+module rec A : sig
+   type t = Leaf of B.t
+ end = struct
+   type t = Leaf of B.t
+ end
+ and B
+   : sig type t = int end
+   = struct type t = int end
+
+[%%expect{|
+{
+ ("A", module) -> {
+                   ("t", type) -> {
+                                   } . "t"[type];
+                   };
+ ("B", module) -> {
+                   ("t", type) -> {
+                                   } . "t"[type];
+                   };
+ }
+module rec A : sig type t = Leaf of B.t end
+and B : sig type t = int end
+|}]
+
+ module rec A : sig
+   type t = Leaf of string | Node of ASet.t
+   val compare: t -> t -> int
+ end = struct
+   type t = Leaf of string | Node of ASet.t
+   let compare t1 t2 =
+     match (t1, t2) with
+     | (Leaf s1, Leaf s2) -> Stdlib.compare s1 s2
+     | (Leaf _, Node _) -> 1
+     | (Node _, Leaf _) -> -1
+     | (Node n1, Node n2) -> ASet.compare n1 n2
+ end
+ and ASet
+   : Set.S with type elt = A.t
+   = Set.Make(A)
+
+[%%expect{|
+{
+ ("A", module) ->
+     {
+      ("compare", value) -> {
+                             } . "compare"[value];
+      ("t", type) -> {
+                      } . "t"[type];
+      };
+ ("ASet", module) ->
+     CU Stdlib . "Set"[module] . "S"[module type](
+     CU Stdlib . "Set"[module] . "S"[module type]({
+                                                   }));
+ }
+module rec A :
+  sig
+    type t = Leaf of string | Node of ASet.t
+    val compare : t -> t -> int
+  end
+and ASet :
+  sig
+    type elt = A.t
+    type t
+    val empty : t
+    val is_empty : t -> bool
+    val mem : elt -> t -> bool
+    val add : elt -> t -> t
+    val singleton : elt -> t
+    val remove : elt -> t -> t
+    val union : t -> t -> t
+    val inter : t -> t -> t
+    val disjoint : t -> t -> bool
+    val diff : t -> t -> t
+    val compare : t -> t -> int
+    val equal : t -> t -> bool
+    val subset : t -> t -> bool
+    val iter : (elt -> unit) -> t -> unit
+    val map : (elt -> elt) -> t -> t
+    val fold : (elt -> 'a -> 'a) -> t -> 'a -> 'a
+    val for_all : (elt -> bool) -> t -> bool
+    val exists : (elt -> bool) -> t -> bool
+    val filter : (elt -> bool) -> t -> t
+    val filter_map : (elt -> elt option) -> t -> t
+    val partition : (elt -> bool) -> t -> t * t
+    val cardinal : t -> int
+    val elements : t -> elt list
+    val min_elt : t -> elt
+    val min_elt_opt : t -> elt option
+    val max_elt : t -> elt
+    val max_elt_opt : t -> elt option
+    val choose : t -> elt
+    val choose_opt : t -> elt option
+    val split : elt -> t -> t * bool * t
+    val find : elt -> t -> elt
+    val find_opt : elt -> t -> elt option
+    val find_first : (elt -> bool) -> t -> elt
+    val find_first_opt : (elt -> bool) -> t -> elt option
+    val find_last : (elt -> bool) -> t -> elt
+    val find_last_opt : (elt -> bool) -> t -> elt option
+    val of_list : elt list -> t
+    val to_seq_from : elt -> t -> elt Seq.t
+    val to_seq : t -> elt Seq.t
+    val to_rev_seq : t -> elt Seq.t
+    val add_seq : elt Seq.t -> t -> t
+    val of_seq : elt Seq.t -> t
+  end
+|}]
