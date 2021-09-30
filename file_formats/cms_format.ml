@@ -55,3 +55,9 @@ let save_shape filename sourcefile shapes =
            cms_source_digest = source_digest;
          } in
          output_cms oc cms)
+
+let read_shape filename =
+  let cms = read_cms filename in
+  cms.cms_unit_shapes
+
+let () = Types.Shape.load_shape := read_shape

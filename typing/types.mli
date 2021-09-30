@@ -98,6 +98,9 @@ module Shape : sig
     val add_class_type : t -> Ident.t -> Uid.t -> t
   end
 
+  (* Forward declaration -- to be filled in by Cms_format *)
+  val load_shape : (string -> Map.t) ref
+
   val fresh_var : ?name:string -> unit -> var * t
 
   val dummy_mod : t
