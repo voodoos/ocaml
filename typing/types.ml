@@ -181,15 +181,21 @@ module Shape = struct
     | t -> t
 
   let rec reduce_with_loading t =
-    let read_shape name =
-      Struct (!load_shape (name ^ ".cms"))
+    let read_shape unit_name =
+      match Load_path.find_uncap (unit_name ^ ".cms") with
+      | filename -> Some (Struct (!load_shape filename))
+      | exception Not_found -> None
     in
     match t with
-    | Comp_unit name -> read_shape name |> reduce_all
-    | App(abs, body) -> reduce_one (App(reduce_all abs, reduce_all body))
-    | Proj(str, item) -> reduce_proj (Proj(reduce_all str, item))
-    | Abs(var, body) -> Abs(var, reduce_all body)
-    | Struct map -> Struct (Item.Map.map reduce_all map)
+    | Comp_unit name as t -> begin match read_shape name with
+        | Some t -> reduce_with_loading t
+        | None -> t
+      end
+    | App(abs, body) ->
+      reduce_one (App(reduce_with_loading abs, reduce_with_loading body))
+    | Proj(str, item) -> reduce_proj (Proj(reduce_with_loading str, item))
+    | Abs(var, body) -> Abs(var, reduce_with_loading body)
+    | Struct map -> Struct (Item.Map.map reduce_with_loading map)
     | t -> t
 
   let dummy_mod = Struct Item.Map.empty
