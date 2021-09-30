@@ -1851,7 +1851,6 @@ and transl_modtype_decl_aux env
   newenv, mtd, Sig_modtype(id, decl, Exported), mtd_shape
 
 and transl_recmodule_modtypes env sdecls =
-  (* TODO @ulysse are dummies ok ? *)
   let make_env curr =
     List.fold_left
       (fun env (id, _, md, _, shape) ->

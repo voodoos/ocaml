@@ -158,9 +158,9 @@ module Shape = struct
 
   let load_shape = ref (fun _ -> failwith "filled in by Cms_format")
 
-let fresh_var ?(name="shape-var") () =
-  let var = Ident.create_local name in
-  var, Var var
+  let fresh_var ?(name="shape-var") () =
+    let var = Ident.create_local name in
+    var, Var var
 
   let rec subst var ~arg = function
     | Var v when var = v -> arg
