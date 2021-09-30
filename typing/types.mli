@@ -123,6 +123,7 @@ module Shape : sig
   val make_coercion : sig_:t -> t -> t
 
   val reduce_one : t -> t
+  val reduce_with_loading  : t -> t
 
   (** "Reset" a module shape to be used as a module type shape *)
   val unproj : t -> t

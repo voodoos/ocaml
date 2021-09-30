@@ -164,13 +164,7 @@ let fresh_var ?(name="shape-var") () =
 
   let rec subst var ~arg = function
     | Var v when var = v -> arg
-    | Abs (v, t) ->
-        (* TODO @ulysse
-           Do we need to do under lambdas ? If yes beware of alpha renaming...
-
-           @thomas: [type var = Ident.t], les idents sont uniques, donc il n'y
-           aura pas de soucis.  *)
-        Abs(v, subst var ~arg t)
+    | Abs (v, t) -> Abs(v, subst var ~arg t)
     | App (abs, t) -> App(subst var ~arg abs, subst var ~arg t) |> reduce_one
     | Struct m -> Struct (Item.Map.map (fun s -> subst var ~arg s) m)
     | Proj (t, item) -> Proj(subst var ~arg t, item) |> reduce_proj
@@ -186,17 +180,17 @@ let fresh_var ?(name="shape-var") () =
          with Not_found -> t) (* SHould never happen ?*)
     | t -> t
 
-  (* TODO @ulysse
-     Should probably be merged with a full reduce function *)
-  let _reduce_projs = function
-    | Struct m -> Struct(
-        Item.Map.map (function
-            | Proj (Struct map, item) as t ->
-                (try Item.Map.find item map
-                 with Not_found -> t) (* SHould never happen ?*)
-
-            | t -> t) m)
-    | t -> t (* TODO @ulysse should we fail ? *)
+  let rec reduce_with_loading t =
+    let read_shape name =
+      Struct (!load_shape (name ^ ".cms"))
+    in
+    match t with
+    | Comp_unit name -> read_shape name |> reduce_all
+    | App(abs, body) -> reduce_one (App(reduce_all abs, reduce_all body))
+    | Proj(str, item) -> reduce_proj (Proj(reduce_all str, item))
+    | Abs(var, body) -> Abs(var, reduce_all body)
+    | Struct map -> Struct (Item.Map.map reduce_all map)
+    | t -> t
 
   let dummy_mod = Struct Item.Map.empty
   let dummy_mty () = Abs(fresh_var () |> fst, Struct Item.Map.empty)
