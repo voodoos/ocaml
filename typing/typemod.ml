@@ -190,7 +190,7 @@ let type_open_descr ?used_slot ?toplevel env sod =
 
 (* Forward declaration, to be filled in by type_module_type_of *)
 let type_module_type_of_fwd :
-    (Env.t -> Parsetree.module_expr ->
+    (Env.t -> Shape.t -> Parsetree.module_expr ->
       Typedtree.module_expr * Types.module_type * Shape.t) ref
   = ref (fun _env _m -> assert false)
 
@@ -789,7 +789,7 @@ let rec approx_modtype env smty =
       body
   | Pmty_typeof smod ->
       (* TODO @ulysse check *)
-      let (_, mty, _shape) = !type_module_type_of_fwd env smod in
+      let (_, mty, _shape) = !type_module_type_of_fwd env Shape.dummy_mod smod in
       mty
   | Pmty_extension ext ->
       raise (Error_forward (Builtin_attributes.error_of_extension ext))
@@ -1271,6 +1271,15 @@ let include_sig_shape ~into:map ~root sg =
       | Sig_class _ | Sig_class_type _ -> acc)
     map sg
 
+let shape_of_md_type env shape = function
+  | Mty_alias path | Mty_ident path -> Env.shape_of_path env path
+  | Mty_signature sg ->
+    let items =
+      include_sig_shape ~into:Shape.Item.Map.empty ~root:shape sg
+    in
+    Shape.make_structure items
+  | Mty_functor _ -> failwith "TODO @ulysse shapeofmdtype functor"
+
 (* let signature sg = List.map (fun item -> item.sig_type) sg *)
 
 let rec transl_modtype env mod_shape smty =
@@ -1353,7 +1362,7 @@ and transl_modtype_aux env mod_shape smty =
       final_shape
   | Pmty_typeof smod ->
       let env = Env.in_signature false env in
-      let tmty, mty, mty_shape = !type_module_type_of_fwd env smod in
+      let tmty, mty, mty_shape = !type_module_type_of_fwd env mod_shape smod in
       mkmty (Tmty_typeof tmty) mty env loc smty.pmty_attributes,
       mty_shape
   | Pmty_extension ext ->
@@ -2932,7 +2941,7 @@ and normalize_signature_item = function
 
 (* Extract the module type of a module expression *)
 
-let type_module_type_of env smod =
+let type_module_type_of env shape smod =
   let remove_aliases = has_remove_aliases_attribute smod.pmod_attributes in
   let tmty, shape =
     match smod.pmod_desc with
@@ -2943,14 +2952,15 @@ let type_module_type_of env smod =
             mod_env = env;
             mod_attributes = smod.pmod_attributes;
             mod_loc = smod.pmod_loc },
-          Env.shape_of_path env path
-    | _ -> type_module env smod
+          shape_of_md_type env shape md.md_type
+    | _ -> let tmty, shape = type_module env smod in
+      tmty, Shape.unproj shape
   in
   let mty = Mtype.scrape_for_type_of ~remove_aliases env tmty.mod_type in
   (* PR#5036: must not contain non-generalized type variables *)
   if not (closed_modtype env mty) then
     raise(Error(smod.pmod_loc, env, Non_generalizable_module mty));
-  tmty, mty, Shape.unproj shape
+  tmty, mty,shape
 
 (* For Typecore *)
 
