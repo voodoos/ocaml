@@ -1271,8 +1271,8 @@ let include_sig_shape ~into:map ~root sg =
       | Sig_class _ | Sig_class_type _ -> acc)
     map sg
 
-let shape_of_md_type env shape = function
-  | Mty_alias path | Mty_ident path -> Env.shape_of_path env path
+let shape_of_md_type env path shape = function
+  | Mty_alias _ | Mty_ident _ -> Env.shape_of_path env path
   | Mty_signature sg ->
     let items =
       include_sig_shape ~into:Shape.Item.Map.empty ~root:shape sg
@@ -2952,7 +2952,7 @@ let type_module_type_of env shape smod =
             mod_env = env;
             mod_attributes = smod.pmod_attributes;
             mod_loc = smod.pmod_loc },
-          shape_of_md_type env shape md.md_type
+          shape_of_md_type env path shape md.md_type
     | _ -> let tmty, shape = type_module env smod in
       tmty, Shape.unproj shape
   in

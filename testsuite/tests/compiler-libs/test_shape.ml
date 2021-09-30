@@ -136,8 +136,17 @@ module type MFS = functor (X : S) (Y : S) -> sig
   type u
 end
 [%%expect{|
-Uncaught exception: Failure("find_shape: Module not found by ident")
-
+{
+ ("MFS", module type) ->
+     Abs(shape-var/134,
+         Abs(X/135,
+             Abs(Y/137,
+                 {
+                  ("t", type) -> shape-var/134(X/135)(Y/137) . "t"[type];
+                  ("u", type) -> shape-var/134(X/135)(Y/137) . "u"[type];
+                  })));
+ }
+module type MFS = functor (X : S) (Y : S) -> sig type t type u end
 |}]
 
 module type MFS_indir = functor (X : Set.OrderedType) (Y : S) -> sig
@@ -147,14 +156,14 @@ end
 [%%expect{|
 {
  ("MFS_indir", module type) ->
-     Abs(shape-var/139,
-         Abs(X/140,
-             Abs(Y/333,
+     Abs(shape-var/148,
+         Abs(X/149,
+             Abs(Y/342,
                  {
                   ("compare", value) ->
-                      shape-var/139(X/140)(Y/333) . "compare"[value];
-                  ("t", type) -> shape-var/139(X/140)(Y/333) . "t"[type];
-                  ("u", type) -> shape-var/139(X/140)(Y/333) . "u"[type];
+                      shape-var/148(X/149)(Y/342) . "compare"[value];
+                  ("t", type) -> shape-var/148(X/149)(Y/342) . "t"[type];
+                  ("u", type) -> shape-var/148(X/149)(Y/342) . "u"[type];
                   })));
  }
 module type MFS_indir =
@@ -167,10 +176,14 @@ module MF : MFS  = functor (X : S) (Y : S) -> struct
   type u
 end
 [%%expect{|
-Line 1, characters 12-15:
-1 | module MF : MFS  = functor (X : S) (Y : S) -> struct
-                ^^^
-Error: Unbound module type MFS
+{
+ ("MF", module) ->
+     Abs(X/135, Abs(Y/137, {
+                            ("t", type) -> <.25>;
+                            ("u", type) -> <.26>;
+                            }));
+ }
+module MF : MFS
 |}]
 
 module type S = sig
@@ -180,10 +193,10 @@ end
 [%%expect{|
 {
  ("S", module type) ->
-     Abs(shape-var/447,
+     Abs(shape-var/459,
          {
-          ("t", type) -> shape-var/447 . "t"[type];
-          ("x", value) -> shape-var/447 . "x"[value];
+          ("t", type) -> shape-var/459 . "t"[type];
+          ("x", value) -> shape-var/459 . "x"[value];
           });
  }
 module type S = sig type t val x : t end
@@ -193,8 +206,16 @@ module type S1 = functor (X : S) -> sig
   include module type of X
 end
 [%%expect{|
-Uncaught exception: Failure("find_shape: Module not found by ident")
-
+{
+ ("S1", module type) ->
+     Abs(shape-var/467,
+         Abs(X/468,
+             {
+              ("t", type) -> shape-var/467(X/468) . "t"[type];
+              ("x", value) -> shape-var/467(X/468) . "x"[value];
+              }));
+ }
+module type S1 = functor (X : S) -> sig type t val x : t end
 |}]
 
 module type S2 = functor (X : S) -> sig
@@ -203,11 +224,11 @@ end
 [%%expect{|
 {
  ("S2", module type) ->
-     Abs(shape-var/458,
-         Abs(X/459,
+     Abs(shape-var/478,
+         Abs(X/479,
              {
-              ("t", type) -> shape-var/458(X/459) . "t"[type];
-              ("x", value) -> shape-var/458(X/459) . "x"[value];
+              ("t", type) -> shape-var/478(X/479) . "t"[type];
+              ("x", value) -> shape-var/478(X/479) . "x"[value];
               }));
  }
 module type S2 = functor (X : S) -> sig type t val x : t end
@@ -217,11 +238,11 @@ module type S3 = functor (X : S) -> S
 [%%expect{|
 {
  ("S3", module type) ->
-     Abs(shape-var/469,
-         Abs(X/470,
+     Abs(shape-var/489,
+         Abs(X/490,
              {
-              ("t", type) -> shape-var/469(X/470) . "t"[type];
-              ("x", value) -> shape-var/469(X/470) . "x"[value];
+              ("t", type) -> shape-var/489(X/490) . "t"[type];
+              ("x", value) -> shape-var/489(X/490) . "x"[value];
               }));
  }
 module type S3 = functor (X : S) -> S
@@ -233,10 +254,10 @@ end
 [%%expect{|
 {
  ("F1", module) ->
-     Abs(X/476,
+     Abs(X/496,
          {
-          ("t", type) -> X/476 . "t"[type];
-          ("x", value) -> X/476 . "x"[value];
+          ("t", type) -> X/496 . "t"[type];
+          ("x", value) -> X/496 . "x"[value];
           });
  }
 module F1 : functor (X : S) -> sig type t = X.t val x : t end
@@ -249,8 +270,8 @@ end
 [%%expect{|
 {
  ("Arg", module) -> {
-                     ("t", type) -> <.35>;
-                     ("x", value) -> <.36>;
+                     ("t", type) -> <.39>;
+                     ("x", value) -> <.40>;
                      };
  }
 module Arg : sig type t = int val x : int end
@@ -259,8 +280,8 @@ module Arg : sig type t = int val x : int end
 include F1 (Arg)
 [%%expect{|
 {
- ("t", type) -> <.35>;
- ("x", value) -> <.36>;
+ ("t", type) -> <.39>;
+ ("x", value) -> <.40>;
  }
 type t = Arg.t
 val x : t = 0
@@ -270,10 +291,10 @@ module F3 = (F1 : S2)
 [%%expect{|
 {
  ("F3", module) ->
-     Abs(X/459,
+     Abs(X/479,
          {
-          ("t", type) -> X/459 . "t"[type];
-          ("x", value) -> X/459 . "x"[value];
+          ("t", type) -> X/479 . "t"[type];
+          ("x", value) -> X/479 . "x"[value];
           });
  }
 module F3 : S2
@@ -282,8 +303,8 @@ module F3 : S2
 include F3 (Arg)
 [%%expect{|
 {
- ("t", type) -> <.35>;
- ("x", value) -> <.36>;
+ ("t", type) -> <.39>;
+ ("x", value) -> <.40>;
  }
 type t = F3(Arg).t
 val x : t = <abstr>
@@ -291,18 +312,25 @@ val x : t = <abstr>
 
 module F4 = (F1 : S1)
 [%%expect{|
-Line 1, characters 18-20:
-1 | module F4 = (F1 : S1)
-                      ^^
-Error: Unbound module type S1
+{
+ ("F4", module) ->
+     Abs(X/468,
+         {
+          ("t", type) -> X/468 . "t"[type];
+          ("x", value) -> X/468 . "x"[value];
+          });
+ }
+module F4 : S1
 |}]
 
 include F4 (Arg)
 [%%expect{|
-Line 1, characters 8-10:
-1 | include F4 (Arg)
-            ^^
-Error: Unbound module F4
+{
+ ("t", type) -> <.39>;
+ ("x", value) -> <.40>;
+ }
+type t = F4(Arg).t
+val x : t = <abstr>
 |}]
 
 module type Foo = sig
@@ -314,12 +342,12 @@ end
 [%%expect{|
 {
  ("Foo", module type) ->
-     Abs(shape-var/774,
+     Abs(shape-var/531,
          {
-          ("Sig", module type) -> shape-var/774 . "Sig"[module type];
+          ("Sig", module type) -> shape-var/531 . "Sig"[module type];
           ("Sig_alias", module type) ->
-              shape-var/774 . "Sig_alias"[module type];
-          ("t", type) -> shape-var/774 . "t"[type];
+              shape-var/531 . "Sig_alias"[module type];
+          ("t", type) -> shape-var/531 . "t"[type];
           });
  }
 module type Foo =
@@ -341,11 +369,11 @@ end
 {
  ("Coercion", module) ->
      {
-      ("E", extension constructor) -> <.46>;
+      ("E", extension constructor) -> <.51>;
       ("M", module) -> {
                         };
-      ("t", type) -> <.44>;
-      ("v", value) -> <.43>;
+      ("t", type) -> <.49>;
+      ("v", value) -> <.48>;
       };
  }
 module Coercion : sig val v : int type t module M : sig end exception E end
@@ -362,8 +390,8 @@ end
 [%%expect{|
 {
  ("With_alias", module type) ->
-     Abs(shape-var/805, {
-                         ("A", module) -> shape-var/805 . "A"[module];
+     Abs(shape-var/562, {
+                         ("A", module) -> shape-var/562 . "A"[module];
                          });
  }
 module type With_alias = sig module A = Coercion end
@@ -372,8 +400,8 @@ module type With_alias = sig module A = Coercion end
 module Fignore(_ : S) = struct let x = 3 end
 [%%expect{|
 {
- ("Fignore", module) -> Abs(shape-var/811, {
-                                            ("x", value) -> <.54>;
+ ("Fignore", module) -> Abs(shape-var/568, {
+                                            ("x", value) -> <.59>;
                                             });
  }
 module Fignore : S -> sig val x : int end
@@ -383,7 +411,7 @@ module Fgen() = struct let x = 3 end
 [%%expect{|
 {
  ("Fgen", module) -> {
-                      ("x", value) -> <.56>;
+                      ("x", value) -> <.61>;
                       };
  }
 module Fgen : functor () -> sig val x : int end
@@ -393,7 +421,7 @@ module M = Fignore(struct type t = int let x = 3 end)
 [%%expect{|
 {
  ("M", module) -> {
-                   ("x", value) -> <.54>;
+                   ("x", value) -> <.59>;
                    };
  }
 module M : sig val x : int end
@@ -403,7 +431,7 @@ module N = Fgen()
 [%%expect{|
 {
  ("N", module) -> {
-                   ("x", value) -> <.56>;
+                   ("x", value) -> <.61>;
                    };
  }
 module N : sig val x : int end
@@ -414,7 +442,7 @@ class c = object
 end
 [%%expect{|
 {
- ("c", class) -> <.62>;
+ ("c", class) -> <.67>;
  }
 class c : object val v : int end
 |}]
@@ -424,7 +452,7 @@ class type ct = object
 end
 [%%expect{|
 {
- ("ct", class type) -> <.66>;
+ ("ct", class type) -> <.71>;
  }
 class type ct = object val v : int end
 |}]
@@ -441,9 +469,9 @@ end
 [%%expect{|
 {
  ("SC", module type) ->
-     Abs(shape-var/872, {
-                         ("c", class) -> <.67>;
-                         ("ct", class type) -> <.68>;
+     Abs(shape-var/629, {
+                         ("c", class) -> <.72>;
+                         ("ct", class type) -> <.73>;
                          });
  }
 module type SC =
@@ -459,10 +487,10 @@ end
 [%%expect{|
 {
  ("Fignore", module type) ->
-     Abs(shape-var/891,
-         Abs(shape-var/892,
+     Abs(shape-var/648,
+         Abs(shape-var/649,
              {
-              ("x", value) -> shape-var/891(shape-var/892) . "x"[value];
+              ("x", value) -> shape-var/648(shape-var/649) . "x"[value];
               }));
  }
 module type Fignore = S -> sig val x : int end
@@ -473,8 +501,8 @@ module F : Fignore = functor (_ : S) -> struct
 end
 [%%expect{|
 {
- ("F", module) -> Abs(shape-var/892, {
-                                      ("x", value) -> <.72>;
+ ("F", module) -> Abs(shape-var/649, {
+                                      ("x", value) -> <.77>;
                                       });
  }
 module F : Fignore
@@ -593,7 +621,7 @@ end
 [%%expect{|
 {
  ("Rec1", module type) ->
-     Abs(shape-var/1293,
+     Abs(shape-var/1050,
          {
           ("A", module) -> {
                             ("t", type) -> CU  . "A"[module] . "t"[type];
@@ -621,7 +649,7 @@ end
 [%%expect{|
 {
  ("Rec2", module type) ->
-     Abs(shape-var/1313,
+     Abs(shape-var/1070,
          {
           ("A", module) ->
               {
@@ -694,7 +722,7 @@ module type Rec2 =
 module type Std = module type of Unit
 [%%expect{|
 {
- ("Std", module type) -> Abs(shape-var/1466, CU Stdlib__Unit);
+ ("Std", module type) -> Abs(shape-var/1223, CU Stdlib . "Unit"[module]);
  }
 module type Std =
   sig
@@ -710,12 +738,12 @@ module type Std = module type of Stdlib__Unit
 [%%expect{|
 {
  ("Std", module type) ->
-     Abs(shape-var/1474,
+     Abs(shape-var/1231,
          {
-          ("compare", value) -> shape-var/1474 . "compare"[value];
-          ("equal", value) -> shape-var/1474 . "equal"[value];
-          ("t", type) -> shape-var/1474 . "t"[type];
-          ("to_string", value) -> shape-var/1474 . "to_string"[value];
+          ("compare", value) -> shape-var/1231 . "compare"[value];
+          ("equal", value) -> shape-var/1231 . "equal"[value];
+          ("t", type) -> shape-var/1231 . "t"[type];
+          ("to_string", value) -> shape-var/1231 . "to_string"[value];
           });
  }
 module type Std =
