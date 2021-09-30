@@ -120,9 +120,8 @@ module Shape : sig
   val make_persistent : string -> t
   val make_functor : param:(Ident.t option) -> t -> t
   val make_structure : Map.t -> t
-  val make_coercion : sig_:t -> t -> t
 
-  val reduce_one : t -> t
+  val reduce_one : t -> t (* TODO @ulysse we don't have to expose this *)
   val reduce_with_loading  : t -> t
 
   (** "Reset" a module shape to be used as a module type shape *)

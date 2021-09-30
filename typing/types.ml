@@ -172,13 +172,13 @@ module Shape = struct
 
   and reduce_one = function
     | App (Abs (var, body), arg) -> subst var ~arg body
-    | t -> t (* TODO @ulysse should we fail ? *)
+    | t -> t (* TODO @ulysse we could assert false here *)
 
   and reduce_proj = function
     | Proj (Struct map, item) as t ->
         (try Item.Map.find item map
          with Not_found -> t) (* SHould never happen ?*)
-    | t -> t
+    | t -> t (* TODO @ulysse we could assert false here *)
 
   let rec reduce_with_loading t =
     let read_shape unit_name =
@@ -200,7 +200,6 @@ module Shape = struct
 
   let dummy_mod = Struct Item.Map.empty
   let dummy_mty () = Abs(fresh_var () |> fst, Struct Item.Map.empty)
-
 
   let rec of_path ~find_shape ?(ns = Sig_component_kind.Module) =
     let ns_mod = Sig_component_kind.Module in
@@ -236,10 +235,6 @@ module Shape = struct
   let make_app ~arg f = App(f, arg) |> reduce_one
 
   let make_structure shapes = Struct shapes
-
-  let make_coercion ~sig_ mod_ =
-    App(sig_, mod_) |> reduce_one
-  (* TODO @ulysse ok to reduce ? *)
 
   let unproj t =
     (* TODO @ulysse Write some examples !
