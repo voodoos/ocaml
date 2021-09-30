@@ -130,7 +130,6 @@ end
  }
 module M3 : functor (X : S) -> sig type y = X.t type t = X.t end
 |}]
-
 module type MFS = functor (X : S) (Y : S) -> sig
   include module type of X
   type u
@@ -753,4 +752,12 @@ module type Std =
     val compare : t -> t -> int
     val to_string : t -> string
   end
+|}]
+
+
+module type MX = module type of M3
+
+[%%expect{|
+Uncaught exception: Failure("TODO @ulysse shapeofmdtype functor")
+
 |}]
