@@ -1628,6 +1628,7 @@ typing/typemod.cmo : \
     utils/config.cmi \
     file_formats/cmt_format.cmi \
     typing/cmt2annot.cmo \
+    file_formats/cms_format.cmo \
     file_formats/cmi_format.cmi \
     utils/clflags.cmi \
     parsing/builtin_attributes.cmi \
@@ -1662,6 +1663,7 @@ typing/typemod.cmx : \
     utils/config.cmx \
     file_formats/cmt_format.cmx \
     typing/cmt2annot.cmx \
+    file_formats/cms_format.cmx \
     file_formats/cmi_format.cmx \
     utils/clflags.cmx \
     parsing/builtin_attributes.cmx \
@@ -3801,6 +3803,18 @@ file_formats/cmo_format.cmi : \
     utils/misc.cmi \
     lambda/lambda.cmi \
     typing/ident.cmi
+file_formats/cms_format.cmo : \
+    typing/types.cmi \
+    utils/misc.cmi \
+    utils/load_path.cmi \
+    utils/config.cmi \
+    utils/clflags.cmi
+file_formats/cms_format.cmx : \
+    typing/types.cmx \
+    utils/misc.cmx \
+    utils/load_path.cmx \
+    utils/config.cmx \
+    utils/clflags.cmx
 file_formats/cmt_format.cmo : \
     typing/types.cmi \
     typing/typedtree.cmi \
