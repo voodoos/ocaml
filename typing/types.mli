@@ -110,6 +110,7 @@ module Shape : sig
   val make_var : var -> t
   val make_abs : var -> t -> t
   val make_app : arg:t -> t -> t
+  val proj : t -> (string * Sig_component_kind.t) -> t
   val make_const_fun : t -> t
   val make_empty_sig : unit -> t
   val make_sig : Map.t -> var -> t

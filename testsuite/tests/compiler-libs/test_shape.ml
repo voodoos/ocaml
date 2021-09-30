@@ -520,12 +520,10 @@ module rec A : sig
 [%%expect{|
 {
  ("A", module) -> {
-                   ("t", type) -> {
-                                   } . "t"[type];
+                   ("t", type) -> CU  . "A"[module] . "t"[type];
                    };
  ("B", module) -> {
-                   ("t", type) -> {
-                                   } . "t"[type];
+                   ("t", type) -> CU  . "B"[module] . "t"[type];
                    };
  }
 module rec A : sig type t = Leaf of B.t end
@@ -552,15 +550,12 @@ and B : sig type t = int end
 {
  ("A", module) ->
      {
-      ("compare", value) -> {
-                             } . "compare"[value];
-      ("t", type) -> {
-                      } . "t"[type];
+      ("compare", value) -> CU  . "A"[module] . "compare"[value];
+      ("t", type) -> CU  . "A"[module] . "t"[type];
       };
  ("ASet", module) ->
      CU Stdlib . "Set"[module] . "S"[module type](
-     CU Stdlib . "Set"[module] . "S"[module type]({
-                                                   }));
+     CU Stdlib . "Set"[module] . "S"[module type](CU  . "ASet"[module]));
  }
 module rec A :
   sig
@@ -624,6 +619,8 @@ module type Rec1 = sig
   and B : sig type t = int end
 end
 [%%expect{|
+Uncaught exception: Failure("TODO @ulysse Psig_recmodule")
+
 |}]
 
 module type Rec2 = sig
@@ -635,4 +632,6 @@ module type Rec2 = sig
   and ASet : Set.S with type elt = A.t
 end
 [%%expect{|
+Uncaught exception: Failure("TODO @ulysse Psig_recmodule")
+
 |}]

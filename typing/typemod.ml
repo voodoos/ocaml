@@ -1887,6 +1887,7 @@ and transl_recmodule_modtypes env sdecls =
       env ids
   in
   let init =
+    let cu = Shape.make_persistent (Env.get_unit_name ()) in
     List.map2
       (fun id pmd ->
          let md =
@@ -1895,7 +1896,13 @@ and transl_recmodule_modtypes env sdecls =
              md_attributes = pmd.pmd_attributes;
              md_uid = Uid.mk ~current_unit:(Env.get_unit_name ()); }
          in
-        (id, pmd.pmd_name, md, (), Shape.dummy_mod))
+         (* Bit of a hack: *)
+         let shape =
+           match id with
+           | None -> Shape.dummy_mod
+           | Some id -> Shape.proj cu (Ident.name id, Module)
+         in
+        (id, pmd.pmd_name, md, (), shape))
       ids sdecls
   in
   let env0 = make_env init in
