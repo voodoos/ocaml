@@ -688,3 +688,71 @@ module F = (SmallToBig : BigToSmall)
  }
 module F : BigToSmall
 |}]
+
+
+module type S = sig
+  type t
+  val x : t
+end
+module type Sres = sig
+  type t
+  val x : t
+  val y : t
+end
+[%%expect{|
+{
+ ("S", module type) -> <.113>;
+ }
+module type S = sig type t val x : t end
+{
+ ("Sres", module type) -> <.117>;
+ }
+module type Sres = sig type t val x : t val y : t end
+|}]
+
+module LocalFunctor (X : S) : Sres with type t = X.t = struct
+  include X
+  let y = x
+end
+[%%expect{|
+{
+ ("LocalFunctor", module) ->
+     Abs(X/1088,
+         {
+          ("t", type) -> X/1088 . "t"[type];
+          ("x", value) -> X/1088 . "x"[value];
+          ("y", value) -> <.119>;
+          });
+ }
+module LocalFunctor :
+  functor (X : S) -> sig type t = X.t val x : t val y : t end
+|}]
+
+module rec Foo : sig
+  type t = A | B of Bar.t
+  val x : t
+end = struct
+  type t = A | B of Bar.t
+  let x = A
+end
+
+and Bar : Sres with type t = Foo.t
+    = LocalFunctor(Foo)
+[%%expect{|
+{
+ ("Bar", module) ->
+     {
+      ("t", type) -> {
+                      } . "t"[type];
+      ("x", value) -> {
+                       } . "x"[value];
+      ("y", value) -> <.119>;
+      };
+ ("Foo", module) -> {
+                     ("t", type) -> <.134>;
+                     ("x", value) -> <.137>;
+                     };
+ }
+module rec Foo : sig type t = A | B of Bar.t val x : t end
+and Bar : sig type t = Foo.t val x : t val y : t end
+|}]
