@@ -2269,11 +2269,11 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
         mod_loc = funct.mod_loc },
       funct_shape
   | Mty_functor (Named (param, mty_param), mty_res) as mty_functor ->
-      let coercion, param_shape =
+      let coercion, _param_shape =
         try
           Includemod.modtypes
             ~loc:app_view.arg.mod_loc ~mark:Mark_both env
-            app_view.arg.mod_type mty_param Shape.dummy_mod (* FIXME *)
+            app_view.arg.mod_type mty_param Shape.dummy_mod (* FIXME? *)
         with Includemod.Error _ ->
           let args = List.map simplify_app_summary args in
           let mty_f = md_f.mod_type in
@@ -2298,7 +2298,7 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
                   let env =
                     (* TODO @ulysse is dummy ok here ? *)
                     Env.add_module ~arg:true param Mp_present
-                      app_view.arg.mod_type param_shape env
+                      app_view.arg.mod_type Shape.dummy_mod env
                   in
                   check_well_formed_module env app_view.loc
                     "the signature of this functor application" mty_res;

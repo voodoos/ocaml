@@ -270,8 +270,7 @@ let init_shape id modl =
           (Env.add_module_declaration ~check:false
                              id Mp_absent md Shape.dummy_mod env) rem
     | Sig_modtype(id, minfo, _) :: rem ->
-        init_shape_struct
-          (Env.add_modtype id minfo (Shape.dummy_mty ()) env) rem
+        init_shape_struct (Env.add_modtype id minfo env) rem
     | Sig_class _ :: rem ->
         const_int 2 (* camlinternalMod.Class *)
         :: init_shape_struct env rem

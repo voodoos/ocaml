@@ -492,7 +492,7 @@ type t = {
   labels: label_data TycompTbl.t;
   types: (type_data, type_data) IdTbl.t;
   modules: (module_entry * Shape.t, module_data * Shape.t) IdTbl.t;
-  modtypes: (modtype_data * Shape.t, modtype_data * Shape.t) IdTbl.t;
+  modtypes: (modtype_data, modtype_data) IdTbl.t;
   classes: (class_data, class_data) IdTbl.t;
   cltypes: (cltype_data, cltype_data) IdTbl.t;
   functor_args: unit Ident.tbl;
@@ -1051,7 +1051,7 @@ let find_type_full path env =
 
 let find_modtype path env =
   match path with
-  | Pident id -> IdTbl.find_same id env.modtypes |> fst
+  | Pident id -> IdTbl.find_same id env.modtypes
   | Pdot(p, s) ->
       let sc = find_structure_components p env in
       NameMap.find s sc.comp_modtypes
@@ -1219,12 +1219,6 @@ let find_shape env ns id = match ns with
       with
       | _ -> Printexc.(get_callstack 100 |> print_raw_backtrace stderr);
       failwith "find_shape: Module not found by ident")
-  | Shape.Sig_component_kind.Module_type ->
-      (try let _, shape = IdTbl.find_same id env.modtypes in
-      shape
-      with
-      | _ -> Printexc.(get_callstack 100 |> print_raw_backtrace stderr);
-      failwith "find_shape: ModuleType not found by ident")
   | _ -> failwith "unexpected namespace"
 
 let shape_of_path env ?ns = Shape.of_path ?ns ~find_shape:(find_shape env)
@@ -1789,11 +1783,9 @@ let rec components_of_module_maker
               Subst.modtype_declaration (Rescope (Path.scope cm_path))
                 prefixing_sub fresh_decl
             in
-            (* TODO @ulysse ??? *)
-            let shape = Shape.Leaf decl.mtd_uid in
             c.comp_modtypes <-
               NameMap.add (Ident.name id) final_decl c.comp_modtypes;
-            env := store_modtype id fresh_decl shape !env
+            env := store_modtype id fresh_decl !env
         | Sig_class(id, decl, _, _) ->
             let decl' = Subst.class_declaration sub decl in
             let addr = next_address () in
@@ -2019,9 +2011,9 @@ and store_module ~check ~freshening_sub id addr presence md shape env =
     modules = IdTbl.add id (Mod_local mda, shape) env.modules;
     summary = Env_module(env.summary, id, presence, md) }
 
-and store_modtype id info shape env =
+and store_modtype id info env =
   { env with
-    modtypes = IdTbl.add id (info, shape) env.modtypes;
+    modtypes = IdTbl.add id info env.modtypes;
     summary = Env_modtype(env.summary, id, info) }
 
 and store_class id addr desc env =
@@ -2104,8 +2096,8 @@ and add_module_declaration ?(arg=false) ~check id presence md shape env =
     store_module ~freshening_sub:None ~check id addr presence md shape env in
   if arg then add_functor_arg id env else env
 
-and add_modtype id info shape env =
-  store_modtype id info shape env
+and add_modtype id info env =
+  store_modtype id info env
 
 and add_class id ty env =
   let addr = class_declaration_address env id ty in
@@ -2145,9 +2137,9 @@ let enter_module_declaration ~scope ?arg s presence md shape env =
   let id = Ident.create_scoped ~scope s in
   (id, add_module_declaration ?arg ~check:true id presence md shape env)
 
-let enter_modtype ~scope name mtd shape env =
+let enter_modtype ~scope name mtd env =
   let id = Ident.create_scoped ~scope name in
-  let env = store_modtype id mtd shape env in
+  let env = store_modtype id mtd env in
   (id, env)
 
 let enter_class ~scope name desc env =
@@ -2177,8 +2169,7 @@ let add_item comp env =
       let shape = (* TODO @ulysse dummy ok ? *) Shape.dummy_mod in
       add_module_declaration ~check:false id presence md shape env
   | Sig_modtype(id, decl, _)  ->
-      let shape = (* TODO @ulysse dummy ok ? *) Shape.dummy_mty () in
-      add_modtype id decl shape env
+      add_modtype id decl env
   | Sig_class(id, decl, _, _) -> add_class id decl env
   | Sig_class_type(id, decl, _, _) -> add_cltype id decl env
 
@@ -2225,11 +2216,7 @@ let add_components slot root env0 comps =
     add (fun x -> `Type x) comps.comp_types env0.types
   in
   let modtypes =
-    let comps_mts =
-      (* TODO @ulysse check *)
-      NameMap.map (fun mta -> mta, Shape.dummy_mty ()) comps.comp_modtypes
-    in
-    add (fun x -> `Module_type x) comps_mts env0.modtypes
+    add (fun x -> `Module_type x) comps.comp_modtypes env0.modtypes
   in
   let classes =
     add (fun x -> `Class x) comps.comp_classes env0.classes
@@ -2656,7 +2643,7 @@ let lookup_ident_type ~errors ~use ~loc s env =
 
 let lookup_ident_modtype ~errors ~use ~loc s env =
   match IdTbl.find_name wrap_identity ~mark:use s env.modtypes with
-  | (path, (data, _shape)) as res ->
+  | (path, data) as res ->
       use_modtype ~use ~loc path data;
       res
   | exception Not_found ->
@@ -2961,9 +2948,7 @@ let lookup_type ~errors ~use ~loc lid env =
 
 let lookup_modtype ~errors ~use ~loc lid env =
   match lid with
-  | Lident s ->
-    let path, (md, _shape) = lookup_ident_modtype ~errors ~use ~loc s env in
-    path, md
+  | Lident s -> lookup_ident_modtype ~errors ~use ~loc s env
   | Ldot(l, s) -> lookup_dot_modtype ~errors ~use ~loc l s env
   | Lapply _ -> assert false
 
@@ -3269,13 +3254,8 @@ and fold_types f =
 and fold_modtypes : (string -> Path.t -> modtype_declaration -> 'a -> 'a) ->
   Longident.t option -> t -> 'a -> 'a = fun f ->
   (* TODO @ulysse TRIPLE check *)
-  let f nm p (mta, _shape) b = f nm p mta b in
   find_all wrap_identity
-    (fun env -> env.modtypes) (fun sc ->
-      let comp_modtypes = sc.comp_modtypes in
-      (* TODO @ulysse check *)
-      NameMap.map (fun mta -> mta, Shape.dummy_mty ())
-      comp_modtypes) f
+    (fun env -> env.modtypes) (fun sc -> sc.comp_modtypes) f
 and fold_classes f =
   find_all wrap_identity (fun env -> env.classes) (fun sc -> sc.comp_classes)
     (fun k p clda acc -> f k p clda.clda_declaration acc)

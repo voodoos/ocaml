@@ -92,7 +92,7 @@ and strengthen_sig ~aliasable env sg p =
             decl
       in
       Sig_modtype(id, newdecl, vis) :: strengthen_sig
-        ~aliasable (Env.add_modtype id decl (Shape.dummy_mty ()) env) rem p
+        ~aliasable (Env.add_modtype id decl env) rem p
       (* Need to add the module type in case it is manifest *)
   | (Sig_class _ as sigelt) :: rem ->
       sigelt :: strengthen_sig ~aliasable env rem p
@@ -305,7 +305,7 @@ and type_paths_sig env p sg =
         (Env.add_module_declaration ~check:false id pres md Shape.dummy_mod env)
         p rem
   | Sig_modtype(id, decl, _) :: rem ->
-      type_paths_sig (Env.add_modtype id decl (Shape.dummy_mty ()) env) p rem
+      type_paths_sig (Env.add_modtype id decl env) p rem
   | (Sig_value _ | Sig_typext _ | Sig_class _ | Sig_class_type _) :: rem ->
       type_paths_sig env p rem
 
@@ -493,7 +493,7 @@ and remove_aliases_sig env args sg =
   | Sig_modtype(id, mtd, priv) :: rem ->
       Sig_modtype(id, mtd, priv) ::
       remove_aliases_sig
-        (Env.add_modtype id mtd (Shape.dummy_mty ()) env) args rem
+        (Env.add_modtype id mtd env) args rem
   | it :: rem ->
       it :: remove_aliases_sig env args rem
 

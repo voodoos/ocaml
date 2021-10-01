@@ -279,7 +279,7 @@ val add_module:
   ?arg:bool -> Ident.t -> module_presence -> module_type -> Shape.t -> t -> t
 val add_module_declaration: ?arg:bool -> check:bool -> Ident.t ->
   module_presence -> module_declaration -> Shape.t -> t -> t
-val add_modtype: Ident.t -> modtype_declaration -> Shape.t -> t -> t
+val add_modtype: Ident.t -> modtype_declaration -> t -> t
 val add_class: Ident.t -> class_declaration -> t -> t
 val add_cltype: Ident.t -> class_type_declaration -> t -> t
 val add_local_type: Path.t -> type_declaration -> t -> t
