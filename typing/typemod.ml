@@ -1272,15 +1272,6 @@ let include_sig_shape ~into:map ~root sg =
       | Sig_class _ | Sig_class_type _ -> acc)
     map sg
 
-let shape_of_md_type env path shape = function
-  | Mty_alias _ | Mty_ident _ -> Env.shape_of_path env path
-  | Mty_signature sg ->
-    let items =
-      include_sig_shape ~into:Shape.Item.Map.empty ~root:shape sg
-    in
-    Shape.make_structure items
-  | Mty_functor _ -> failwith "TODO @ulysse shapeofmdtype functor"
-
 (* let signature sg = List.map (fun item -> item.sig_type) sg *)
 
 let rec transl_modtype env smty =
@@ -1930,18 +1921,19 @@ let check_recmodule_inclusion env bindings =
       (* Generate fresh names Y_i for the rec. bound module idents X_i *)
       let bindings1 =
         List.map
-          (fun (id, _name, _mty_decl, _modl, mty_actual, _attrs, _loc, _uid) ->
+          (fun (id, _name, _mty_decl, _modl, mty_actual, _attrs, _loc, shape,
+                _uid) ->
              let ids =
                Option.map
                  (fun id -> (id, Ident.create_scoped ~scope (Ident.name id))) id
              in
-             (ids, mty_actual))
+             (ids, mty_actual, shape))
           bindings in
       (* Enter the Y_i in the environment with their actual types substituted
          by the input substitution s *)
       let env' =
         List.fold_left
-          (fun env (ids, mty_actual) ->
+          (fun env (ids, mty_actual, shape) ->
              match ids with
              | None -> env
              | Some (id, id') ->
@@ -1950,14 +1942,13 @@ let check_recmodule_inclusion env bindings =
                  then mty_actual
                  else subst_and_strengthen env scope s (Some id) mty_actual
                in
-               (* TODO @ulysse are dummies ok ? *)
                Env.add_module ~arg:false id' Mp_present mty_actual'
-                (Shape.dummy_mod) env)
+                shape env)
           env bindings1 in
       (* Build the output substitution Y_i <- X_i *)
       let s' =
         List.fold_left
-          (fun s (ids, _mty_actual) ->
+          (fun s (ids, _mty_actual, _shape) ->
              match ids with
              | None -> s
              | Some (id, id') -> Subst.add_module id (Pident id') s)
@@ -1968,13 +1959,13 @@ let check_recmodule_inclusion env bindings =
       (* Base case: check inclusion of s(mty_actual) in s(mty_decl)
          and insert coercion if needed *)
       let check_inclusion
-            (id, name, mty_decl, modl, mty_actual, attrs, loc, uid) =
+            (id, name, mty_decl, modl, mty_actual, attrs, loc, shape, uid) =
         let mty_decl' = Subst.modtype (Rescope scope) s mty_decl.mty_type
         and mty_actual' = subst_and_strengthen env scope s id mty_actual in
-        let coercion, _shape =
+        let coercion, shape =
           try
             Includemod.modtypes ~loc:modl.mod_loc ~mark:Mark_both env
-              mty_actual' mty_decl' Shape.dummy_mod (* FIXME *)
+              mty_actual' mty_decl' shape
           with Includemod.Error msg ->
             raise(Error(modl.mod_loc, env, Not_included msg)) in
         let modl' =
@@ -1995,7 +1986,7 @@ let check_recmodule_inclusion env bindings =
             mb_loc = loc;
           }
         in
-        mb, uid
+        mb, shape, uid
       in
       List.map check_inclusion bindings
     end
@@ -2151,12 +2142,13 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
       in
       md, shape
   | Pmod_functor(arg_opt, sbody) ->
-      let t_arg, ty_arg, newenv, funct_body =
+      let t_arg, ty_arg, newenv, funct_shape_param, funct_body =
         match arg_opt with
-        | Unit -> Unit, Types.Unit, env, false
+        | Unit -> Unit, Types.Unit, env, None, false
         | Named (param, smty) ->
           let mty = transl_modtype_functor_arg env smty in
           let scope = Ctype.create_scope () in
+          let var, shape_var = Shape.fresh_var ?name:param.txt () in
           let (id, newenv) =
             match param.txt with
             | None -> None, env
@@ -2170,11 +2162,12 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
               in
               let id, newenv =
                 Env.enter_module_declaration ~scope ~arg:true name Mp_present
-                  arg_md Shape.dummy_mod env
+                  arg_md shape_var env
               in
               Some id, newenv
           in
-          Named (id, param, mty), Types.Named (id, mty.mty_type), newenv, true
+          Named (id, param, mty), Types.Named (id, mty.mty_type), newenv,
+          Some var, true
       in
       let body, body_shape = type_module true funct_body None newenv sbody in
       { mod_desc = Tmod_functor(t_arg, body);
@@ -2182,7 +2175,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
         mod_env = env;
         mod_attributes = smod.pmod_attributes;
         mod_loc = smod.pmod_loc },
-      Shape.make_functor ~param:None (* FIXME *) body_shape
+      Shape.make_functor ~param:funct_shape_param body_shape
   | Pmod_apply _ ->
       type_application smod.pmod_loc sttn funct_body env smod
   | Pmod_constraint(sarg, smty) ->
@@ -2592,7 +2585,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           List.map2
             (fun ({md_id=id; md_type=mty}, uid)
                  (name, _, smodl, attrs, loc) ->
-               let modl, _shape =
+               let modl, shape =
                  Builtin_attributes.warning_scope attrs
                    (fun () ->
                       type_module true funct_body (anchor_recmodule id)
@@ -2602,7 +2595,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
                let mty' =
                  enrich_module_type anchor name.txt modl.mod_type newenv
                in
-               (id, name, mty, modl, mty', attrs, loc, uid))
+               (id, name, mty, modl, mty', attrs, loc, shape, uid))
             decls sbind in
         let newenv = (* allow aliasing recursive modules from outside *)
           List.fold_left
@@ -2626,12 +2619,17 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         let bindings2 =
           check_recmodule_inclusion newenv bindings1 in
         let mbs =
-          List.filter_map (fun (mb, uid) ->
-            Option.map (fun id -> id, mb, uid)  mb.mb_id
+          List.filter_map (fun (mb, shape, uid) ->
+            Option.map (fun id -> id, mb, uid, shape)  mb.mb_id
           ) bindings2
         in
-        Tstr_recmodule (List.map fst bindings2),
-        map_rec (fun rs (id, mb, uid) ->
+        let shape_map =
+          List.fold_left (fun map (id, _, _, shape) ->
+            Shape.Map.add_module map id shape
+          ) shape_map mbs
+        in
+        Tstr_recmodule (List.map (fun (mb, _, _) -> mb) bindings2),
+        map_rec (fun rs (id, mb, uid, _shape) ->
             Sig_module(id, Mp_present, {
                 md_type=mb.mb_expr.mod_type;
                 md_attributes=mb.mb_attributes;
