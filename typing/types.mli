@@ -123,8 +123,10 @@ module Shape : sig
   val make_functor : param:(Ident.t option) -> t -> t
   val make_structure : Map.t -> t
 
-  val reduce_one : t -> t (* TODO @ulysse we don't have to expose this *)
-  val reduce_with_loading  : t -> t
+  (** [env_lookup] is used for recursive modules.
+
+      FIXME: doc *)
+  val reduce : env_lookup:(Ident.t -> t) -> t -> t
 
   (** "Reset" a module shape to be used as a module type shape *)
   val unproj : t -> t

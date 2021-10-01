@@ -165,12 +165,12 @@ module Shape = struct
   let rec subst var ~arg = function
     | Var v when var = v -> arg
     | Abs (v, t) -> Abs(v, subst var ~arg t)
-    | App (abs, t) -> App(subst var ~arg abs, subst var ~arg t) |> reduce_one
+    | App (abs, t) -> App(subst var ~arg abs, subst var ~arg t) |> reduce_app
     | Struct m -> Struct (Item.Map.map (fun s -> subst var ~arg s) m)
     | Proj (t, item) -> Proj(subst var ~arg t, item) |> reduce_proj
     | (Comp_unit _ | Leaf _ | Var _) as body -> body
 
-  and reduce_one = function
+  and reduce_app = function
     | App (Abs (var, body), arg) -> subst var ~arg body
     | t -> t
 
@@ -180,22 +180,25 @@ module Shape = struct
          with Not_found -> t) (* SHould never happen ?*)
     | t -> t
 
-  let rec reduce_with_loading t =
+  let rec reduce ~env_lookup t =
+    let reduce = reduce ~env_lookup in
     let read_shape unit_name =
       match Load_path.find_uncap (unit_name ^ ".cms") with
       | filename -> Some (!load_shape filename)
       | exception Not_found -> None
     in
     match t with
-    | Comp_unit name as t -> begin match read_shape name with
-        | Some t -> reduce_with_loading t
+    | Comp_unit name as t ->
+        begin match read_shape name with
+        | Some t -> reduce t
         | None -> t
-      end
+        end
     | App(abs, body) ->
-      reduce_one (App(reduce_with_loading abs, reduce_with_loading body))
-    | Proj(str, item) -> reduce_proj (Proj(reduce_with_loading str, item))
-    | Abs(var, body) -> Abs(var, reduce_with_loading body)
-    | Struct map -> Struct (Item.Map.map reduce_with_loading map)
+      reduce_app (App(reduce abs, reduce body))
+    | Proj(str, item) -> reduce_proj (Proj(reduce str, item))
+    | Abs(var, body) -> Abs(var, reduce body)
+    | Struct map -> Struct (Item.Map.map reduce map)
+    | Var id -> env_lookup id
     | t -> t
 
   let dummy_mod = Struct Item.Map.empty
@@ -231,7 +234,7 @@ module Shape = struct
     | None -> body
     | Some id -> Abs(id, body)
 
-  let make_app ~arg f = App(f, arg) |> reduce_one
+  let make_app ~arg f = App(f, arg) |> reduce_app
 
   let make_structure shapes = Struct shapes
 
