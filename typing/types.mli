@@ -95,7 +95,10 @@ module Shape : sig
     val add_extcons_proj : t -> Ident.t -> shape -> t
 
     val add_class : t -> Ident.t -> Uid.t -> t
+    val add_class_proj : t -> Ident.t -> shape -> t
+
     val add_class_type : t -> Ident.t -> Uid.t -> t
+    val add_class_type_proj : t -> Ident.t -> shape -> t
   end
 
   (* Forward declaration -- to be filled in by Cms_format *)
