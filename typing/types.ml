@@ -172,13 +172,13 @@ module Shape = struct
 
   and reduce_one = function
     | App (Abs (var, body), arg) -> subst var ~arg body
-    | t -> t (* TODO @ulysse we could assert false here *)
+    | t -> t
 
   and reduce_proj = function
     | Proj (Struct map, item) as t ->
         (try Item.Map.find item map
          with Not_found -> t) (* SHould never happen ?*)
-    | t -> t (* TODO @ulysse we could assert false here *)
+    | t -> t
 
   let rec reduce_with_loading t =
     let read_shape unit_name =
