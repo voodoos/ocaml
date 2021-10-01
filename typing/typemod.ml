@@ -2760,7 +2760,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
     let str = { str_items = items; str_type = sg; str_final_env = final_env } in
     Cmt_format.set_saved_types
       (Cmt_format.Partial_structure str :: previous_saved_types);
-    str, sg, names, shape_map, final_env
+    str, sg, names, Shape.make_structure shape_map, final_env
   in
   if toplevel then run ()
   else Builtin_attributes.warning_scope [] run
@@ -2946,10 +2946,8 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
       Env.reset_required_globals ();
       if !Clflags.print_types then (* #7656 *)
         ignore @@ Warnings.parse_options false "-32-34-37-38-60";
-      (* TODO @ulysse temporary *)
-      let (str, sg, names, shapes, finalenv) =
+      let (str, sg, names, shape, finalenv) =
         type_structure initial_env ast in
-      Cms_format.save_shape (outputprefix ^ ".cms") sourcefile shapes;
       let simple_sg = Signature_names.simplify finalenv names sg in
       if !Clflags.print_types then begin
         Typecore.force_delayed_checks ();
@@ -2973,10 +2971,11 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
               raise(Error(Location.in_file sourcefile, Env.empty,
                           Interface_not_compiled sourceintf)) in
           let dclsig = Env.read_signature modulename intf_file in
-          let coercion =
+          let coercion, shape =
             Includemod.compunit initial_env ~mark:Mark_positive
-              sourcefile sg intf_file dclsig
+              sourcefile sg intf_file dclsig shape
           in
+          Cms_format.save_shape (outputprefix ^ ".cms") sourcefile shape;
           Typecore.force_delayed_checks ();
           (* It is important to run these checks after the inclusion test above,
              so that value declarations which are not used internally but

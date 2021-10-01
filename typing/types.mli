@@ -102,7 +102,7 @@ module Shape : sig
   end
 
   (* Forward declaration -- to be filled in by Cms_format *)
-  val load_shape : (string -> Map.t) ref
+  val load_shape : (string -> t) ref
 
   val fresh_var : ?name:string -> unit -> var * t
 

@@ -183,7 +183,7 @@ module Shape = struct
   let rec reduce_with_loading t =
     let read_shape unit_name =
       match Load_path.find_uncap (unit_name ^ ".cms") with
-      | filename -> Some (Struct (!load_shape filename))
+      | filename -> Some (!load_shape filename)
       | exception Not_found -> None
     in
     match t with

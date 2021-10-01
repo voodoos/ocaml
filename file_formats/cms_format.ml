@@ -20,7 +20,7 @@ let read_magic_number ic =
 type cms_infos = {
   cms_loadpath : string list;
   cms_source_digest : Digest.t;
-  cms_unit_shapes : Types.Shape.Map.t;
+  cms_unit_shape : Types.Shape.t;
 }
 
 let input_cms ic = (input_value ic : cms_infos)
@@ -43,14 +43,14 @@ let read_cms filename =
       raise(Error(Not_shapes filename))
   )
 
-let save_shape filename sourcefile shapes =
+let save_shape filename sourcefile shape =
   if !Clflags.shapes then
     Misc.output_to_file_via_temporary
        ~mode:[Open_binary] filename
        (fun _temp_file_name oc ->
          let source_digest = Digest.file sourcefile in
          let cms = {
-           cms_unit_shapes = shapes;
+           cms_unit_shape = shape;
            cms_loadpath = Load_path.get_paths ();
            cms_source_digest = source_digest;
          } in
@@ -58,6 +58,6 @@ let save_shape filename sourcefile shapes =
 
 let read_shape filename =
   let cms = read_cms filename in
-  cms.cms_unit_shapes
+  cms.cms_unit_shape
 
 let () = Types.Shape.load_shape := read_shape
