@@ -761,3 +761,69 @@ module type MX = module type of M3
 Uncaught exception: Failure("TODO @ulysse shapeofmdtype functor")
 
 |}]
+
+module type Small = sig
+  type t
+end
+[%%expect{|
+{
+ ("Small", module type) ->
+     Abs(shape-var/1240, {
+                          ("t", type) -> shape-var/1240 . "t"[type];
+                          });
+ }
+module type Small = sig type t end
+|}]
+
+module type Big = sig
+  type t
+  val x : t
+end
+[%%expect{|
+{
+ ("Big", module type) ->
+     Abs(shape-var/1246,
+         {
+          ("t", type) -> shape-var/1246 . "t"[type];
+          ("x", value) -> shape-var/1246 . "x"[value];
+          });
+ }
+module type Big = sig type t val x : t end
+|}]
+
+module type BigToSmall = functor (X : Big) -> Small with type t = X.t
+[%%expect{|
+{
+ ("BigToSmall", module type) ->
+     Abs(shape-var/1254,
+         Abs(X/1255, {
+                      ("t", type) -> shape-var/1254(X/1255) . "t"[type];
+                      }));
+ }
+module type BigToSmall = functor (X : Big) -> sig type t = X.t end
+|}]
+
+module SmallToBig (X : Small) : Big with type t = X.t = struct
+  type t = X.t
+  let x : t = Obj.magic ()
+end
+[%%expect{|
+{
+ ("SmallToBig", module) ->
+     Abs(X/1263, {
+                  ("t", type) -> <.145>;
+                  ("x", value) -> <.146>;
+                  });
+ }
+module SmallToBig : functor (X : Small) -> sig type t = X.t val x : t end
+|}]
+
+module F = (SmallToBig : BigToSmall)
+[%%expect{|
+{
+ ("F", module) -> Abs(X/1255, {
+                               ("t", type) -> <.145>;
+                               });
+ }
+module F : BigToSmall
+|}]
