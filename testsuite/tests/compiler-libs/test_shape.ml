@@ -427,128 +427,24 @@ and B : sig type t = int end
      | (Node n1, Node n2) -> ASet.compare n1 n2
  end
  and ASet
-   : Set.S with type elt = A.t
+   : sig type t type elt = A.t val compare : t -> t -> int end
    = Set.Make(A)
 
 [%%expect{|
 {
  ("A", module) -> {
-                   ("compare", value) -> <.90>;
-                   ("t", type) -> <.87>;
+                   ("compare", value) -> <.94>;
+                   ("t", type) -> <.91>;
                    };
  ("ASet", module) ->
      {
-      ("add", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "add"[value];
-      ("add_seq", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "add_seq"[value];
-      ("cardinal", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "cardinal"[value];
-      ("choose", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "choose"[value];
-      ("choose_opt", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "choose_opt"[value];
       ("compare", value) ->
           CU Stdlib . "Set"[module] . "Make"[module](A/325) .
           "compare"[value];
-      ("diff", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "diff"[value];
-      ("disjoint", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "disjoint"[value];
-      ("elements", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "elements"[value];
       ("elt", type) ->
           CU Stdlib . "Set"[module] . "Make"[module](A/325) . "elt"[type];
-      ("empty", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "empty"[value];
-      ("equal", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "equal"[value];
-      ("exists", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "exists"[value];
-      ("filter", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "filter"[value];
-      ("filter_map", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "filter_map"[value];
-      ("find", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "find"[value];
-      ("find_first", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "find_first"[value];
-      ("find_first_opt", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "find_first_opt"[value];
-      ("find_last", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "find_last"[value];
-      ("find_last_opt", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "find_last_opt"[value];
-      ("find_opt", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "find_opt"[value];
-      ("fold", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "fold"[value];
-      ("for_all", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "for_all"[value];
-      ("inter", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "inter"[value];
-      ("is_empty", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "is_empty"[value];
-      ("iter", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "iter"[value];
-      ("map", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "map"[value];
-      ("max_elt", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "max_elt"[value];
-      ("max_elt_opt", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "max_elt_opt"[value];
-      ("mem", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "mem"[value];
-      ("min_elt", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "min_elt"[value];
-      ("min_elt_opt", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "min_elt_opt"[value];
-      ("of_list", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "of_list"[value];
-      ("of_seq", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "of_seq"[value];
-      ("partition", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "partition"[value];
-      ("remove", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "remove"[value];
-      ("singleton", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "singleton"[value];
-      ("split", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "split"[value];
-      ("subset", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "subset"[value];
       ("t", type) ->
           CU Stdlib . "Set"[module] . "Make"[module](A/325) . "t"[type];
-      ("to_rev_seq", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "to_rev_seq"[value];
-      ("to_seq", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "to_seq"[value];
-      ("to_seq_from", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
-          "to_seq_from"[value];
-      ("union", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "union"[value];
       };
  }
 module rec A :
@@ -556,53 +452,7 @@ module rec A :
     type t = Leaf of string | Node of ASet.t
     val compare : t -> t -> int
   end
-and ASet :
-  sig
-    type elt = A.t
-    type t
-    val empty : t
-    val is_empty : t -> bool
-    val mem : elt -> t -> bool
-    val add : elt -> t -> t
-    val singleton : elt -> t
-    val remove : elt -> t -> t
-    val union : t -> t -> t
-    val inter : t -> t -> t
-    val disjoint : t -> t -> bool
-    val diff : t -> t -> t
-    val compare : t -> t -> int
-    val equal : t -> t -> bool
-    val subset : t -> t -> bool
-    val iter : (elt -> unit) -> t -> unit
-    val map : (elt -> elt) -> t -> t
-    val fold : (elt -> 'a -> 'a) -> t -> 'a -> 'a
-    val for_all : (elt -> bool) -> t -> bool
-    val exists : (elt -> bool) -> t -> bool
-    val filter : (elt -> bool) -> t -> t
-    val filter_map : (elt -> elt option) -> t -> t
-    val partition : (elt -> bool) -> t -> t * t
-    val cardinal : t -> int
-    val elements : t -> elt list
-    val min_elt : t -> elt
-    val min_elt_opt : t -> elt option
-    val max_elt : t -> elt
-    val max_elt_opt : t -> elt option
-    val choose : t -> elt
-    val choose_opt : t -> elt option
-    val split : elt -> t -> t * bool * t
-    val find : elt -> t -> elt
-    val find_opt : elt -> t -> elt option
-    val find_first : (elt -> bool) -> t -> elt
-    val find_first_opt : (elt -> bool) -> t -> elt option
-    val find_last : (elt -> bool) -> t -> elt
-    val find_last_opt : (elt -> bool) -> t -> elt option
-    val of_list : elt list -> t
-    val to_seq_from : elt -> t -> elt Seq.t
-    val to_seq : t -> elt Seq.t
-    val to_rev_seq : t -> elt Seq.t
-    val add_seq : elt Seq.t -> t -> t
-    val of_seq : elt Seq.t -> t
-  end
+and ASet : sig type t type elt = A.t val compare : t -> t -> int end
 |}]
 
 module type Small = sig
@@ -610,7 +460,7 @@ module type Small = sig
 end
 [%%expect{|
 {
- ("Small", module type) -> <.98>;
+ ("Small", module type) -> <.102>;
  }
 module type Small = sig type t end
 |}]
@@ -621,7 +471,7 @@ module type Big = sig
 end
 [%%expect{|
 {
- ("Big", module type) -> <.101>;
+ ("Big", module type) -> <.105>;
  }
 module type Big = sig type t val x : t end
 |}]
@@ -629,7 +479,7 @@ module type Big = sig type t val x : t end
 module type BigToSmall = functor (X : Big) -> Small with type t = X.t
 [%%expect{|
 {
- ("BigToSmall", module type) -> <.104>;
+ ("BigToSmall", module type) -> <.108>;
  }
 module type BigToSmall = functor (X : Big) -> sig type t = X.t end
 |}]
@@ -641,9 +491,9 @@ end
 [%%expect{|
 {
  ("SmallToBig", module) ->
-     Abs(X/988, {
-                 ("t", type) -> <.106>;
-                 ("x", value) -> <.107>;
+     Abs(X/849, {
+                 ("t", type) -> <.110>;
+                 ("x", value) -> <.111>;
                  });
  }
 module SmallToBig : functor (X : Small) -> sig type t = X.t val x : t end
@@ -652,9 +502,9 @@ module SmallToBig : functor (X : Small) -> sig type t = X.t val x : t end
 module F = (SmallToBig : BigToSmall)
 [%%expect{|
 {
- ("F", module) -> Abs(shape-var/1072, {
-                                       ("t", type) -> <.106>;
-                                       });
+ ("F", module) -> Abs(shape-var/933, {
+                                      ("t", type) -> <.110>;
+                                      });
  }
 module F : BigToSmall
 |}]
@@ -671,11 +521,11 @@ module type Sres = sig
 end
 [%%expect{|
 {
- ("S", module type) -> <.113>;
+ ("S", module type) -> <.117>;
  }
 module type S = sig type t val x : t end
 {
- ("Sres", module type) -> <.117>;
+ ("Sres", module type) -> <.121>;
  }
 module type Sres = sig type t val x : t val y : t end
 |}]
@@ -687,11 +537,11 @@ end
 [%%expect{|
 {
  ("LocalFunctor", module) ->
-     Abs(X/1088,
+     Abs(X/949,
          {
-          ("t", type) -> X/1088 . "t"[type];
-          ("x", value) -> X/1088 . "x"[value];
-          ("y", value) -> <.119>;
+          ("t", type) -> X/949 . "t"[type];
+          ("x", value) -> X/949 . "x"[value];
+          ("y", value) -> <.123>;
           });
  }
 module LocalFunctor :
@@ -712,13 +562,13 @@ and Bar : Sres with type t = Foo.t
 {
  ("Bar", module) ->
      {
-      ("t", type) -> Foo/1100 . "t"[type];
-      ("x", value) -> Foo/1100 . "x"[value];
-      ("y", value) -> <.119>;
+      ("t", type) -> Foo/961 . "t"[type];
+      ("x", value) -> Foo/961 . "x"[value];
+      ("y", value) -> <.123>;
       };
  ("Foo", module) -> {
-                     ("t", type) -> <.134>;
-                     ("x", value) -> <.137>;
+                     ("t", type) -> <.138>;
+                     ("x", value) -> <.141>;
                      };
  }
 module rec Foo : sig type t = A | B of Bar.t val x : t end
