@@ -182,7 +182,7 @@ let process_file sourcefile =
        try
          let (ast, signat, input_file) = process_interface_file file in
          let file_module = Sig_analyser.analyse_signature file
-             input_file ast (signat |> fst).sig_type
+             input_file ast signat.sig_type
          in
 
          file_module.Odoc_module.m_top_deps <- Odoc_dep.intf_dependencies ast ;
