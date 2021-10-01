@@ -119,10 +119,11 @@ let execute_phrase print_outcome ppf phr =
       let (str, sg, sn, shapes, newenv) =
         Typemod.type_toplevel_phrase oldenv sstr
       in
+      let shape = Shape.make_structure shapes in
       if !Clflags.dump_typedtree then Printtyped.implementation ppf str;
-      if !Clflags.dump_shape then Shape.print ppf (Struct shapes);
+      if !Clflags.dump_shape then Shape.print ppf shape;
       let sg' = Typemod.Signature_names.simplify newenv sn sg in
-      ignore (Includemod.signatures ~mark:Mark_positive oldenv sg sg');
+      ignore (Includemod.signatures ~mark:Mark_positive oldenv sg sg' shape);
       Typecore.force_delayed_checks ();
       let lam = Translmod.transl_toplevel_definition str in
       Warnings.check_fatal ();
