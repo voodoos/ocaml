@@ -439,146 +439,116 @@ and B : sig type t = int end
  ("ASet", module) ->
      {
       ("add", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "add"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "add"[value];
       ("add_seq", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "add_seq"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "add_seq"[value];
       ("cardinal", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "cardinal"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "cardinal"[value];
       ("choose", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "choose"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "choose"[value];
       ("choose_opt", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      })
-          . "choose_opt"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "choose_opt"[value];
       ("compare", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "compare"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "compare"[value];
       ("diff", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "diff"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "diff"[value];
       ("disjoint", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "disjoint"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "disjoint"[value];
       ("elements", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "elements"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "elements"[value];
       ("elt", type) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "elt"[type];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "elt"[type];
       ("empty", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "empty"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "empty"[value];
       ("equal", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "equal"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "equal"[value];
       ("exists", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "exists"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "exists"[value];
       ("filter", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "filter"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "filter"[value];
       ("filter_map", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      })
-          . "filter_map"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "filter_map"[value];
       ("find", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "find"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "find"[value];
       ("find_first", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      })
-          . "find_first"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "find_first"[value];
       ("find_first_opt", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      })
-          . "find_first_opt"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "find_first_opt"[value];
       ("find_last", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "find_last"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "find_last"[value];
       ("find_last_opt", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      })
-          . "find_last_opt"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "find_last_opt"[value];
       ("find_opt", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "find_opt"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "find_opt"[value];
       ("fold", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "fold"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "fold"[value];
       ("for_all", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "for_all"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "for_all"[value];
       ("inter", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "inter"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "inter"[value];
       ("is_empty", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "is_empty"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "is_empty"[value];
       ("iter", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "iter"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "iter"[value];
       ("map", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "map"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "map"[value];
       ("max_elt", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "max_elt"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "max_elt"[value];
       ("max_elt_opt", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      })
-          . "max_elt_opt"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "max_elt_opt"[value];
       ("mem", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "mem"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "mem"[value];
       ("min_elt", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "min_elt"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "min_elt"[value];
       ("min_elt_opt", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      })
-          . "min_elt_opt"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "min_elt_opt"[value];
       ("of_list", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "of_list"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "of_list"[value];
       ("of_seq", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "of_seq"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "of_seq"[value];
       ("partition", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "partition"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "partition"[value];
       ("remove", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "remove"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "remove"[value];
       ("singleton", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "singleton"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "singleton"[value];
       ("split", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "split"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "split"[value];
       ("subset", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "subset"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "subset"[value];
       ("t", type) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "t"[type];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "t"[type];
       ("to_rev_seq", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      })
-          . "to_rev_seq"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "to_rev_seq"[value];
       ("to_seq", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "to_seq"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "to_seq"[value];
       ("to_seq_from", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      })
-          . "to_seq_from"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) .
+          "to_seq_from"[value];
       ("union", value) ->
-          CU Stdlib . "Set"[module] . "Make"[module]({
-                                                      }) . "union"[value];
+          CU Stdlib . "Set"[module] . "Make"[module](A/325) . "union"[value];
       };
  }
 module rec A :
@@ -742,10 +712,8 @@ and Bar : Sres with type t = Foo.t
 {
  ("Bar", module) ->
      {
-      ("t", type) -> {
-                      } . "t"[type];
-      ("x", value) -> {
-                       } . "x"[value];
+      ("t", type) -> Foo/1100 . "t"[type];
+      ("x", value) -> Foo/1100 . "x"[value];
       ("y", value) -> <.119>;
       };
  ("Foo", module) -> {

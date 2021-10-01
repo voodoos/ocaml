@@ -198,7 +198,10 @@ module Shape = struct
     | Proj(str, item) -> reduce_proj (Proj(reduce str, item))
     | Abs(var, body) -> Abs(var, reduce body)
     | Struct map -> Struct (Item.Map.map reduce map)
-    | Var id -> env_lookup id
+    | Var id as t ->
+        begin try env_lookup id
+        with Not_found -> t (* stuck. *)
+        end
     | t -> t
 
   let dummy_mod = Struct Item.Map.empty

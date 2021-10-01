@@ -1536,7 +1536,7 @@ and transl_signature env sg =
             let (tdecls, newenv) =
               transl_recmodule_modtypes env sdecls in
             let decls =
-              List.filter_map (fun (md, uid) ->
+              List.filter_map (fun (md, uid, _) ->
                 match md.md_id with
                 | None -> None
                 | Some id -> Some (id, md, uid)
@@ -1546,7 +1546,8 @@ and transl_signature env sg =
               Signature_names.check_module names md.md_loc id
             ) decls;
             let (trem, rem, final_env) = transl_sig newenv srem in
-            mksig (Tsig_recmodule (List.map fst tdecls)) env loc :: trem,
+            mksig (Tsig_recmodule (List.map (fun (md, _, _) -> md) tdecls))
+              env loc :: trem,
             map_rec (fun rs (id, md, uid) ->
                 let d = {Types.md_type = md.md_type.mty_type;
                          md_attributes = md.md_attributes;
@@ -1721,25 +1722,27 @@ and transl_modtype_decl_aux env
 
 and transl_recmodule_modtypes env sdecls =
   let make_env curr =
-    List.fold_left
-      (fun env (id, _, md, _) ->
-         Option.fold ~none:env
-           ~some:(fun id -> Env.add_module_declaration ~check:true ~arg:true
-                              id Mp_present md Shape.dummy_mod env) id)
-      env curr in
+    List.fold_left (fun env (id_shape, _, md, _) ->
+      Option.fold ~none:env ~some:(fun (id, shape) ->
+        Env.add_module_declaration ~check:true ~arg:true
+          id Mp_present md shape env
+        ) id_shape
+      ) env curr
+  in
   let transition env_c curr =
     List.map2
-      (fun pmd (id, id_loc, md, _) ->
+      (fun pmd (id_shape, id_loc, md, _) ->
         let tmty =
           Builtin_attributes.warning_scope pmd.pmd_attributes
             (fun () -> transl_modtype env_c pmd.pmd_type)
         in
         let md = { md with Types.md_type = tmty.mty_type } in
-        (id, id_loc, md, tmty))
+        (id_shape, id_loc, md, tmty))
       sdecls curr in
   let map_mtys curr =
     List.filter_map
-      (fun (id, _, md, _) -> Option.map (fun id -> (id, md)) id)
+      (fun (id_shape, _, md, _) ->
+         Option.map (fun (id, _) -> (id, md)) id_shape)
       curr
   in
   let scope = Ctype.create_scope () in
@@ -1765,7 +1768,8 @@ and transl_recmodule_modtypes env sdecls =
              md_attributes = pmd.pmd_attributes;
              md_uid = Uid.mk ~current_unit:(Env.get_unit_name ()) }
          in
-        (id, pmd.pmd_name, md, ()))
+         let id_shape = Option.map (fun id -> id, Shape.make_var id) id in
+        (id_shape, pmd.pmd_name, md, ()))
       ids sdecls
   in
   let env0 = make_env init in
@@ -1785,14 +1789,14 @@ and transl_recmodule_modtypes env sdecls =
   let env2 = make_env dcl2 in
   check_recmod_typedecls env2 (map_mtys dcl2);
   let dcl2 =
-    List.map2 (fun pmd (id, id_loc, md, mty) ->
+    List.map2 (fun pmd (id_shape, id_loc, md, mty) ->
       let tmd =
-        {md_id=id; md_name=id_loc; md_type=mty;
+        {md_id=Option.map fst id_shape; md_name=id_loc; md_type=mty;
          md_presence=Mp_present;
          md_loc=pmd.pmd_loc;
          md_attributes=pmd.pmd_attributes}
       in
-      tmd, md.md_uid
+      tmd, md.md_uid, Option.map snd id_shape
     ) sdecls dcl2
   in
   (dcl2, env2)
@@ -2578,12 +2582,12 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             )
         in
         List.iter
-          (fun (md, _) ->
+          (fun (md, _, _) ->
              Option.iter Signature_names.(check_module names md.md_loc) md.md_id
           ) decls;
         let bindings1 =
           List.map2
-            (fun ({md_id=id; md_type=mty}, uid)
+            (fun ({md_id=id; md_type=mty}, uid, _prev_shape)
                  (name, _, smodl, attrs, loc) ->
                let modl, shape =
                  Builtin_attributes.warning_scope attrs
@@ -2599,7 +2603,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             decls sbind in
         let newenv = (* allow aliasing recursive modules from outside *)
           List.fold_left
-            (fun env (md, uid) ->
+            (fun env (md, uid, shape_opt) ->
                match md.md_id with
                | None -> env
                | Some id ->
@@ -2611,8 +2615,12 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
                        md_uid = uid;
                      }
                    in
+                   let shape =
+                     (* Only None when we don't have an id. *)
+                     Option.get shape_opt
+                   in
                    Env.add_module_declaration ~check:true
-                     id Mp_present mdecl Shape.dummy_mod env
+                     id Mp_present mdecl shape env
             )
             env decls
         in
