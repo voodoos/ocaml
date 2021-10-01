@@ -59,7 +59,6 @@ let typecheck_intf info ast =
   let tsg =
     ast
     |> Typemod.type_interface info.env
-    |> fst
     |> print_if info.ppf_dump Clflags.dump_typedtree Printtyped.interface
   in
   let sg = tsg.Typedtree.sig_type in
@@ -68,7 +67,8 @@ let typecheck_intf info ast =
         Format.(fprintf std_formatter) "%a@."
           (Printtyp.printed_signature info.source_file)
           sg);
-  ignore (Includemod.signatures info.env ~mark:Mark_both sg sg);
+  (* FIXME *)
+  ignore (Includemod.signatures info.env ~mark:Mark_both sg sg Types.Shape.dummy_mod);
   Typecore.force_delayed_checks ();
   Warnings.check_fatal ();
   tsg
