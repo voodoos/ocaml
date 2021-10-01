@@ -27,8 +27,7 @@ module type S = sig
 end
 [%%expect{|
 {
- ("S", module type) -> {
-                        };
+ ("S", module type) -> <.1>;
  }
 module type S = sig type t end
 |}]
@@ -39,8 +38,7 @@ module type Sx = sig
 end
 [%%expect{|
 {
- ("Sx", module type) -> {
-                         };
+ ("Sx", module type) -> <.3>;
  }
 module type Sx = sig type t val x : int end
 |}]
@@ -130,8 +128,7 @@ module type MFS = functor (X : S) (Y : S) -> sig
 end
 [%%expect{|
 {
- ("MFS", module type) -> {
-                          };
+ ("MFS", module type) -> <.18>;
  }
 module type MFS = functor (X : S) (Y : S) -> sig type t type u end
 |}]
@@ -142,8 +139,7 @@ module type MFS_indir = functor (X : Set.OrderedType) (Y : S) -> sig
 end
 [%%expect{|
 {
- ("MFS_indir", module type) -> {
-                                };
+ ("MFS_indir", module type) -> <.22>;
  }
 module type MFS_indir =
   functor (X : Set.OrderedType) (Y : S) ->
@@ -171,8 +167,7 @@ module type S = sig
 end
 [%%expect{|
 {
- ("S", module type) -> {
-                        };
+ ("S", module type) -> <.30>;
  }
 module type S = sig type t val x : t end
 |}]
@@ -182,8 +177,7 @@ module type S1 = functor (X : S) -> sig
 end
 [%%expect{|
 {
- ("S1", module type) -> {
-                         };
+ ("S1", module type) -> <.32>;
  }
 module type S1 = functor (X : S) -> sig type t val x : t end
 |}]
@@ -193,8 +187,7 @@ module type S2 = functor (X : S) -> sig
 end
 [%%expect{|
 {
- ("S2", module type) -> {
-                         };
+ ("S2", module type) -> <.34>;
  }
 module type S2 = functor (X : S) -> sig type t val x : t end
 |}]
@@ -202,8 +195,7 @@ module type S2 = functor (X : S) -> sig type t val x : t end
 module type S3 = functor (X : S) -> S
 [%%expect{|
 {
- ("S3", module type) -> {
-                         };
+ ("S3", module type) -> <.36>;
  }
 module type S3 = functor (X : S) -> S
 |}]
@@ -301,8 +293,7 @@ module type Foo = sig
 end
 [%%expect{|
 {
- ("Foo", module type) -> {
-                          };
+ ("Foo", module type) -> <.47>;
  }
 module type Foo =
   sig module type Sig = sig type t end module type Sig_alias = Sig type t end
@@ -343,8 +334,7 @@ module type With_alias = sig
 end
 [%%expect{|
 {
- ("With_alias", module type) -> {
-                                 };
+ ("With_alias", module type) -> <.58>;
  }
 module type With_alias = sig module A = Coercion end
 |}]
@@ -420,8 +410,7 @@ end
 
 [%%expect{|
 {
- ("SC", module type) -> {
-                         };
+ ("SC", module type) -> <.74>;
  }
 module type SC =
   sig
@@ -435,8 +424,7 @@ module type Fignore = functor (_ : S) -> sig
 end
 [%%expect{|
 {
- ("Fignore", module type) -> {
-                              };
+ ("Fignore", module type) -> <.76>;
  }
 module type Fignore = S -> sig val x : int end
 |}]
@@ -705,8 +693,7 @@ module type Rec1 = sig
 end
 [%%expect{|
 {
- ("Rec1", module type) -> {
-                           };
+ ("Rec1", module type) -> <.120>;
  }
 module type Rec1 =
   sig
@@ -725,8 +712,7 @@ module type Rec2 = sig
 end
 [%%expect{|
 {
- ("Rec2", module type) -> {
-                           };
+ ("Rec2", module type) -> <.133>;
  }
 module type Rec2 =
   sig
@@ -788,8 +774,7 @@ module type Rec2 =
 module type Std = module type of Unit
 [%%expect{|
 {
- ("Std", module type) -> {
-                          };
+ ("Std", module type) -> <.134>;
  }
 module type Std =
   sig
@@ -804,8 +789,7 @@ module type Std = module type of Stdlib__Unit
 
 [%%expect{|
 {
- ("Std", module type) -> {
-                          };
+ ("Std", module type) -> <.135>;
  }
 module type Std =
   sig
@@ -821,8 +805,7 @@ module type MX = module type of M3
 
 [%%expect{|
 {
- ("MX", module type) -> {
-                         };
+ ("MX", module type) -> <.136>;
  }
 module type MX = functor (X : S/2) -> sig type y = X.t type t = X.t end
 |}]
@@ -832,8 +815,7 @@ module type Small = sig
 end
 [%%expect{|
 {
- ("Small", module type) -> {
-                            };
+ ("Small", module type) -> <.138>;
  }
 module type Small = sig type t end
 |}]
@@ -844,8 +826,7 @@ module type Big = sig
 end
 [%%expect{|
 {
- ("Big", module type) -> {
-                          };
+ ("Big", module type) -> <.141>;
  }
 module type Big = sig type t val x : t end
 |}]
@@ -853,8 +834,7 @@ module type Big = sig type t val x : t end
 module type BigToSmall = functor (X : Big) -> Small with type t = X.t
 [%%expect{|
 {
- ("BigToSmall", module type) -> {
-                                 };
+ ("BigToSmall", module type) -> <.144>;
  }
 module type BigToSmall = functor (X : Big) -> sig type t = X.t end
 |}]
