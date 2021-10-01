@@ -2644,6 +2644,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         let newenv, mtd, sg = transl_modtype_decl env pmtd in
         Signature_names.check_modtype names pmtd.pmtd_loc mtd.mtd_id;
         Tstr_modtype mtd, [sg],
+        (* FIXME: not dummy_mod, but Leaf uid! *)
         Shape.Map.add_module_type shape_map mtd.mtd_id Shape.dummy_mod, newenv
     | Pstr_open sod ->
         let (od, sg, newenv) =
