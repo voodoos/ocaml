@@ -289,7 +289,8 @@ let package_files ~ppf_dump initial_env files targetfile =
     let targetcmi = prefix ^ ".cmi" in
     let targetname = String.capitalize_ascii(Filename.basename prefix) in
     Misc.try_finally (fun () ->
-        let coercion =
+        (* FIXME? *)
+        let coercion, _shape =
           Typemod.package_units initial_env files targetcmi targetname in
         package_object_files ~ppf_dump files targetfile targetname coercion
       )

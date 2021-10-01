@@ -32,19 +32,19 @@ val type_module:
         Env.t -> Parsetree.module_expr -> Typedtree.module_expr * Shape.t
 val type_structure:
   Env.t -> Parsetree.structure ->
-  Typedtree.structure * Types.signature * Signature_names.t * Shape.Map.t *
+  Typedtree.structure * Types.signature * Signature_names.t * Shape.t *
   Env.t
 val type_toplevel_phrase:
   Env.t -> Parsetree.structure ->
-  Typedtree.structure * Types.signature * Signature_names.t * Shape.Map.t *
+  Typedtree.structure * Types.signature * Signature_names.t * Shape.t *
   Env.t
 val type_implementation:
   string -> string -> string -> Env.t ->
   Parsetree.structure -> Typedtree.implementation
 val type_interface:
-        Env.t -> Parsetree.signature -> Typedtree.signature * Shape.t
+        Env.t -> Parsetree.signature -> Typedtree.signature
 val transl_signature:
-        Env.t -> Shape.t -> Parsetree.signature -> Typedtree.signature * Shape.t
+        Env.t -> Parsetree.signature -> Typedtree.signature
 val check_nongen_schemes:
         Env.t -> Types.signature -> unit
         (*
@@ -64,7 +64,8 @@ val save_signature:
   Env.t -> Cmi_format.cmi_infos -> unit
 
 val package_units:
-  Env.t -> string list -> string -> string -> Typedtree.module_coercion
+  Env.t -> string list -> string -> string ->
+  Typedtree.module_coercion * Shape.t
 
 (* Should be in Envaux, but it breaks the build of the debugger *)
 val initial_env:

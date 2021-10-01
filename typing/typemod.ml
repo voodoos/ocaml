@@ -595,17 +595,19 @@ let merge_constraint initial_env loc sg lid constr =
         let mty = Mtype.scrape_for_type_of ~remove_aliases sig_env mty in
         let md'' = { md' with md_type = mty } in
         let newmd = Mtype.strengthen_decl ~aliasable:false sig_env md'' path in
+        (* FIXME *)
         ignore(Includemod.modtypes  ~mark:Mark_both ~loc sig_env
-                 newmd.md_type md.md_type);
+                 newmd.md_type md.md_type Shape.dummy_mod);
         return
           ~replace_by:(Some(Sig_module(id, pres, newmd, rs, priv)))
           (Pident id, lid, Twith_module (path, lid'))
     | Sig_module(id, _, md, _rs, _), [s], With_modsubst (lid',path,md')
       when Ident.name id = s ->
         let aliasable = not (Env.is_functor_arg path sig_env) in
+        (* FIXME *)
         ignore
           (Includemod.strengthened_module_decl ~loc ~mark:Mark_both
-             ~aliasable sig_env md' path md);
+             ~aliasable sig_env md' path md Shape.dummy_mod);
         real_ids := [Pident id];
         return ~replace_by:None (Pident id, lid, Twith_modsubst (path, lid'))
     | Sig_module(id, _, md, rs, priv) as item, s :: namelist, constr
@@ -1969,10 +1971,10 @@ let check_recmodule_inclusion env bindings =
             (id, name, mty_decl, modl, mty_actual, attrs, loc, uid) =
         let mty_decl' = Subst.modtype (Rescope scope) s mty_decl.mty_type
         and mty_actual' = subst_and_strengthen env scope s id mty_actual in
-        let coercion =
+        let coercion, _shape =
           try
             Includemod.modtypes ~loc:modl.mod_loc ~mark:Mark_both env
-              mty_actual' mty_decl'
+              mty_actual' mty_decl' Shape.dummy_mod (* FIXME *)
           with Includemod.Error msg ->
             raise(Error(modl.mod_loc, env, Not_included msg)) in
         let modl' =
@@ -2049,24 +2051,25 @@ let package_subtype env p1 fl1 p2 fl2 =
   | exception Error(_, _, Cannot_scrape_package_type _) -> false
   | mty1, mty2 ->
     let loc = Location.none in
-    match Includemod.modtypes ~loc ~mark:Mark_both env mty1 mty2 with
-    | Tcoerce_none -> true
+    (* FIXME *)
+    match Includemod.modtypes ~loc ~mark:Mark_both env mty1 mty2 Shape.dummy_mod with
+    | Tcoerce_none, _shape -> true
     | _ | exception Includemod.Error _ -> false
 
 let () = Ctype.package_subtype := package_subtype
 
-let wrap_constraint env mark arg mty explicit =
+let wrap_constraint env mark arg mty shape explicit =
   let mark = if mark then Includemod.Mark_both else Includemod.Mark_neither in
-  let coercion =
+  let coercion, shape =
     try
-      Includemod.modtypes ~loc:arg.mod_loc env ~mark arg.mod_type mty
+      Includemod.modtypes ~loc:arg.mod_loc env ~mark arg.mod_type mty shape
     with Includemod.Error msg ->
       raise(Error(arg.mod_loc, env, Not_included msg)) in
   { mod_desc = Tmod_constraint(arg, mty, explicit, coercion);
     mod_type = mty;
     mod_env = env;
     mod_attributes = [];
-    mod_loc = arg.mod_loc }
+    mod_loc = arg.mod_loc }, shape
 
 (* Type a module value expression *)
 
@@ -2129,7 +2132,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
       in
       md, shape
   | Pmod_structure sstr ->
-      let (str, sg, names, shapes, _finalenv) =
+      let (str, sg, names, shape, _finalenv) =
         type_structure funct_body anchor env sstr in
       let md =
         { mod_desc = Tmod_structure str;
@@ -2139,10 +2142,14 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
           mod_loc = smod.pmod_loc }
       in
       let sg' = Signature_names.simplify _finalenv names sg in
-      let md = if List.length sg' = List.length sg then md
-        else wrap_constraint env false md (Mty_signature sg') Tmodtype_implicit
+      let md, shape =
+        if List.length sg' = List.length sg
+        then md, shape
+        else
+          wrap_constraint env false md (Mty_signature sg')
+            shape Tmodtype_implicit
       in
-      md, Shape.make_structure shapes
+      md, shape
   | Pmod_functor(arg_opt, sbody) ->
       let t_arg, ty_arg, newenv, funct_body =
         match arg_opt with
@@ -2179,16 +2186,17 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
   | Pmod_apply _ ->
       type_application smod.pmod_loc sttn funct_body env smod
   | Pmod_constraint(sarg, smty) ->
-      let arg, _arg_shape = type_module ~alias true funct_body anchor env sarg in
+      let arg, arg_shape = type_module ~alias true funct_body anchor env sarg in
       let mty = transl_modtype env smty in
-      let md =
-        wrap_constraint env true arg mty.mty_type (Tmodtype_explicit mty)
+      let md, final_shape =
+        wrap_constraint env true arg mty.mty_type arg_shape 
+          (Tmodtype_explicit mty)
       in
       { md with
         mod_loc = smod.pmod_loc;
         mod_attributes = smod.pmod_attributes;
       },
-      _arg_shape (* FIXME *)
+      final_shape
   | Pmod_unpack sexp ->
       if !Clflags.principal then Ctype.begin_def ();
       let exp = Typecore.type_exp env sexp in
@@ -2268,11 +2276,11 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
         mod_loc = funct.mod_loc },
       funct_shape
   | Mty_functor (Named (param, mty_param), mty_res) as mty_functor ->
-      let coercion =
+      let coercion, param_shape =
         try
           Includemod.modtypes
             ~loc:app_view.arg.mod_loc ~mark:Mark_both env
-            app_view.arg.mod_type mty_param
+            app_view.arg.mod_type mty_param Shape.dummy_mod (* FIXME *)
         with Includemod.Error _ ->
           let args = List.map simplify_app_summary args in
           let mty_f = md_f.mod_type in
@@ -2297,7 +2305,7 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
                   let env =
                     (* TODO @ulysse is dummy ok here ? *)
                     Env.add_module ~arg:true param Mp_present
-                      app_view.arg.mod_type (Shape.dummy_mod) env
+                      app_view.arg.mod_type param_shape env
                   in
                   check_well_formed_module env app_view.loc
                     "the signature of this functor application" mty_res;
@@ -2309,8 +2317,9 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
             begin match
               Includemod.modtypes
                 ~loc:app_view.loc ~mark:Mark_neither env mty_res nondep_mty
+                Shape.dummy_mod (* FIXME *)
             with
-            | Tcoerce_none -> ()
+            | Tcoerce_none, _shape -> () (* FIXME: return shape? *)
             | _ ->
                 fatal_error
                   "unexpected coercion from original module type to \
@@ -2910,7 +2919,9 @@ let type_package env m p fl =
       with Ctype.Unify _ ->
         raise (Error(modl.mod_loc, env, Scoping_pack (n,ty))))
     fl';
-  let modl = wrap_constraint env true modl mty Tmodtype_implicit in
+  (* FIXME *)
+  let modl, _shape =
+    wrap_constraint env true modl mty Shape.dummy_mod Tmodtype_implicit in
   modl, fl'
 
 (* Fill in the forward declarations *)
@@ -2991,9 +3002,9 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
         end else begin
           Location.prerr_warning (Location.in_file sourcefile)
             Warnings.Missing_mli;
-          let coercion =
+          let coercion, shape =
             Includemod.compunit initial_env ~mark:Mark_positive
-              sourcefile sg "(inferred signature)" simple_sg
+              sourcefile sg "(inferred signature)" simple_sg shape
           in
           check_nongen_schemes finalenv simple_sg;
           normalize_signature simple_sg;
@@ -3008,6 +3019,7 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
               Env.save_signature ~alerts
                 simple_sg modulename (outputprefix ^ ".cmi")
             in
+            Cms_format.save_shape (outputprefix ^ ".cms") sourcefile shape;
             let annots = Cmt_format.Implementation str in
             Cmt_format.save_cmt  (outputprefix ^ ".cmt") modulename
               annots (Some sourcefile) initial_env (Some cmi);
@@ -3099,7 +3111,7 @@ let package_units initial_env objfiles cmifile modulename =
     Cmt_format.save_cmt  (prefix ^ ".cmt") modulename
       (Cmt_format.Packed (sg, objfiles)) None initial_env  None ;
     Includemod.compunit initial_env ~mark:Mark_both
-      "(obtained by packing)" sg mlifile dclsig
+      "(obtained by packing)" sg mlifile dclsig Shape.dummy_mod (* FIXME *)
   end else begin
     (* Determine imports *)
     let unit_names = List.map fst units in
@@ -3118,7 +3130,7 @@ let package_units initial_env objfiles cmifile modulename =
         (Cmt_format.Packed (cmi.Cmi_format.cmi_sign, objfiles)) None initial_env
         (Some cmi)
     end;
-    Tcoerce_none
+    Tcoerce_none, Shape.dummy_mod (* FIXME: TODO *)
   end
 
 
