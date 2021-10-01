@@ -199,7 +199,6 @@ module Shape = struct
     | t -> t
 
   let dummy_mod = Struct Item.Map.empty
-  let dummy_mty () = Abs(fresh_var () |> fst, Struct Item.Map.empty)
 
   let rec of_path ~find_shape ?(ns = Sig_component_kind.Module) =
     let ns_mod = Sig_component_kind.Module in

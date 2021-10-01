@@ -107,7 +107,6 @@ module Shape : sig
   val fresh_var : ?name:string -> unit -> var * t
 
   val dummy_mod : t
-  val dummy_mty : unit -> t
 
   val of_path :
     find_shape:(Sig_component_kind.t -> Ident.t -> t) ->
