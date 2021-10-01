@@ -27,10 +27,8 @@ module type S = sig
 end
 [%%expect{|
 {
- ("S", module type) ->
-     Abs(shape-var/88, {
-                        ("t", type) -> shape-var/88 . "t"[type];
-                        });
+ ("S", module type) -> {
+                        };
  }
 module type S = sig type t end
 |}]
@@ -41,12 +39,8 @@ module type Sx = sig
 end
 [%%expect{|
 {
- ("Sx", module type) ->
-     Abs(shape-var/94,
-         {
-          ("t", type) -> shape-var/94 . "t"[type];
-          ("x", value) -> shape-var/94 . "x"[value];
-          });
+ ("Sx", module type) -> {
+                         };
  }
 module type Sx = sig type t val x : int end
 |}]
@@ -108,8 +102,8 @@ end
 [%%expect{|
 {
  ("M''", module) ->
-     Abs(X/120, {
-                 ("t", type) -> X/120 . "t"[type];
+     Abs(X/114, {
+                 ("t", type) -> X/114 . "t"[type];
                  ("y", type) -> <.10>;
                  });
  }
@@ -123,8 +117,8 @@ end
 [%%expect{|
 {
  ("M3", module) ->
-     Abs(X/127, {
-                 ("t", type) -> X/127 . "t"[type];
+     Abs(X/122, {
+                 ("t", type) -> X/122 . "t"[type];
                  ("y", type) -> <.13>;
                  });
  }
@@ -136,14 +130,8 @@ module type MFS = functor (X : S) (Y : S) -> sig
 end
 [%%expect{|
 {
- ("MFS", module type) ->
-     Abs(shape-var/134,
-         Abs(X/135,
-             Abs(Y/137,
-                 {
-                  ("t", type) -> shape-var/134(X/135)(Y/137) . "t"[type];
-                  ("u", type) -> shape-var/134(X/135)(Y/137) . "u"[type];
-                  })));
+ ("MFS", module type) -> {
+                          };
  }
 module type MFS = functor (X : S) (Y : S) -> sig type t type u end
 |}]
@@ -154,16 +142,8 @@ module type MFS_indir = functor (X : Set.OrderedType) (Y : S) -> sig
 end
 [%%expect{|
 {
- ("MFS_indir", module type) ->
-     Abs(shape-var/148,
-         Abs(X/149,
-             Abs(Y/342,
-                 {
-                  ("compare", value) ->
-                      shape-var/148(X/149)(Y/342) . "compare"[value];
-                  ("t", type) -> shape-var/148(X/149)(Y/342) . "t"[type];
-                  ("u", type) -> shape-var/148(X/149)(Y/342) . "u"[type];
-                  })));
+ ("MFS_indir", module type) -> {
+                                };
  }
 module type MFS_indir =
   functor (X : Set.OrderedType) (Y : S) ->
@@ -177,7 +157,7 @@ end
 [%%expect{|
 {
  ("MF", module) ->
-     Abs(X/135, Abs(Y/137, {
+     Abs(X/442, Abs(Y/444, {
                             ("t", type) -> <.25>;
                             ("u", type) -> <.26>;
                             }));
@@ -191,12 +171,8 @@ module type S = sig
 end
 [%%expect{|
 {
- ("S", module type) ->
-     Abs(shape-var/459,
-         {
-          ("t", type) -> shape-var/459 . "t"[type];
-          ("x", value) -> shape-var/459 . "x"[value];
-          });
+ ("S", module type) -> {
+                        };
  }
 module type S = sig type t val x : t end
 |}]
@@ -206,13 +182,8 @@ module type S1 = functor (X : S) -> sig
 end
 [%%expect{|
 {
- ("S1", module type) ->
-     Abs(shape-var/467,
-         Abs(X/468,
-             {
-              ("t", type) -> shape-var/467(X/468) . "t"[type];
-              ("x", value) -> shape-var/467(X/468) . "x"[value];
-              }));
+ ("S1", module type) -> {
+                         };
  }
 module type S1 = functor (X : S) -> sig type t val x : t end
 |}]
@@ -222,13 +193,8 @@ module type S2 = functor (X : S) -> sig
 end
 [%%expect{|
 {
- ("S2", module type) ->
-     Abs(shape-var/478,
-         Abs(X/479,
-             {
-              ("t", type) -> shape-var/478(X/479) . "t"[type];
-              ("x", value) -> shape-var/478(X/479) . "x"[value];
-              }));
+ ("S2", module type) -> {
+                         };
  }
 module type S2 = functor (X : S) -> sig type t val x : t end
 |}]
@@ -236,13 +202,8 @@ module type S2 = functor (X : S) -> sig type t val x : t end
 module type S3 = functor (X : S) -> S
 [%%expect{|
 {
- ("S3", module type) ->
-     Abs(shape-var/489,
-         Abs(X/490,
-             {
-              ("t", type) -> shape-var/489(X/490) . "t"[type];
-              ("x", value) -> shape-var/489(X/490) . "x"[value];
-              }));
+ ("S3", module type) -> {
+                         };
  }
 module type S3 = functor (X : S) -> S
 |}]
@@ -253,10 +214,10 @@ end
 [%%expect{|
 {
  ("F1", module) ->
-     Abs(X/496,
+     Abs(X/481,
          {
-          ("t", type) -> X/496 . "t"[type];
-          ("x", value) -> X/496 . "x"[value];
+          ("t", type) -> X/481 . "t"[type];
+          ("x", value) -> X/481 . "x"[value];
           });
  }
 module F1 : functor (X : S) -> sig type t = X.t val x : t end
@@ -290,10 +251,10 @@ module F3 = (F1 : S2)
 [%%expect{|
 {
  ("F3", module) ->
-     Abs(X/479,
+     Abs(X/481,
          {
-          ("t", type) -> X/479 . "t"[type];
-          ("x", value) -> X/479 . "x"[value];
+          ("t", type) -> X/481 . "t"[type];
+          ("x", value) -> X/481 . "x"[value];
           });
  }
 module F3 : S2
@@ -313,10 +274,10 @@ module F4 = (F1 : S1)
 [%%expect{|
 {
  ("F4", module) ->
-     Abs(X/468,
+     Abs(X/481,
          {
-          ("t", type) -> X/468 . "t"[type];
-          ("x", value) -> X/468 . "x"[value];
+          ("t", type) -> X/481 . "t"[type];
+          ("x", value) -> X/481 . "x"[value];
           });
  }
 module F4 : S1
@@ -340,14 +301,8 @@ module type Foo = sig
 end
 [%%expect{|
 {
- ("Foo", module type) ->
-     Abs(shape-var/531,
-         {
-          ("Sig", module type) -> shape-var/531 . "Sig"[module type];
-          ("Sig_alias", module type) ->
-              shape-var/531 . "Sig_alias"[module type];
-          ("t", type) -> shape-var/531 . "t"[type];
-          });
+ ("Foo", module type) -> {
+                          };
  }
 module type Foo =
   sig module type Sig = sig type t end module type Sig_alias = Sig type t end
@@ -388,10 +343,8 @@ module type With_alias = sig
 end
 [%%expect{|
 {
- ("With_alias", module type) ->
-     Abs(shape-var/562, {
-                         ("A", module) -> shape-var/562 . "A"[module];
-                         });
+ ("With_alias", module type) -> {
+                                 };
  }
 module type With_alias = sig module A = Coercion end
 |}]
@@ -399,7 +352,7 @@ module type With_alias = sig module A = Coercion end
 module Fignore(_ : S) = struct let x = 3 end
 [%%expect{|
 {
- ("Fignore", module) -> Abs(shape-var/568, {
+ ("Fignore", module) -> Abs(shape-var/542, {
                                             ("x", value) -> <.59>;
                                             });
  }
@@ -467,11 +420,8 @@ end
 
 [%%expect{|
 {
- ("SC", module type) ->
-     Abs(shape-var/629, {
-                         ("c", class) -> <.72>;
-                         ("ct", class type) -> <.73>;
-                         });
+ ("SC", module type) -> {
+                         };
  }
 module type SC =
   sig
@@ -485,12 +435,8 @@ module type Fignore = functor (_ : S) -> sig
 end
 [%%expect{|
 {
- ("Fignore", module type) ->
-     Abs(shape-var/648,
-         Abs(shape-var/649,
-             {
-              ("x", value) -> shape-var/648(shape-var/649) . "x"[value];
-              }));
+ ("Fignore", module type) -> {
+                              };
  }
 module type Fignore = S -> sig val x : int end
 |}]
@@ -500,7 +446,7 @@ module F : Fignore = functor (_ : S) -> struct
 end
 [%%expect{|
 {
- ("F", module) -> Abs(shape-var/649, {
+ ("F", module) -> Abs(shape-var/626, {
                                       ("x", value) -> <.77>;
                                       });
  }
@@ -519,10 +465,10 @@ module rec A : sig
 [%%expect{|
 {
  ("A", module) -> {
-                   ("t", type) -> CU  . "A"[module] . "t"[type];
+                   ("t", type) -> <.87>;
                    };
  ("B", module) -> {
-                   ("t", type) -> CU  . "B"[module] . "t"[type];
+                   ("t", type) -> <.89>;
                    };
  }
 module rec A : sig type t = Leaf of B.t end
@@ -547,14 +493,154 @@ and B : sig type t = int end
 
 [%%expect{|
 {
- ("A", module) ->
-     {
-      ("compare", value) -> CU  . "A"[module] . "compare"[value];
-      ("t", type) -> CU  . "A"[module] . "t"[type];
-      };
+ ("A", module) -> {
+                   ("compare", value) -> <.105>;
+                   ("t", type) -> <.102>;
+                   };
  ("ASet", module) ->
-     CU Stdlib . "Set"[module] . "S"[module type](
-     CU Stdlib . "Set"[module] . "S"[module type](CU  . "ASet"[module]));
+     {
+      ("add", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "add"[value];
+      ("add_seq", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "add_seq"[value];
+      ("cardinal", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "cardinal"[value];
+      ("choose", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "choose"[value];
+      ("choose_opt", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      })
+          . "choose_opt"[value];
+      ("compare", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "compare"[value];
+      ("diff", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "diff"[value];
+      ("disjoint", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "disjoint"[value];
+      ("elements", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "elements"[value];
+      ("elt", type) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "elt"[type];
+      ("empty", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "empty"[value];
+      ("equal", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "equal"[value];
+      ("exists", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "exists"[value];
+      ("filter", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "filter"[value];
+      ("filter_map", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      })
+          . "filter_map"[value];
+      ("find", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "find"[value];
+      ("find_first", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      })
+          . "find_first"[value];
+      ("find_first_opt", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      })
+          . "find_first_opt"[value];
+      ("find_last", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "find_last"[value];
+      ("find_last_opt", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      })
+          . "find_last_opt"[value];
+      ("find_opt", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "find_opt"[value];
+      ("fold", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "fold"[value];
+      ("for_all", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "for_all"[value];
+      ("inter", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "inter"[value];
+      ("is_empty", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "is_empty"[value];
+      ("iter", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "iter"[value];
+      ("map", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "map"[value];
+      ("max_elt", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "max_elt"[value];
+      ("max_elt_opt", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      })
+          . "max_elt_opt"[value];
+      ("mem", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "mem"[value];
+      ("min_elt", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "min_elt"[value];
+      ("min_elt_opt", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      })
+          . "min_elt_opt"[value];
+      ("of_list", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "of_list"[value];
+      ("of_seq", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "of_seq"[value];
+      ("partition", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "partition"[value];
+      ("remove", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "remove"[value];
+      ("singleton", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "singleton"[value];
+      ("split", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "split"[value];
+      ("subset", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "subset"[value];
+      ("t", type) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "t"[type];
+      ("to_rev_seq", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      })
+          . "to_rev_seq"[value];
+      ("to_seq", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "to_seq"[value];
+      ("to_seq_from", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      })
+          . "to_seq_from"[value];
+      ("union", value) ->
+          CU Stdlib . "Set"[module] . "Make"[module]({
+                                                      }) . "union"[value];
+      };
  }
 module rec A :
   sig
@@ -619,16 +705,8 @@ module type Rec1 = sig
 end
 [%%expect{|
 {
- ("Rec1", module type) ->
-     Abs(shape-var/1050,
-         {
-          ("A", module) -> {
-                            ("t", type) -> CU  . "A"[module] . "t"[type];
-                            };
-          ("B", module) -> {
-                            ("t", type) -> CU  . "B"[module] . "t"[type];
-                            };
-          });
+ ("Rec1", module type) -> {
+                           };
  }
 module type Rec1 =
   sig
@@ -647,19 +725,8 @@ module type Rec2 = sig
 end
 [%%expect{|
 {
- ("Rec2", module type) ->
-     Abs(shape-var/1070,
-         {
-          ("A", module) ->
-              {
-               ("compare", value) -> CU  . "A"[module] . "compare"[value];
-               ("t", type) -> CU  . "A"[module] . "t"[type];
-               };
-          ("ASet", module) ->
-              CU Stdlib . "Set"[module] . "S"[module type](
-              CU Stdlib . "Set"[module] . "S"[module type](
-              CU  . "ASet"[module]));
-          });
+ ("Rec2", module type) -> {
+                           };
  }
 module type Rec2 =
   sig
@@ -721,7 +788,8 @@ module type Rec2 =
 module type Std = module type of Unit
 [%%expect{|
 {
- ("Std", module type) -> Abs(shape-var/1223, CU Stdlib . "Unit"[module]);
+ ("Std", module type) -> {
+                          };
  }
 module type Std =
   sig
@@ -736,14 +804,8 @@ module type Std = module type of Stdlib__Unit
 
 [%%expect{|
 {
- ("Std", module type) ->
-     Abs(shape-var/1231,
-         {
-          ("compare", value) -> shape-var/1231 . "compare"[value];
-          ("equal", value) -> shape-var/1231 . "equal"[value];
-          ("t", type) -> shape-var/1231 . "t"[type];
-          ("to_string", value) -> shape-var/1231 . "to_string"[value];
-          });
+ ("Std", module type) -> {
+                          };
  }
 module type Std =
   sig
@@ -758,8 +820,11 @@ module type Std =
 module type MX = module type of M3
 
 [%%expect{|
-Uncaught exception: Failure("TODO @ulysse shapeofmdtype functor")
-
+{
+ ("MX", module type) -> {
+                         };
+ }
+module type MX = functor (X : S/2) -> sig type y = X.t type t = X.t end
 |}]
 
 module type Small = sig
@@ -767,10 +832,8 @@ module type Small = sig
 end
 [%%expect{|
 {
- ("Small", module type) ->
-     Abs(shape-var/1240, {
-                          ("t", type) -> shape-var/1240 . "t"[type];
-                          });
+ ("Small", module type) -> {
+                            };
  }
 module type Small = sig type t end
 |}]
@@ -781,12 +844,8 @@ module type Big = sig
 end
 [%%expect{|
 {
- ("Big", module type) ->
-     Abs(shape-var/1246,
-         {
-          ("t", type) -> shape-var/1246 . "t"[type];
-          ("x", value) -> shape-var/1246 . "x"[value];
-          });
+ ("Big", module type) -> {
+                          };
  }
 module type Big = sig type t val x : t end
 |}]
@@ -794,11 +853,8 @@ module type Big = sig type t val x : t end
 module type BigToSmall = functor (X : Big) -> Small with type t = X.t
 [%%expect{|
 {
- ("BigToSmall", module type) ->
-     Abs(shape-var/1254,
-         Abs(X/1255, {
-                      ("t", type) -> shape-var/1254(X/1255) . "t"[type];
-                      }));
+ ("BigToSmall", module type) -> {
+                                 };
  }
 module type BigToSmall = functor (X : Big) -> sig type t = X.t end
 |}]
@@ -810,9 +866,9 @@ end
 [%%expect{|
 {
  ("SmallToBig", module) ->
-     Abs(X/1263, {
-                  ("t", type) -> <.145>;
-                  ("x", value) -> <.146>;
+     Abs(X/1220, {
+                  ("t", type) -> <.146>;
+                  ("x", value) -> <.147>;
                   });
  }
 module SmallToBig : functor (X : Small) -> sig type t = X.t val x : t end
@@ -821,9 +877,9 @@ module SmallToBig : functor (X : Small) -> sig type t = X.t val x : t end
 module F = (SmallToBig : BigToSmall)
 [%%expect{|
 {
- ("F", module) -> Abs(X/1255, {
-                               ("t", type) -> <.145>;
-                               });
+ ("F", module) -> Abs(shape-var/1304, {
+                                       ("t", type) -> <.146>;
+                                       });
  }
 module F : BigToSmall
 |}]
