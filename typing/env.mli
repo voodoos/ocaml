@@ -337,7 +337,7 @@ val enter_module_declaration:
   scope:int -> ?arg:bool -> string -> module_presence ->
   module_declaration -> Shape.t -> t -> Ident.t * t
 val enter_modtype:
-  scope:int -> string -> modtype_declaration -> Shape.t -> t -> Ident.t * t
+  scope:int -> string -> modtype_declaration -> t -> Ident.t * t
 val enter_class: scope:int -> string -> class_declaration -> t -> Ident.t * t
 val enter_cltype:
   scope:int -> string -> class_type_declaration -> t -> Ident.t * t
