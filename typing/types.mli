@@ -117,19 +117,14 @@ module Shape : sig
   val make_app : arg:t -> t -> t
   val proj : t -> (string * Sig_component_kind.t) -> t
   val make_const_fun : t -> t
-  val make_empty_sig : unit -> t
-  val make_sig : Map.t -> var -> t
   val make_persistent : string -> t
   val make_functor : param:(Ident.t option) -> t -> t
-  val make_structure : Map.t -> t
+  val make_structure : Uid.t -> Map.t -> t
 
   (** [env_lookup] is used for recursive modules.
 
       FIXME: doc *)
   val reduce : env_lookup:(Ident.t -> t) -> t -> t
-
-  (** "Reset" a module shape to be used as a module type shape *)
-  val unproj : t -> t
 end
 
 

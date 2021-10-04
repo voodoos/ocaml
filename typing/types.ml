@@ -224,10 +224,6 @@ module Shape = struct
 
   let proj t elt = Proj (t, elt) |> reduce_proj
 
-  let make_empty_sig () = Abs(fresh_var () |> fst, Struct Item.Map.empty)
-
-  let make_sig ts var = Abs(var, Struct ts)
-
   let make_const_fun t = Abs(fresh_var () |> fst, t)
 
   let make_persistent s = Comp_unit s
@@ -240,24 +236,6 @@ module Shape = struct
   let make_app ~arg f = App(f, arg) |> reduce_app
 
   let make_structure shapes = Struct shapes
-
-  let unproj t =
-    (* TODO @ulysse Write some examples !
-        (for module typeof)
-        Is it right not to go under lambdas ? *)
-    let var, var_shape = fresh_var () in
-    let rec aux item = function
-      | Struct shapes ->
-          let shapes = Item.Map.mapi
-              (fun item t -> aux (Some item) t) shapes
-          in
-          Struct shapes
-      | Leaf _ as t -> (match item with
-          | None -> t
-          | Some item -> Proj(var_shape, item))
-      | (Comp_unit _ | Var _ | Proj _ | Abs _ | App _) as t -> t
-    in
-    Abs(var, aux None t)
 
   module Map = struct
     type shape = t
