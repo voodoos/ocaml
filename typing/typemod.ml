@@ -276,7 +276,6 @@ let iterator_with_env env =
         match param with
         | None -> ()
         | Some id ->
-        (* TODO @ulysse DUMMY this env is only used for internal purposes *)
           env := lazy (Env.add_module ~arg:true id Mp_present
                        mty_arg Shape.dummy_mod  (Lazy.force env_before))
       end;
@@ -738,7 +737,6 @@ let map_ext fn exts rem =
    making them abstract otherwise. *)
 
 let rec approx_modtype env smty =
-  (* TODO @ulysse dummies ? *)
   match smty.pmty_desc with
     Pmty_ident lid ->
       let (path, _info) =
@@ -1478,7 +1476,7 @@ and transl_signature env sg =
               | None -> None, env
               | Some name ->
                 let id, newenv =
-                  Env.enter_module_declaration ~scope name pres md 
+                  Env.enter_module_declaration ~scope name pres md
                     Shape.dummy_mod env
                 in
                 Signature_names.check_module names pmd.pmd_name.loc id;
@@ -2186,7 +2184,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
       let arg, arg_shape = type_module ~alias true funct_body anchor env sarg in
       let mty = transl_modtype env smty in
       let md, final_shape =
-        wrap_constraint env true arg mty.mty_type arg_shape 
+        wrap_constraint env true arg mty.mty_type arg_shape
           (Tmodtype_explicit mty)
       in
       { md with
@@ -2300,7 +2298,6 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
               | None -> env, mty_res
               | Some param ->
                   let env =
-                    (* TODO @ulysse is dummy ok here ? *)
                     Env.add_module ~arg:true param Mp_present
                       app_view.arg.mod_type Shape.dummy_mod env
                   in
@@ -2372,7 +2369,6 @@ and type_open_decl_aux ?used_slot ?toplevel funct_body names env od =
     } in
     open_descr, [], newenv
   | _ ->
-    (* TODO @ulysse Should we do something with that shape ? *)
     let md, _shape = type_module true funct_body None env od.popen_expr in
     let scope = Ctype.create_scope () in
     let sg, newenv =
@@ -2458,8 +2454,6 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           (fun rs info -> Sig_type(info.typ_id, info.typ_type, rs, Exported))
           decls []
         in
-        (* TODO @ulysse Maybe we should have modified
-            map_rec_type_with_row_types? (twice...) *)
         let shape_map = List.fold_left
           (fun shape_map -> function
             | Sig_type (id, vd, _, _) ->
@@ -2487,7 +2481,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
          map_ext
            (fun es ext -> Sig_typext(ext.ext_id, ext.ext_type, es, Exported))
            constructors [],
-        shape_map (* TODO @ulysse check *),
+        shape_map,
          newenv)
     | Pstr_exception sext ->
         let (ext, newenv) = Typedecl.transl_type_exception env sext in
@@ -2663,7 +2657,6 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           type_open_decl ~toplevel funct_body names env sod
         in
         Tstr_open od, sg,
-        (* TODO @ulysse Pstr_open *)
         shape_map, newenv
     | Pstr_class cl ->
         let (classes, new_env) = Typeclass.class_declarations env cl in
@@ -2731,10 +2724,8 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         let scope = Ctype.create_scope () in
         (* Rename all identifiers bound by this signature to avoid clashes *)
         let sg, new_env = Env.enter_signature ~scope
-            (extract_sig_open env smodl.pmod_loc modl.mod_type) env in
-        (* TODO @ulysse
-          Signature_group.iter could build the shape with the projections
-          if we don't already have a structure *)
+            (extract_sig_open env smodl.pmod_loc modl.mod_type) env
+        in
         Signature_group.iter (Signature_names.check_sig_item names loc) sg;
         let incl =
           { incl_mod = modl;
