@@ -121,6 +121,8 @@ module Shape : sig
   val make_functor : param:(Ident.t option) -> t -> t
   val make_structure : Uid.t option -> Map.t -> t
 
+  val add_struct_uid : t -> Uid.t -> t
+
   (** [env_lookup] is used for recursive modules.
 
       FIXME: doc *)

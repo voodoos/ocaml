@@ -240,6 +240,10 @@ module Shape = struct
   let make_app ~arg f = App(f, arg) |> reduce_app
 
   let make_structure uid shapes = Struct (uid, shapes)
+  let add_struct_uid shape uid = match shape with
+    | Struct (None, map) -> Struct (Some uid, map)
+    | t -> t
+
 
   module Map = struct
     type shape = t

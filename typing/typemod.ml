@@ -2522,6 +2522,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             md_uid;
           }
         in
+        let md_shape = Shape.add_struct_uid md_shape md_uid in
         (*prerr_endline (Ident.unique_toplevel_name id);*)
         Mtype.lower_nongen outer_scope md.md_type;
         let id, newenv, sg =
@@ -2737,7 +2738,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         (* todo utility, factor with Psig_include *)
         let shape =
           match modl_shape with
-          | Shape.Struct map ->
+          | Shape.Struct (_uid, map) ->
               Shape.Item.Map.union (fun _key _a b -> Some b) shape_map map
           | _ -> include_sig_shape ~into:shape_map ~root:modl_shape sg
         in
@@ -2771,7 +2772,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
     let str = { str_items = items; str_type = sg; str_final_env = final_env } in
     Cmt_format.set_saved_types
       (Cmt_format.Partial_structure str :: previous_saved_types);
-    str, sg, names, Shape.make_structure shape_map, final_env
+    str, sg, names, Shape.make_structure None shape_map, final_env
   in
   if toplevel then run ()
   else Builtin_attributes.warning_scope [] run
