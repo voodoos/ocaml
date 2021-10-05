@@ -644,9 +644,9 @@ and signature_components ~loc old_env ~mark env subst orig_shape shape_map paire
             let item =
               extension_constructors ~loc env ~mark  subst id1 ext1 ext2
             in
-            (* FIXME: is this the right id?
-               TODO: check on the testsuite *)
-            let shape_map = Shape.Map.add_extcons_proj shape_map id1 orig_shape in
+            let shape_map =
+              Shape.Map.add_extcons_proj shape_map id1 orig_shape
+            in
             id1, item, shape_map, true
         | Sig_module(id1, pres1, mty1, _, _), Sig_module(_, pres2, mty2, _, _)
           -> begin
