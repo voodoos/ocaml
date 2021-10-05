@@ -581,10 +581,11 @@ module Ext = struct
 end
 [%%expect{|
 {
- ("Ext", module) -> {
-                     ("A", type) -> <.143>;
-                     ("t", type) -> <.142>;
-                     };
+ ("Ext", module) ->
+     {
+      ("A", extension constructor) -> <.143>;
+      ("t", type) -> <.142>;
+      };
  }
 module Ext : sig type t = .. type t += A end
 |}]
@@ -597,12 +598,7 @@ end = Ext
 {
  ("Extended", module) ->
      {
-      ("A", extension constructor) ->
-          {
-           ("A", type) -> <.143>;
-           ("t", type) -> <.142>;
-           }
-          . "A"[extension constructor];
+      ("A", extension constructor) -> <.143>;
       ("t", type) -> <.142>;
       };
  }

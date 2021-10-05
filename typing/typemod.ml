@@ -2474,7 +2474,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         let constructors = tyext.tyext_constructors in
         let shape_map = List.fold_left (fun shape_map ext ->
           Signature_names.check_typext names ext.ext_loc ext.ext_id;
-            Shape.Map.add_type shape_map ext.ext_id ext.ext_type.ext_uid
+            Shape.Map.add_extcons shape_map ext.ext_id ext.ext_type.ext_uid
           ) shape_map constructors
         in
         (Tstr_typext tyext,
