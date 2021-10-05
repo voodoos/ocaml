@@ -218,25 +218,24 @@ module type B2S = functor (X : Big) -> Small with type t = X.t
 module type B2S = functor (X : Big) -> sig type t = X.t end
 |}]
 
-(* FIXME *)
 module Big_to_small1 : B2S = functor (X : Big) -> X
 [%%expect{|
 {
- ("Big_to_small1", module) -> Abs(X/202, X/202);
+ ("Big_to_small1", module) ->
+     Abs(shape-var/204, {
+                         ("t", type) -> shape-var/204 . "t"[type];
+                         });
  }
 module Big_to_small1 : B2S
 |}]
 
-(* FIXME *)
 module Big_to_small2 : B2S = functor (X : Big) -> struct include X end
 [%%expect{|
 {
  ("Big_to_small2", module) ->
-     Abs(X/207,
-         {
-          ("t", type) -> X/207 . "t"[type];
-          ("u", type) -> X/207 . "u"[type];
-          });
+     Abs(shape-var/211, {
+                         ("t", type) -> shape-var/211 . "t"[type];
+                         });
  }
 module Big_to_small2 : B2S
 |}]

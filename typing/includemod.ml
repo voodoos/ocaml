@@ -431,13 +431,15 @@ and try_modtypes ~loc env ~mark subst mty1 mty2 orig_shape =
       in
       let var, shape_var = Shape.fresh_var () in
       let cc_res =
-        modtypes ~loc env ~mark subst res1 res2
-          (Shape.make_app orig_shape ~arg:shape_var)
+        let res_shape = Shape.make_app orig_shape ~arg:shape_var in
+        modtypes ~loc env ~mark subst res1 res2 res_shape
       in
       begin match cc_arg, cc_res with
-      | Ok Tcoerce_none, Ok (Tcoerce_none, _) -> Ok (Tcoerce_none, orig_shape)
-      | Ok cc_arg, Ok (cc_res, shape_res) ->
-          let final_shape = Shape.make_functor ~param:(Some var) shape_res in
+      | Ok Tcoerce_none, Ok (Tcoerce_none, res_shape) ->
+          let final_shape = Shape.make_functor ~param:(Some var) res_shape in
+          Ok (Tcoerce_none, final_shape)
+      | Ok cc_arg, Ok (cc_res, res_shape) ->
+          let final_shape = Shape.make_functor ~param:(Some var) res_shape in
           Ok (Tcoerce_functor(cc_arg, cc_res), final_shape)
       | _, Error {Error.symptom = Error.Functor Error.Params res; _} ->
           let got_params, got_res = res.got in
