@@ -345,11 +345,14 @@ val enter_cltype:
   scope:int -> string -> class_type_declaration -> t -> Ident.t * t
 
 (* Same as [add_signature] but refreshes (new stamp) and rescopes bound idents
-   in the process, and also extends the shape map ([parent_shape]) with all the
-   the items from the signature, their shape being a projecting from the given
-   shape. *)
-val enter_signature: scope:int -> parent_shape:Shape.Map.t ->
-  signature * Shape.t -> t -> signature * Shape.Map.t * t
+   in the process.  *)
+val enter_signature: scope:int -> signature -> t -> signature * t
+
+(* Same as [enter_signature] but also extends the shape map ([parent_shape])
+   with all the the items from the signature, their shape being a projection
+   from the given shape. *)
+val enter_signature_shape: scope:int -> parent_shape:Shape.Map.t ->
+  Shape.t -> signature -> t -> signature * Shape.Map.t * t
 
 val enter_unbound_value : string -> value_unbound_reason -> t -> t
 

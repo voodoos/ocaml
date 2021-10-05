@@ -224,10 +224,7 @@ and nondep_sig_item env va ids = function
 
 and nondep_sig env va ids sg =
   let scope = Ctype.create_scope () in
-  let sg, _shape, env =
-    Env.enter_signature ~scope ~parent_shape:Shape.Item.Map.empty
-      (sg, Shape.dummy_mod) env
-  in
+  let sg, env = Env.enter_signature ~scope sg env in
   List.map (nondep_sig_item env va ids) sg
 
 and nondep_modtype_decl env ids mtd =

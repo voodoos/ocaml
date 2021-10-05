@@ -886,9 +886,8 @@ and approx_sig env ssg =
           let smty = sincl.pincl_mod in
           let mty = approx_modtype env smty in
           let scope = Ctype.create_scope () in
-          let sg, _, newenv =
-            Env.enter_signature ~scope ~parent_shape:Shape.Item.Map.empty
-              (extract_sig env smty.pmty_loc mty, Shape.dummy_mod) env
+          let sg, newenv =
+            Env.enter_signature ~scope (extract_sig env smty.pmty_loc mty) env
           in
           sg @ approx_sig newenv srem
       | Psig_class sdecls | Psig_class_type sdecls ->
@@ -1584,9 +1583,8 @@ and transl_signature env sg =
             in
             let mty = tmty.mty_type in
             let scope = Ctype.create_scope () in
-            let sg, _shape, newenv =
-              Env.enter_signature ~scope ~parent_shape:Shape.Item.Map.empty
-                (extract_sig env smty.pmty_loc mty, Shape.dummy_mod) env
+            let sg, newenv =
+              Env.enter_signature ~scope (extract_sig env smty.pmty_loc mty) env
             in
             Signature_group.iter
               (Signature_names.check_sig_item names item.psig_loc)
@@ -2368,9 +2366,8 @@ and type_open_decl_aux ?used_slot ?toplevel funct_body parent_shape names env od
     let md, mod_shape = type_module true funct_body None env od.popen_expr in
     let scope = Ctype.create_scope () in
     let sg, _shape, newenv =
-      Env.enter_signature ~scope ~parent_shape
-        (extract_sig_open env md.mod_loc md.mod_type, mod_shape)
-        env
+      Env.enter_signature_shape ~scope ~parent_shape mod_shape
+        (extract_sig_open env md.mod_loc md.mod_type) env
     in
     let info, visibility =
       match toplevel with
@@ -2722,8 +2719,8 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         let scope = Ctype.create_scope () in
         (* Rename all identifiers bound by this signature to avoid clashes *)
         let sg, shape, new_env =
-          Env.enter_signature ~scope ~parent_shape:shape_map
-            (extract_sig_open env smodl.pmod_loc modl.mod_type, modl_shape) env
+          Env.enter_signature_shape ~scope ~parent_shape:shape_map modl_shape
+            (extract_sig_open env smodl.pmod_loc modl.mod_type) env
         in
         Signature_group.iter (Signature_names.check_sig_item names loc) sg;
         let incl =
@@ -2857,7 +2854,7 @@ let type_package env m p fl =
   (* remember original level *)
   Ctype.begin_def ();
   let context = Typetexp.narrow () in
-  let modl, mod_shape = type_module env m in
+  let modl, _mod_shape = type_module env m in
   let scope = Ctype.create_scope () in
   Typetexp.widen context;
   let fl', env =
@@ -2876,10 +2873,9 @@ let type_package env m p fl =
              fixed. *)
           extend_path mp, env
         | _ ->
-          let sg = extract_sig_open env modl.mod_loc modl.mod_type in
-          let sg, _shape, env =
-            Env.enter_signature ~scope ~parent_shape:Shape.Item.Map.empty
-              (sg, mod_shape) env
+          let sg, env =
+            Env.enter_signature ~scope
+              (extract_sig_open env modl.mod_loc modl.mod_type) env
           in
           lookup_type_in_sig sg, env
       in
