@@ -668,7 +668,7 @@ let check_shadowing env = function
   | `Module_type (Some _) -> Some "module type"
   | `Class (Some _) -> Some "class"
   | `Class_type (Some _) -> Some "class type"
-  | `Constructor _ | `Label _
+  | `Constructor _ | `Label _ | `Shape _
   | `Value None | `Type None | `Module None | `Module_type None
   | `Class None | `Class_type None | `Component None ->
       None
@@ -1206,7 +1206,8 @@ let find_hash_type path env =
       raise Not_found
 
 
-let find_shape env ns id = match ns with
+let find_shape env ns id =
+  match ns with
   | Shape.Sig_component_kind.Module ->
       begin match IdTbl.find_same id env.shapes with
       | x -> x
@@ -2169,8 +2170,8 @@ let add_item ~mod_shape shape comp env =
   | Sig_module(id, presence, md, _, _) ->
       let proj_shape = Shape.proj mod_shape (Ident.name id, Module) in
       Shape.Map.add_module shape id proj_shape,
-      (* TODO: add_shape! *)
       add_module_declaration ~check:false id presence md env
+      |> add_module_shape id proj_shape
   | Sig_modtype(id, decl, _)  ->
       Shape.Map.add_module_type_proj shape id mod_shape,
       add_modtype id decl env
@@ -2245,7 +2246,14 @@ let add_components slot root env0 comps =
   let modules =
     add (fun x -> `Module x) comps.comp_modules env0.modules
   in
-  (* FIXME: shapes?? *)
+  let shapes =
+    let root_shape = shape_of_path env0 root in
+    let comp_shapes =
+      NameMap.mapi (fun modname _ -> Shape.proj root_shape (modname, Module))
+        comps.comp_modules
+    in
+    add (fun x -> `Shape x) comp_shapes env0.shapes
+  in
   { env0 with
     summary = Env_open(env0.summary, root);
     constrs;
@@ -2256,6 +2264,7 @@ let add_components slot root env0 comps =
     classes;
     cltypes;
     modules;
+    shapes;
   }
 
 let open_signature slot root env0 : (_,_) result =

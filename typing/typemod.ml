@@ -1715,9 +1715,10 @@ and transl_recmodule_modtypes env sdecls =
     List.fold_left (fun env (id_shape, _, md, _) ->
       Option.fold ~none:env ~some:(fun (id, shape) ->
         Env.add_module_declaration ~check:true ~arg:true
-          id Mp_present md shape env
-        ) id_shape
-      ) env curr
+          id Mp_present md env
+        |> Env.add_module_shape id shape
+      ) id_shape
+    ) env curr
   in
   let transition env_c curr =
     List.map2
@@ -1936,7 +1937,8 @@ let check_recmodule_inclusion env bindings =
                  else subst_and_strengthen env scope s (Some id) mty_actual
                in
                Env.add_module ~arg:false id' Mp_present mty_actual'
-                shape env)
+                 env
+               |> Env.add_module_shape id shape)
           env bindings1 in
       (* Build the output substitution Y_i <- X_i *)
       let s' =
@@ -2155,8 +2157,9 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
               in
               let id, newenv =
                 Env.enter_module_declaration ~scope ~arg:true name Mp_present
-                  arg_md shape_var env
+                  arg_md env
               in
+              let newenv = Env.add_module_shape id shape_var newenv in
               Some id, newenv
           in
           Named (id, param, mty), Types.Named (id, mty.mty_type), newenv,
@@ -2523,9 +2526,8 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           match name.txt with
           | None -> None, env, []
           | Some name ->
-            let id, e =
-              Env.enter_module_declaration ~scope name pres md md_shape env
-            in
+            let id, e = Env.enter_module_declaration ~scope name pres md env in
+            let e = Env.add_module_shape id md_shape e in
             Signature_names.check_module names pmb_loc id;
             Some id, e,
             [Sig_module(id, pres,
@@ -2609,7 +2611,8 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
                      Option.get shape_opt
                    in
                    Env.add_module_declaration ~check:true
-                     id Mp_present mdecl shape env
+                     id Mp_present mdecl env
+                   |> Env.add_module_shape id shape
             )
             env decls
         in
