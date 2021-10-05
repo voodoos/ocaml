@@ -886,8 +886,10 @@ and approx_sig env ssg =
           let smty = sincl.pincl_mod in
           let mty = approx_modtype env smty in
           let scope = Ctype.create_scope () in
-          let sg, newenv = Env.enter_signature ~scope
-              (extract_sig env smty.pmty_loc mty) env in
+          let sg, _, newenv =
+            Env.enter_signature ~scope ~parent_shape:Shape.Item.Map.empty
+              (extract_sig env smty.pmty_loc mty, Shape.dummy_mod) env
+          in
           sg @ approx_sig newenv srem
       | Psig_class sdecls | Psig_class_type sdecls ->
           let decls = Typeclass.approx_class_declarations env sdecls in
@@ -1258,18 +1260,6 @@ let mksig desc env loc =
   Cmt_format.add_saved_type (Cmt_format.Partial_signature_item sg);
   sg
 
-let include_sig_shape ~into:map ~root sg =
-  List.fold_left (fun acc ->
-    let open Shape.Map in
-    function
-      | Sig_value (id, _vd, _) -> add_value_proj acc id root
-      | Sig_type (id, _td, _, _) -> add_type_proj acc id root
-      | Sig_typext (id, _ec, _, _) -> add_extcons_proj acc id root
-      | Sig_module (id, _, _md, _, _) -> add_module_proj acc id root
-      | Sig_modtype (id, _mtd, _) -> add_module_type_proj acc id root
-      | Sig_class _ | Sig_class_type _ -> acc)
-    map sg
-
 (* let signature sg = List.map (fun item -> item.sig_type) sg *)
 
 let rec transl_modtype env smty =
@@ -1594,8 +1584,10 @@ and transl_signature env sg =
             in
             let mty = tmty.mty_type in
             let scope = Ctype.create_scope () in
-            let sg, newenv = Env.enter_signature ~scope
-                       (extract_sig env smty.pmty_loc mty) env in
+            let sg, _shape, newenv =
+              Env.enter_signature ~scope ~parent_shape:Shape.Item.Map.empty
+                (extract_sig env smty.pmty_loc mty, Shape.dummy_mod) env
+            in
             Signature_group.iter
               (Signature_names.check_sig_item names item.psig_loc)
               sg;
@@ -2340,13 +2332,15 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
       let lid_app = None in
       raise(Includemod.Apply_error {loc=apply_loc;env;lid_app;mty_f;args})
 
-and type_open_decl ?used_slot ?toplevel funct_body names env sod =
+and type_open_decl ?used_slot ?toplevel funct_body parent_shape names env sod =
   Builtin_attributes.warning_scope sod.popen_attributes
     (fun () ->
-       type_open_decl_aux ?used_slot ?toplevel funct_body names env sod
+       type_open_decl_aux ?used_slot ?toplevel funct_body parent_shape names env
+         sod
     )
 
-and type_open_decl_aux ?used_slot ?toplevel funct_body names env od =
+and type_open_decl_aux ?used_slot ?toplevel funct_body parent_shape names env od
+  =
   let loc = od.popen_loc in
   match od.popen_expr.pmod_desc with
   | Pmod_ident lid ->
@@ -2369,10 +2363,11 @@ and type_open_decl_aux ?used_slot ?toplevel funct_body names env od =
     } in
     open_descr, [], newenv
   | _ ->
-    let md, _shape = type_module true funct_body None env od.popen_expr in
+    let md, mod_shape = type_module true funct_body None env od.popen_expr in
     let scope = Ctype.create_scope () in
-    let sg, newenv =
-      Env.enter_signature ~scope (extract_sig_open env md.mod_loc md.mod_type)
+    let sg, _shape, newenv =
+      Env.enter_signature ~scope ~parent_shape
+        (extract_sig_open env md.mod_loc md.mod_type, mod_shape)
         env
     in
     let info, visibility =
@@ -2655,7 +2650,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         Tstr_modtype mtd, [sg], shape_map, newenv
     | Pstr_open sod ->
         let (od, sg, newenv) =
-          type_open_decl ~toplevel funct_body names env sod
+          type_open_decl ~toplevel funct_body shape_map names env sod
         in
         Tstr_open od, sg,
         shape_map, newenv
@@ -2724,8 +2719,9 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         in
         let scope = Ctype.create_scope () in
         (* Rename all identifiers bound by this signature to avoid clashes *)
-        let sg, new_env = Env.enter_signature ~scope
-            (extract_sig_open env smodl.pmod_loc modl.mod_type) env
+        let sg, shape, new_env =
+          Env.enter_signature ~scope ~parent_shape:shape_map
+            (extract_sig_open env smodl.pmod_loc modl.mod_type, modl_shape) env
         in
         Signature_group.iter (Signature_names.check_sig_item names loc) sg;
         let incl =
@@ -2734,13 +2730,6 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             incl_attributes = sincl.pincl_attributes;
             incl_loc = sincl.pincl_loc;
           }
-        in
-        (* todo utility, factor with Psig_include *)
-        let shape =
-          match modl_shape with
-          | Shape.Struct (_uid, map) ->
-              Shape.Item.Map.union (fun _key _a b -> Some b) shape_map map
-          | _ -> include_sig_shape ~into:shape_map ~root:modl_shape sg
         in
         Tstr_include incl, sg, shape, new_env
     | Pstr_extension (ext, _attrs) ->
@@ -2866,8 +2855,7 @@ let type_package env m p fl =
   (* remember original level *)
   Ctype.begin_def ();
   let context = Typetexp.narrow () in
-  (* TODO @ulysse ? *)
-  let modl, _shape = type_module env m in
+  let modl, mod_shape = type_module env m in
   let scope = Ctype.create_scope () in
   Typetexp.widen context;
   let fl', env =
@@ -2887,7 +2875,10 @@ let type_package env m p fl =
           extend_path mp, env
         | _ ->
           let sg = extract_sig_open env modl.mod_loc modl.mod_type in
-          let sg, env = Env.enter_signature ~scope sg env in
+          let sg, _shape, env =
+            Env.enter_signature ~scope ~parent_shape:Shape.Item.Map.empty
+              (sg, mod_shape) env
+          in
           lookup_type_in_sig sg, env
       in
       let fl' =
@@ -2930,7 +2921,8 @@ let type_package env m p fl =
 (* Fill in the forward declarations *)
 
 let type_open_decl ?used_slot env od =
-  type_open_decl ?used_slot ?toplevel:None false (Signature_names.create ()) env
+  type_open_decl ?used_slot ?toplevel:None false Shape.Item.Map.empty 
+    (Signature_names.create ()) env
     od
 
 let type_open_descr ?used_slot env od =

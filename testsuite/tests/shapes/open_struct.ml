@@ -16,19 +16,19 @@ end
 module M : sig type t = A end
 |}]
 
-(* FIXME *)
 include M
 [%%expect{|
 {
+ ("t", type) -> <.0>;
  }
 type t = M.t = A
 |}]
 
-(* FIXME *)
 module N = M
 [%%expect{|
 {
- ("N", module) -> {.3
+ ("N", module) -> {.2
+                   ("t", type) -> <.0>;
                    };
  }
 module N = M
@@ -52,11 +52,11 @@ end
 module M' : sig type t = A end
 |}]
 
-(* FIXME *)
 module N' = M'
 [%%expect{|
 {
- ("N'", module) -> {.7
+ ("N'", module) -> {.6
+                    ("t", type) -> <.4>;
                     };
  }
 module N' = M'
@@ -88,11 +88,11 @@ include Test
 module M = Test.M
 |}]
 
-(* FIXME *)
 module N = M
 [%%expect{|
 {
- ("N", module) -> {.12
+ ("N", module) -> {.10
+                   ("t", type) -> <.8>;
                    };
  }
 module N = M
