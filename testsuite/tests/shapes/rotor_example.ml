@@ -78,9 +78,9 @@ module P :
   end
 |}];;
 
-print_endline (P.to_string (0, ("!=", 1)))
+P.to_string (0, ("!=", 1))
 [%%expect{|
 {
  }
-- : unit = ()
+- : string = "0 != 1"
 |}]
