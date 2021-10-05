@@ -125,7 +125,7 @@ module Shape = struct
     | Var of var
     | Abs of var * t
     | App of t * t
-    | Struct of t Item.Map.t
+    | Struct of Uid.t option * t Item.Map.t
     | Leaf of Uid.t
     | Proj of t * Item.t
     | Comp_unit of string
@@ -143,7 +143,7 @@ module Shape = struct
             name
             (Sig_component_kind.to_string ns)
       | Comp_unit name -> Format.fprintf fmt "CU %s" name
-      | Struct map ->
+      | Struct (uid, map) ->
           let print_map fmt =
             Item.Map.iter (fun (name, ns) shape ->
                 Format.fprintf fmt "@[<hv 4>(%S, %s) ->@ %a;@]@,"
@@ -152,7 +152,8 @@ module Shape = struct
                   aux shape
               )
           in
-          Format.fprintf fmt "{@[<v>@,%a@]}" print_map map
+          Format.fprintf fmt "(%a){@[<v>@,%a@]}"
+            (Format.pp_print_option Uid.print) uid print_map map
     in
     Format.fprintf fmt"@[%a@]@." aux
 
@@ -166,7 +167,8 @@ module Shape = struct
     | Var v when var = v -> arg
     | Abs (v, t) -> Abs(v, subst var ~arg t)
     | App (abs, t) -> App(subst var ~arg abs, subst var ~arg t) |> reduce_app
-    | Struct m -> Struct (Item.Map.map (fun s -> subst var ~arg s) m)
+    | Struct (uid, m) ->
+        Struct (uid, Item.Map.map (fun s -> subst var ~arg s) m)
     | Proj (t, item) -> Proj(subst var ~arg t, item) |> reduce_proj
     | (Comp_unit _ | Leaf _ | Var _) as body -> body
 
@@ -175,7 +177,7 @@ module Shape = struct
     | t -> t
 
   and reduce_proj = function
-    | Proj (Struct map, item) as t ->
+    | Proj (Struct (_uid, map), item) as t ->
         (try Item.Map.find item map
          with Not_found -> t) (* SHould never happen ?*)
     | t -> t
@@ -197,14 +199,14 @@ module Shape = struct
       reduce_app (App(reduce abs, reduce body))
     | Proj(str, item) -> reduce_proj (Proj(reduce str, item))
     | Abs(var, body) -> Abs(var, reduce body)
-    | Struct map -> Struct (Item.Map.map reduce map)
+    | Struct (uid, map) -> Struct (uid, Item.Map.map reduce map)
     | Var id as t ->
         begin try env_lookup id
         with Not_found -> t (* stuck. *)
         end
     | t -> t
 
-  let dummy_mod = Struct Item.Map.empty
+  let dummy_mod = Struct (None, Item.Map.empty)
 
   let rec of_path ~find_shape ?(ns = Sig_component_kind.Module) =
     let ns_mod = Sig_component_kind.Module in
@@ -235,7 +237,7 @@ module Shape = struct
 
   let make_app ~arg f = App(f, arg) |> reduce_app
 
-  let make_structure shapes = Struct shapes
+  let make_structure uid shapes = Struct (uid, shapes)
 
   module Map = struct
     type shape = t

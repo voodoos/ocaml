@@ -68,7 +68,7 @@ module Shape : sig
     | Var of var
     | Abs of var * t
     | App of t * t
-    | Struct of t Item.Map.t
+    | Struct of Uid.t option * t Item.Map.t
     | Leaf of Uid.t
     | Proj of t * Item.t
     | Comp_unit of string
@@ -119,7 +119,7 @@ module Shape : sig
   val make_const_fun : t -> t
   val make_persistent : string -> t
   val make_functor : param:(Ident.t option) -> t -> t
-  val make_structure : Uid.t -> Map.t -> t
+  val make_structure : Uid.t option -> Map.t -> t
 
   (** [env_lookup] is used for recursive modules.
 
