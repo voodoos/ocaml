@@ -184,3 +184,59 @@ include Fgen ()
 type t = Fresher
 val x : t = Fresher
 |}]
+
+(***************************************************************************)
+(* Make sure we restrict shapes even when constraints imply [Tcoerce_none] *)
+(***************************************************************************)
+
+module type Small = sig
+  type t
+end
+[%%expect{|
+{
+ ("Small", module type) -> <.32>;
+ }
+module type Small = sig type t end
+|}]
+
+module type Big = sig
+  type t
+  type u
+end
+[%%expect{|
+{
+ ("Big", module type) -> <.35>;
+ }
+module type Big = sig type t type u end
+|}]
+
+module type B2S = functor (X : Big) -> Small with type t = X.t
+[%%expect{|
+{
+ ("B2S", module type) -> <.38>;
+ }
+module type B2S = functor (X : Big) -> sig type t = X.t end
+|}]
+
+(* FIXME *)
+module Big_to_small1 : B2S = functor (X : Big) -> X
+[%%expect{|
+{
+ ("Big_to_small1", module) -> Abs(X/202, X/202);
+ }
+module Big_to_small1 : B2S
+|}]
+
+(* FIXME *)
+module Big_to_small2 : B2S = functor (X : Big) -> struct include X end
+[%%expect{|
+{
+ ("Big_to_small2", module) ->
+     Abs(X/207,
+         {
+          ("t", type) -> X/207 . "t"[type];
+          ("u", type) -> X/207 . "u"[type];
+          });
+ }
+module Big_to_small2 : B2S
+|}]
