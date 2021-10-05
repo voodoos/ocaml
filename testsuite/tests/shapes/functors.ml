@@ -73,7 +73,7 @@ module Arg : S = struct
 end
 [%%expect{|
 {
- ("Arg", module) -> {
+ ("Arg", module) -> {.18
                      ("t", type) -> <.15>;
                      ("x", value) -> <.17>;
                      };
@@ -167,7 +167,7 @@ module Fgen () = struct
 end
 [%%expect{|
 {
- ("Fgen", module) -> {
+ ("Fgen", module) -> {.30
                       ("t", type) -> <.27>;
                       ("x", value) -> <.29>;
                       };

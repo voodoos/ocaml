@@ -70,7 +70,7 @@ module M = struct
 end
 [%%expect{|
 {
- ("M", module) -> {
+ ("M", module) -> {.13
                    ("C", extension constructor) -> <.12>;
                    };
  }

@@ -28,7 +28,7 @@ type t = M.t = A
 module N = M
 [%%expect{|
 {
- ("N", module) -> {
+ ("N", module) -> {.3
                    };
  }
 module N = M

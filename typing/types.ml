@@ -152,10 +152,8 @@ module Shape = struct
                   aux shape
               )
           in
-          Format.fprintf fmt "(%a){@[<v>@,%a@]}"
-            (Format.pp_print_option
-              ~none:(fun fmt () -> Format.fprintf fmt "no uid")
-            Uid.print) uid print_map map
+          Format.fprintf fmt "{@[<v>%a@,%a@]}"
+            (Format.pp_print_option Uid.print) uid print_map map
     in
     Format.fprintf fmt"@[%a@]@." aux
 
