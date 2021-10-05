@@ -574,3 +574,37 @@ and Bar : Sres with type t = Foo.t
 module rec Foo : sig type t = A | B of Bar.t val x : t end
 and Bar : sig type t = Foo.t val x : t val y : t end
 |}]
+
+module Ext = struct
+  type t = ..
+  type t += A
+end
+[%%expect{|
+{
+ ("Ext", module) -> {
+                     ("A", type) -> <.143>;
+                     ("t", type) -> <.142>;
+                     };
+ }
+module Ext : sig type t = .. type t += A end
+|}]
+
+module Extended : sig
+  type t = ..
+  type t += A
+end = Ext
+[%%expect{|
+{
+ ("Extended", module) ->
+     {
+      ("A", extension constructor) ->
+          {
+           ("A", type) -> <.143>;
+           ("t", type) -> <.142>;
+           }
+          . "A"[extension constructor];
+      ("t", type) -> <.142>;
+      };
+ }
+module Extended : sig type t = .. type t += A end
+|}]
