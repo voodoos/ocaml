@@ -491,13 +491,14 @@ type t = {
   constrs: constructor_data TycompTbl.t;
   labels: label_data TycompTbl.t;
   types: (type_data, type_data) IdTbl.t;
-  modules: (module_entry * Shape.t, module_data * Shape.t) IdTbl.t;
+  modules: (module_entry, module_data) IdTbl.t;
   modtypes: (modtype_data, modtype_data) IdTbl.t;
   classes: (class_data, class_data) IdTbl.t;
   cltypes: (cltype_data, cltype_data) IdTbl.t;
   functor_args: unit Ident.tbl;
   summary: summary;
   local_constraints: type_declaration Path.Map.t;
+  shapes: (Shape.t, Shape.t) IdTbl.t;
   flags: int;
 }
 
@@ -683,6 +684,7 @@ let empty = {
   summary = Env_empty; local_constraints = Path.Map.empty;
   flags = 0;
   functor_args = Ident.empty;
+  shapes = IdTbl.empty;
  }
 
 let in_signature b env =
@@ -720,7 +722,7 @@ let diff env1 env2 =
 (* Functions for use in "wrap" parameters in IdTbl *)
 let wrap_identity x = x
 let wrap_value vda = Val_bound vda
-let wrap_module ((mda, shape) : module_data * Shape.t) = Mod_local mda, shape
+let wrap_module mda = Mod_local mda
 
 (* Forward declarations *)
 
@@ -792,12 +794,11 @@ let find_same_module id tbl =
   | x -> x
   | exception Not_found
     when Ident.persistent id && not (Current_unit_name.is_ident id) ->
-      let shape = Shape.make_persistent (Ident.name id) in
-      Mod_persistent, shape
+      Mod_persistent
 
 let find_name_module ~mark name tbl =
   match IdTbl.find_name wrap_module ~mark name tbl with
-  | path, (md, _shape) -> path, md
+  | res -> res
   | exception Not_found when not (Current_unit_name.is name) ->
       let path = Pident(Ident.create_persistent name) in
       path, Mod_persistent
@@ -813,7 +814,7 @@ let add_persistent_structure id env =
       match
         IdTbl.find_name wrap_module ~mark:false (Ident.name id) env.modules
       with
-      | exception Not_found | _, (Mod_persistent, _) -> false
+      | exception Not_found | _, Mod_persistent -> false
       | _ -> true
     in
     let summary =
@@ -826,8 +827,7 @@ let add_persistent_structure id env =
          existence of a cmi when accessing components of the module.
          (See #9991). *)
       if material || not !Clflags.transparent_modules then
-        let shape = Shape.make_persistent (Ident.name id) in
-        IdTbl.add id (Mod_persistent, shape) env.modules
+        IdTbl.add id Mod_persistent env.modules
       else
         env.modules
     in
@@ -986,17 +986,14 @@ let check_functor_appl
 (* Lookup by identifier *)
 
 let find_ident_module id env =
-  let mod_, shape = find_same_module id env.modules in
-  let data = match mod_ with
-    | Mod_local data -> data
-    | Mod_unbound _ -> raise Not_found
-    | Mod_persistent -> find_pers_mod (Ident.name id)
-  in
-  data, shape
+  match find_same_module id env.modules with
+  | Mod_local data -> data
+  | Mod_unbound _ -> raise Not_found
+  | Mod_persistent -> find_pers_mod (Ident.name id)
 
 let rec find_module_components path env =
   match path with
-  | Pident id -> (find_ident_module id env |> fst).mda_components
+  | Pident id -> (find_ident_module id env).mda_components
   | Pdot(p, s) ->
       let sc = find_structure_components p env in
       (NameMap.find s sc.comp_modules).mda_components
@@ -1018,7 +1015,7 @@ and find_functor_components path env =
 let find_module ~alias path env =
   match path with
   | Pident id ->
-      let data, _shape = find_ident_module id env in
+      let data = find_ident_module id env in
       Lazy_backtrack.force subst_modtype_maker data.mda_declaration
   | Pdot(p, s) ->
       let sc = find_structure_components p env in
@@ -1152,7 +1149,7 @@ let find_type_descrs p env =
 
 let rec find_module_address path env =
   match path with
-  | Pident id -> get_address (find_ident_module id env |> fst).mda_address
+  | Pident id -> get_address (find_ident_module id env).mda_address
   | Pdot(p, s) ->
       let c = find_structure_components p env in
       get_address (NameMap.find s c.comp_modules).mda_address
@@ -1211,15 +1208,13 @@ let find_hash_type path env =
 
 let find_shape env ns id = match ns with
   | Shape.Sig_component_kind.Module ->
-    if Ident.persistent id then
-      Shape.make_persistent (Ident.name id)
-    else
-      (try let _, shape = find_ident_module id env in
-      shape
-      with
-      | _ -> Printexc.(get_callstack 100 |> print_raw_backtrace stderr);
-      failwith "find_shape: Module not found by ident")
-  | _ -> failwith "unexpected namespace"
+      begin match IdTbl.find_same id env.shapes with
+      | x -> x
+      | exception Not_found
+        when Ident.persistent id && not (Current_unit_name.is_ident id) ->
+          Shape.make_persistent (Ident.name id)
+      end
+  | _ -> invalid_arg "Env.find_shape"
 
 let shape_of_path env ?ns = Shape.of_path ?ns ~find_shape:(find_shape env)
 
@@ -1433,7 +1428,7 @@ let iter_env wrap proj1 proj2 f env () =
     in iter_env_cont := (path, cont) :: !iter_env_cont
   in
   IdTbl.iter wrap_module
-    (fun id (path, (entry, _shape)) ->
+    (fun id (path, entry) ->
        match entry with
        | Mod_unbound _ -> ()
        | Mod_local data ->
@@ -1478,7 +1473,7 @@ let rec find_shadowed_comps path env =
   match path with
   | Pident id ->
       List.filter_map
-        (fun (p, (data, _shape)) ->
+        (fun (p, data) ->
            match data with
            | Mod_local x -> Some (p, x)
            | Mod_unbound _ | Mod_persistent -> None)
@@ -1764,12 +1759,9 @@ let rec components_of_module_maker
                 mda_components = comps;
                 mda_address = addr }
             in
-            (* TODO @ulysse ??? *)
-            let shape = Shape.Leaf md.md_uid in
             c.comp_modules <-
               NameMap.add (Ident.name id) mda c.comp_modules;
-            env :=
-              store_module ~freshening_sub ~check:None id addr pres md shape !env
+            env := store_module ~freshening_sub ~check:None id addr pres md !env
         | Sig_modtype(id, decl, _) ->
             let fresh_decl =
               (* the fresh_decl is only going in the local temporary env, and
@@ -1988,7 +1980,7 @@ and store_extension ~check ~rebind id addr ext env =
     constrs = TycompTbl.add id cda env.constrs;
     summary = Env_extension(env.summary, id, ext) }
 
-and store_module ~check ~freshening_sub id addr presence md shape env =
+and store_module ~check ~freshening_sub id addr presence md env =
   let loc = md.md_loc in
   Option.iter
     (fun f -> check_usage loc id md.md_uid f !module_declarations) check;
@@ -2008,7 +2000,7 @@ and store_module ~check ~freshening_sub id addr presence md shape env =
       mda_address = addr }
   in
   { env with
-    modules = IdTbl.add id (Mod_local mda, shape) env.modules;
+    modules = IdTbl.add id (Mod_local mda) env.modules;
     summary = Env_module(env.summary, id, presence, md) }
 
 and store_modtype id info env =
@@ -2026,6 +2018,10 @@ and store_cltype id desc env =
   { env with
     cltypes = IdTbl.add id desc env.cltypes;
     summary = Env_cltype(env.summary, id, desc) }
+
+and store_shape id shape env =
+  { env with
+    shapes = IdTbl.add id shape env.shapes }
 
 let scrape_alias env mty = scrape_alias env None mty
 
@@ -2082,7 +2078,7 @@ and add_extension ~check ~rebind id ext env =
   let addr = extension_declaration_address env id ext in
   store_extension ~check ~rebind id addr ext env
 
-and add_module_declaration ?(arg=false) ~check id presence md shape env =
+and add_module_declaration ?(arg=false) ~check id presence md env =
   let check =
     if not check then
       None
@@ -2093,7 +2089,7 @@ and add_module_declaration ?(arg=false) ~check id presence md shape env =
   in
   let addr = module_declaration_address env id presence md in
   let env =
-    store_module ~freshening_sub:None ~check id addr presence md shape env in
+    store_module ~freshening_sub:None ~check id addr presence md env in
   if arg then add_functor_arg id env else env
 
 and add_modtype id info env =
@@ -2106,13 +2102,14 @@ and add_class id ty env =
 and add_cltype id ty env =
   store_cltype id ty env
 
-let add_module ?arg id presence mty shape env =
-  add_module_declaration ~check:false ?arg id presence (md mty) shape env
+let add_module ?arg id presence mty env =
+  add_module_declaration ~check:false ?arg id presence (md mty) env
 
 let add_local_type path info env =
   { env with
     local_constraints = Path.Map.add path info env.local_constraints }
 
+let add_module_shape = store_shape
 
 (* Insertion of bindings by name *)
 
@@ -2133,9 +2130,9 @@ let enter_extension ~scope ~rebind name ext env =
   let env = store_extension ~check:true ~rebind id addr ext env in
   (id, env)
 
-let enter_module_declaration ~scope ?arg s presence md shape env =
+let enter_module_declaration ~scope ?arg s presence md env =
   let id = Ident.create_scoped ~scope s in
-  (id, add_module_declaration ?arg ~check:true id presence md shape env)
+  (id, add_module_declaration ?arg ~check:true id presence md env)
 
 let enter_modtype ~scope name mtd env =
   let id = Ident.create_scoped ~scope name in
@@ -2153,8 +2150,8 @@ let enter_cltype ~scope name desc env =
   let env = store_cltype id desc env in
   (id, env)
 
-let enter_module ~scope ?arg s presence mty shape env =
-  enter_module_declaration ~scope ?arg s presence (md mty) shape env
+let enter_module ~scope ?arg s presence mty env =
+  enter_module_declaration ~scope ?arg s presence (md mty) env
 
 (* Insertion of all components of a signature *)
 
@@ -2172,7 +2169,8 @@ let add_item ~mod_shape shape comp env =
   | Sig_module(id, presence, md, _, _) ->
       let proj_shape = Shape.proj mod_shape (Ident.name id, Module) in
       Shape.Map.add_module shape id proj_shape,
-      add_module_declaration ~check:false id presence md proj_shape env
+      (* TODO: add_shape! *)
+      add_module_declaration ~check:false id presence md env
   | Sig_modtype(id, decl, _)  ->
       Shape.Map.add_module_type_proj shape id mod_shape,
       add_modtype id decl env
@@ -2213,7 +2211,7 @@ let enter_unbound_value name reason env =
 let enter_unbound_module name reason env =
   let id = Ident.create_local name in
   { env with
-    modules = IdTbl.add id (Mod_unbound reason, Shape.dummy_mod) env.modules;
+    modules = IdTbl.add id (Mod_unbound reason) env.modules;
     summary = Env_module_unbound(env.summary, name, reason) }
 
 (* Open a signature path *)
@@ -2245,12 +2243,9 @@ let add_components slot root env0 comps =
     add (fun x -> `Class_type x) comps.comp_cltypes env0.cltypes
   in
   let modules =
-    let comps_mds =
-      (* TODO @ulysse check *)
-      NameMap.map (fun mda -> mda, Shape.dummy_mod) comps.comp_modules
-    in
-    add (fun x -> `Module x) comps_mds env0.modules
+    add (fun x -> `Module x) comps.comp_modules env0.modules
   in
+  (* FIXME: shapes?? *)
   { env0 with
     summary = Env_open(env0.summary, root);
     constrs;
@@ -3218,7 +3213,7 @@ let fold_modules f lid env acc =
   match lid with
   | None ->
       IdTbl.fold_name wrap_module
-        (fun name (p, (entry, _shape)) acc ->
+        (fun name (p, entry) acc ->
            match entry with
            | Mod_unbound _ -> acc
            | Mod_local mda ->
@@ -3286,7 +3281,7 @@ and fold_cltypes f =
 let filter_non_loaded_persistent f env =
   let to_remove =
     IdTbl.fold_name wrap_module
-      (fun name (_, (entry, _shape)) acc ->
+      (fun name (_, entry) acc ->
          match entry with
          | Mod_local _ -> acc
          | Mod_unbound _ -> acc

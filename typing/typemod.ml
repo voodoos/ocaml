@@ -277,7 +277,7 @@ let iterator_with_env env =
         | None -> ()
         | Some id ->
           env := lazy (Env.add_module ~arg:true id Mp_present
-                       mty_arg Shape.dummy_mod  (Lazy.force env_before))
+                       mty_arg (Lazy.force env_before))
       end;
       self.Btype.it_module_type self mty_body;
       env := env_before;
@@ -764,7 +764,7 @@ let rec approx_modtype env smty =
             let scope = Ctype.create_scope () in
             let (id, newenv) =
               Env.enter_module
-                ~scope ~arg:true name Mp_present rarg Shape.dummy_mod env
+                ~scope ~arg:true name Mp_present rarg env
             in
             Types.Named (Some id, arg), newenv
       in
@@ -824,7 +824,7 @@ and approx_sig env ssg =
           in
           let id, newenv =
             Env.enter_module_declaration
-              ~scope (Option.get pmd.pmd_name.txt) pres md Shape.dummy_mod env
+              ~scope (Option.get pmd.pmd_name.txt) pres md env
           in
           Sig_module(id, pres, md, Trec_not, Exported) :: approx_sig newenv srem
       | Psig_modsubst pms ->
@@ -840,7 +840,7 @@ and approx_sig env ssg =
           in
           let _, newenv =
             Env.enter_module_declaration
-              ~scope pms.pms_name.txt pres md Shape.dummy_mod env
+              ~scope pms.pms_name.txt pres md env
           in
           approx_sig newenv srem
       | Psig_recmodule sdecls ->
@@ -858,7 +858,7 @@ and approx_sig env ssg =
           let newenv =
             List.fold_left
               (fun env (id, md) -> Env.add_module_declaration ~check:false
-                  id Mp_present md Shape.dummy_mod env)
+                  id Mp_present md env)
               env decls
           in
           map_rec
@@ -1305,7 +1305,7 @@ and transl_modtype_aux env smty =
                   }
                 in
                 Env.enter_module_declaration ~scope ~arg:true name Mp_present
-                  arg_md Shape.dummy_mod env
+                  arg_md env
               in
               Some id, newenv
           in
@@ -1467,7 +1467,7 @@ and transl_signature env sg =
               | Some name ->
                 let id, newenv =
                   Env.enter_module_declaration ~scope name pres md
-                    Shape.dummy_mod env
+                    env
                 in
                 Signature_names.check_module names pmd.pmd_name.loc id;
                 Some id, newenv
@@ -1506,7 +1506,7 @@ and transl_signature env sg =
             in
             let id, newenv =
               Env.enter_module_declaration ~scope pms.pms_name.txt pres md
-                Shape.dummy_mod env
+                env
             in
             let info =
               `Substituted_away (Subst.add_module id path Subst.identity)
@@ -1822,8 +1822,7 @@ let rec closed_modtype env = function
         | Unit
         | Named (None, _) -> env
         | Named (Some id, param) ->
-            (* TODO @ulysse are dummies ok ? *)
-            Env.add_module ~arg:true id Mp_present param (Shape.dummy_mod) env
+            Env.add_module ~arg:true id Mp_present param env
       in
       closed_modtype env body
 
@@ -2291,7 +2290,7 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
               | Some param ->
                   let env =
                     Env.add_module ~arg:true param Mp_present
-                      app_view.arg.mod_type Shape.dummy_mod env
+                      app_view.arg.mod_type env
                   in
                   check_well_formed_module env app_view.loc
                     "the signature of this functor application" mty_res;

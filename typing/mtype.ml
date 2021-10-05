@@ -81,7 +81,7 @@ and strengthen_sig ~aliasable env sg p =
       Sig_module(id, pres, str, rs, vis)
       :: strengthen_sig ~aliasable
         (Env.add_module_declaration
-          ~check:false id pres md Shape.dummy_mod env) rem p
+          ~check:false id pres md env) rem p
       (* Need to add the module in case it defines manifest module types *)
   | Sig_modtype(id, decl, vis) :: rem ->
       let newdecl =
@@ -185,7 +185,7 @@ let rec nondep_mty_with_presence env va ids pres mty =
         match param with
         | None -> env
         | Some param ->
-        Env.add_module ~arg:true param Mp_present arg Shape.dummy_mod env
+        Env.add_module ~arg:true param Mp_present arg env
       in
       let mty =
         Mty_functor(Named (param, nondep_mty env var_inv ids arg),
@@ -305,7 +305,7 @@ and type_paths_sig env p sg =
   | Sig_module(id, pres, md, _, _) :: rem ->
       type_paths env (Pdot(p, Ident.name id)) md.md_type @
       type_paths_sig
-        (Env.add_module_declaration ~check:false id pres md Shape.dummy_mod env)
+        (Env.add_module_declaration ~check:false id pres md env)
         p rem
   | Sig_modtype(id, decl, _) :: rem ->
       type_paths_sig (Env.add_modtype id decl env) p rem
@@ -336,7 +336,7 @@ and no_code_needed_sig env sg =
       no_code_needed_mod env pres md.md_type &&
       no_code_needed_sig
         (Env.add_module_declaration
-          ~check:false id pres md Shape.dummy_mod env)
+          ~check:false id pres md env)
         rem
   | (Sig_type _ | Sig_modtype _ | Sig_class_type _) :: rem ->
       no_code_needed_sig env rem
@@ -492,7 +492,7 @@ and remove_aliases_sig env args sg =
       in
       Sig_module(id, pres, {md with md_type = mty} , rs, priv) ::
       remove_aliases_sig
-        (Env.add_module id pres mty Shape.dummy_mod env) args rem
+        (Env.add_module id pres mty env) args rem
   | Sig_modtype(id, mtd, priv) :: rem ->
       Sig_modtype(id, mtd, priv) ::
       remove_aliases_sig
