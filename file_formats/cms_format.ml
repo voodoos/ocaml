@@ -20,7 +20,7 @@ let read_magic_number ic =
 type cms_infos = {
   cms_loadpath : string list;
   cms_source_digest : Digest.t;
-  cms_unit_shape : Types.Shape.t;
+  cms_unit_shape : Shape.t;
 }
 
 let input_cms ic = (input_value ic : cms_infos)
@@ -60,4 +60,4 @@ let read_shape filename =
   let cms = read_cms filename in
   cms.cms_unit_shape
 
-let () = Types.Shape.load_shape := read_shape
+let () = Shape.load_shape := read_shape
