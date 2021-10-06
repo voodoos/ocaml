@@ -51,6 +51,8 @@ module Map : sig
   type shape = t
   type nonrec t = t Item.Map.t
 
+  val empty : t
+
   val add_value : t -> Ident.t -> Uid.t -> t
   val add_value_proj : t -> Ident.t -> shape -> t
 

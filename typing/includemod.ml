@@ -567,7 +567,7 @@ and signatures ~loc env ~mark subst sig1 sig2 mod_shape =
       [] ->
         let oks, shape_map, errors =
           signature_components ~loc env ~mark new_env subst mod_shape
-            Shape.Item.Map.empty
+            Shape.Map.empty
             (List.rev paired)
         in
         begin match unpaired, errors, oks with
@@ -906,19 +906,14 @@ module Functor_inclusion_diff = struct
         let arg' = Subst.modtype Keep st.subst arg2 in
         match name1, name2 with
         | Some id1, Some id2 ->
-            let env = Env.add_module
-              id1 Mp_present arg' st.env in
+            let env = Env.add_module id1 Mp_present arg' st.env in
             let subst = Subst.add_module id2 (Path.Pident id1) st.subst in
             expand_params { st with env; subst }
         | None, Some id2 ->
-            let env =
-              Env.add_module id2 Mp_present arg' st.env
-            in
+            let env = Env.add_module id2 Mp_present arg' st.env in
             { st with env }, [||]
         | Some id1, None ->
-            let env =
-              Env.add_module id1 Mp_present arg' st.env
-            in
+            let env = Env.add_module id1 Mp_present arg' st.env in
             expand_params { st with env }
         | None, None ->
             st, [||]
@@ -999,9 +994,7 @@ module Functor_app_diff = struct
         | Some param ->
             let mty' = Subst.modtype Keep st.subst mty in
             let env =
-              Env.add_module
-                ~arg:true param Mp_present mty' st.env
-            in
+              Env.add_module ~arg:true param Mp_present mty' st.env in
             let res =
               Option.map (Mtype.nondep_supertype env [param]) st.res in
             I.expand_params { st with env; res}

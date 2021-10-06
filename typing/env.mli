@@ -77,6 +77,7 @@ val without_cmis: ('a -> 'b) -> 'a -> 'b
    allow opening cmis during its execution *)
 
 (* Lookup by paths *)
+
 val find_value: Path.t -> t -> value_description
 val find_type: Path.t -> t -> type_declaration
 val find_type_descrs: Path.t -> t -> type_descriptions
@@ -202,7 +203,7 @@ val lookup_module:
   Path.t * module_declaration
 val lookup_modtype:
   ?use:bool -> loc:Location.t -> Longident.t -> t ->
-  Path.t * (modtype_declaration)
+  Path.t * modtype_declaration
 val lookup_class:
   ?use:bool -> loc:Location.t -> Longident.t -> t ->
   Path.t * class_declaration
@@ -246,7 +247,7 @@ val find_type_by_name:
 val find_module_by_name:
   Longident.t -> t -> Path.t * module_declaration
 val find_modtype_by_name:
-  Longident.t -> t -> Path.t * (modtype_declaration)
+  Longident.t -> t -> Path.t * modtype_declaration
 val find_class_by_name:
   Longident.t -> t -> Path.t * class_declaration
 val find_cltype_by_name:
@@ -275,7 +276,8 @@ val add_value:
 val add_type: check:bool -> Ident.t -> type_declaration -> t -> t
 val add_extension:
   check:bool -> rebind:bool -> Ident.t -> extension_constructor -> t -> t
-val add_module: ?arg:bool -> Ident.t -> module_presence -> module_type -> t -> t
+val add_module:
+  ?arg:bool -> Ident.t -> module_presence -> module_type -> t -> t
 val add_module_declaration: ?arg:bool -> check:bool -> Ident.t ->
   module_presence -> module_declaration -> t -> t
 val add_modtype: Ident.t -> modtype_declaration -> t -> t
@@ -284,7 +286,7 @@ val add_cltype: Ident.t -> class_type_declaration -> t -> t
 val add_local_type: Path.t -> type_declaration -> t -> t
 
 val add_module_shape: Ident.t -> Shape.t -> t -> t
-   
+
 
 (* Insertion of persistent signatures *)
 
@@ -345,7 +347,7 @@ val enter_cltype:
   scope:int -> string -> class_type_declaration -> t -> Ident.t * t
 
 (* Same as [add_signature] but refreshes (new stamp) and rescopes bound idents
-   in the process.  *)
+   in the process. *)
 val enter_signature: scope:int -> signature -> t -> signature * t
 
 (* Same as [enter_signature] but also extends the shape map ([parent_shape])

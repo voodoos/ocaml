@@ -52,9 +52,8 @@ let rec env_from_summary sum subst =
             (Subst.module_declaration Keep subst desc)
             (env_from_summary s subst)
       | Env_modtype(s, id, desc) ->
-          Env.add_modtype id
-            (Subst.modtype_declaration Keep subst desc)
-            (env_from_summary s subst)
+          Env.add_modtype id (Subst.modtype_declaration Keep subst desc)
+                          (env_from_summary s subst)
       | Env_class(s, id, desc) ->
           Env.add_class id (Subst.class_declaration subst desc)
                         (env_from_summary s subst)

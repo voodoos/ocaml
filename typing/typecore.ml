@@ -3618,12 +3618,8 @@ and type_expect_
       in
       let scope = create_scope () in
       let md =
-        {
-          md_type = modl.mod_type;
-          md_attributes = [];
-          md_loc = name.loc;
-          md_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
-        }
+        { md_type = modl.mod_type; md_attributes = []; md_loc = name.loc;
+          md_uid = Uid.mk ~current_unit:(Env.get_unit_name ()); }
       in
       let (id, new_env) =
         match name.txt with

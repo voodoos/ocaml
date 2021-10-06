@@ -228,6 +228,8 @@ module Map = struct
   type shape = t
   type nonrec t = t Item.Map.t
 
+  let empty = Item.Map.empty
+
   let add_value t id uid = Item.Map.add (Item.value id) (Leaf uid) t
   let add_value_proj t id shape =
     let item = Item.value id in

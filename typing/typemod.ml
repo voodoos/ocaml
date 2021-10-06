@@ -763,8 +763,7 @@ let rec approx_modtype env smty =
             let rarg = Mtype.scrape_for_functor_arg env arg in
             let scope = Ctype.create_scope () in
             let (id, newenv) =
-              Env.enter_module
-                ~scope ~arg:true name Mp_present rarg env
+              Env.enter_module ~scope ~arg:true name Mp_present rarg env
             in
             Types.Named (Some id, arg), newenv
       in
@@ -823,8 +822,8 @@ and approx_sig env ssg =
             | _ -> Mp_present
           in
           let id, newenv =
-            Env.enter_module_declaration
-              ~scope (Option.get pmd.pmd_name.txt) pres md env
+            Env.enter_module_declaration ~scope (Option.get pmd.pmd_name.txt)
+              pres md env
           in
           Sig_module(id, pres, md, Trec_not, Exported) :: approx_sig newenv srem
       | Psig_modsubst pms ->
@@ -839,8 +838,7 @@ and approx_sig env ssg =
             | _ -> Mp_present
           in
           let _, newenv =
-            Env.enter_module_declaration
-              ~scope pms.pms_name.txt pres md env
+            Env.enter_module_declaration ~scope pms.pms_name.txt pres md env
           in
           approx_sig newenv srem
       | Psig_recmodule sdecls ->
@@ -886,9 +884,8 @@ and approx_sig env ssg =
           let smty = sincl.pincl_mod in
           let mty = approx_modtype env smty in
           let scope = Ctype.create_scope () in
-          let sg, newenv =
-            Env.enter_signature ~scope (extract_sig env smty.pmty_loc mty) env
-          in
+          let sg, newenv = Env.enter_signature ~scope
+              (extract_sig env smty.pmty_loc mty) env in
           sg @ approx_sig newenv srem
       | Psig_class sdecls | Psig_class_type sdecls ->
           let decls = Typeclass.approx_class_declarations env sdecls in
@@ -1237,7 +1234,7 @@ let has_remove_aliases_attribute attr =
 (* Check and translate a module type expression *)
 
 let transl_modtype_longident loc env lid =
-  let (path, _mtd) = Env.lookup_modtype ~loc lid env in
+  let (path, _info) = Env.lookup_modtype ~loc lid env in
   path
 
 let transl_module_alias loc env lid =
@@ -1465,8 +1462,7 @@ and transl_signature env sg =
               | None -> None, env
               | Some name ->
                 let id, newenv =
-                  Env.enter_module_declaration ~scope name pres md
-                    env
+                  Env.enter_module_declaration ~scope name pres md env
                 in
                 Signature_names.check_module names pmd.pmd_name.loc id;
                 Some id, newenv
@@ -1504,8 +1500,7 @@ and transl_signature env sg =
               | _ -> Mp_present
             in
             let id, newenv =
-              Env.enter_module_declaration ~scope pms.pms_name.txt pres md
-                env
+              Env.enter_module_declaration ~scope pms.pms_name.txt pres md env
             in
             let info =
               `Substituted_away (Subst.add_module id path Subst.identity)
@@ -1583,9 +1578,8 @@ and transl_signature env sg =
             in
             let mty = tmty.mty_type in
             let scope = Ctype.create_scope () in
-            let sg, newenv =
-              Env.enter_signature ~scope (extract_sig env smty.pmty_loc mty) env
-            in
+            let sg, newenv = Env.enter_signature ~scope
+                       (extract_sig env smty.pmty_loc mty) env in
             Signature_group.iter
               (Signature_names.check_sig_item names item.psig_loc)
               sg;
@@ -1758,7 +1752,7 @@ and transl_recmodule_modtypes env sdecls =
              md_uid = Uid.mk ~current_unit:(Env.get_unit_name ()) }
          in
          let id_shape = Option.map (fun id -> id, Shape.make_var id) id in
-        (id_shape, pmd.pmd_name, md, ()))
+         (id_shape, pmd.pmd_name, md, ()))
       ids sdecls
   in
   let env0 = make_env init in
@@ -1913,8 +1907,8 @@ let check_recmodule_inclusion env bindings =
       (* Generate fresh names Y_i for the rec. bound module idents X_i *)
       let bindings1 =
         List.map
-          (fun (id, _name, _mty_decl, _modl, mty_actual, _attrs, _loc, shape,
-                _uid) ->
+          (fun (id, _name, _mty_decl, _modl,
+                mty_actual, _attrs, _loc, shape, _uid) ->
              let ids =
                Option.map
                  (fun id -> (id, Ident.create_scoped ~scope (Ident.name id))) id
@@ -1934,8 +1928,7 @@ let check_recmodule_inclusion env bindings =
                  then mty_actual
                  else subst_and_strengthen env scope s (Some id) mty_actual
                in
-               Env.add_module ~arg:false id' Mp_present mty_actual'
-                 env
+               Env.add_module ~arg:false id' Mp_present mty_actual' env
                |> Env.add_module_shape id shape)
           env bindings1 in
       (* Build the output substitution Y_i <- X_i *)
@@ -2036,7 +2029,9 @@ let package_subtype env p1 fl1 p2 fl2 =
   | mty1, mty2 ->
     let loc = Location.none in
     (* FIXME *)
-    match Includemod.modtypes ~loc ~mark:Mark_both env mty1 mty2 Shape.dummy_mod with
+    match
+      Includemod.modtypes ~loc ~mark:Mark_both env mty1 mty2 Shape.dummy_mod
+    with
     | Tcoerce_none, _shape -> true
     | _ | exception Includemod.Error _ -> false
 
@@ -2535,10 +2530,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
                         }, Trec_not, Exported)]
         in
         let shape_map = match id with
-          | Some id ->
-              (* FIXME: we're losing the uid, we should store it in the Struct
-                 node? *)
-              Shape.Map.add_module shape_map id md_shape
+          | Some id -> Shape.Map.add_module shape_map id md_shape
           | None -> shape_map
         in
         Tstr_module {mb_id=id; mb_name=name; mb_expr=modl;
@@ -2567,8 +2559,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             (List.map (fun (name, smty, _smodl, attrs, loc) ->
                  {pmd_name=name; pmd_type=smty;
                   pmd_attributes=attrs; pmd_loc=loc}) sbind
-            )
-        in
+            ) in
         List.iter
           (fun (md, _, _) ->
              Option.iter Signature_names.(check_module names md.md_loc) md.md_id
@@ -2651,8 +2642,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         let (od, sg, newenv) =
           type_open_decl ~toplevel funct_body shape_map names env sod
         in
-        Tstr_open od, sg,
-        shape_map, newenv
+        Tstr_open od, sg, shape_map, newenv
     | Pstr_class cl ->
         let (classes, new_env) = Typeclass.class_declarations env cl in
         let shape_map = List.fold_left (fun acc cls ->
@@ -2735,8 +2725,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         raise (Error_forward (Builtin_attributes.error_of_extension ext))
     | Pstr_attribute x ->
         Builtin_attributes.warning_attribute x;
-        Tstr_attribute x, [],
-        shape_map, env
+        Tstr_attribute x, [], shape_map, env
   in
   let rec type_struct env shape_map sstr =
     match sstr with
@@ -2755,7 +2744,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
   let previous_saved_types = Cmt_format.get_saved_types () in
   let run () =
     let (items, sg, shape_map, final_env) =
-      type_struct env Shape.Item.Map.empty sstr
+      type_struct env Shape.Map.empty sstr
     in
     let str = { str_items = items; str_type = sg; str_final_env = final_env } in
     Cmt_format.set_saved_types
@@ -2801,9 +2790,7 @@ let type_module_type_of env smod =
             mod_env = env;
             mod_attributes = smod.pmod_attributes;
             mod_loc = smod.pmod_loc }
-    | _ ->
-        let tmty, _ = type_module env smod in
-        tmty
+    | _ -> type_module env smod |> fst
   in
   let mty = Mtype.scrape_for_type_of ~remove_aliases env tmty.mod_type in
   (* PR#5036: must not contain non-generalized type variables *)
@@ -2873,10 +2860,8 @@ let type_package env m p fl =
              fixed. *)
           extend_path mp, env
         | _ ->
-          let sg, env =
-            Env.enter_signature ~scope
-              (extract_sig_open env modl.mod_loc modl.mod_type) env
-          in
+          let sg = extract_sig_open env modl.mod_loc modl.mod_type in
+          let sg, env = Env.enter_signature ~scope sg env in
           lookup_type_in_sig sg, env
       in
       let fl' =
@@ -2919,7 +2904,7 @@ let type_package env m p fl =
 (* Fill in the forward declarations *)
 
 let type_open_decl ?used_slot env od =
-  type_open_decl ?used_slot ?toplevel:None false Shape.Item.Map.empty 
+  type_open_decl ?used_slot ?toplevel:None false Shape.Map.empty
     (Signature_names.create ()) env
     od
 
