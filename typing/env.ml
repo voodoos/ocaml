@@ -798,7 +798,7 @@ let find_same_module id tbl =
 
 let find_name_module ~mark name tbl =
   match IdTbl.find_name wrap_module ~mark name tbl with
-  | res -> res
+  | x -> x
   | exception Not_found when not (Current_unit_name.is name) ->
       let path = Pident(Ident.create_persistent name) in
       path, Mod_persistent
@@ -1204,7 +1204,6 @@ let find_hash_type path env =
       tda.tda_declaration
   | Papply _ ->
       raise Not_found
-
 
 let find_shape env ns id =
   match ns with
@@ -1762,7 +1761,8 @@ let rec components_of_module_maker
             in
             c.comp_modules <-
               NameMap.add (Ident.name id) mda c.comp_modules;
-            env := store_module ~freshening_sub ~check:None id addr pres md !env
+            env :=
+              store_module ~freshening_sub ~check:None id addr pres md !env
         | Sig_modtype(id, decl, _) ->
             let fresh_decl =
               (* the fresh_decl is only going in the local temporary env, and
@@ -2089,8 +2089,7 @@ and add_module_declaration ?(arg=false) ~check id presence md env =
       Some (fun s -> Warnings.Unused_module s)
   in
   let addr = module_declaration_address env id presence md in
-  let env =
-    store_module ~freshening_sub:None ~check id addr presence md env in
+  let env = store_module ~freshening_sub:None ~check id addr presence md env in
   if arg then add_functor_arg id env else env
 
 and add_modtype id info env =
@@ -2158,20 +2157,15 @@ let enter_module ~scope ?arg s presence mty env =
 
 let add_item comp env =
   match comp with
-    Sig_value(id, decl, _)    ->
-      add_value id decl env
-  | Sig_type(id, decl, _, _)  ->
-      add_type ~check:false id decl env
+    Sig_value(id, decl, _)    -> add_value id decl env
+  | Sig_type(id, decl, _, _)  -> add_type ~check:false id decl env
   | Sig_typext(id, ext, _, _) ->
       add_extension ~check:false ~rebind:false id ext env
   | Sig_module(id, presence, md, _, _) ->
       add_module_declaration ~check:false id presence md env
-  | Sig_modtype(id, decl, _)  ->
-      add_modtype id decl env
-  | Sig_class(id, decl, _, _) ->
-      add_class id decl env
-  | Sig_class_type(id, decl, _, _) ->
-      add_cltype id decl env
+  | Sig_modtype(id, decl, _)  -> add_modtype id decl env
+  | Sig_class(id, decl, _, _) -> add_class id decl env
+  | Sig_class_type(id, decl, _, _) -> add_cltype id decl env
 
 let add_item_shape ~mod_shape shape_map comp env =
   match comp with
@@ -2194,13 +2188,12 @@ let add_item_shape ~mod_shape shape_map comp env =
 
 let rec add_signature sg env =
   match sg with
-  | [] -> env
+    [] -> env
   | comp :: rem -> add_signature rem (add_item comp env)
 
 let enter_signature ~scope sg env =
   let sg = Subst.signature (Rescope scope) Subst.identity sg in
-  let env = add_signature sg env in
-  sg, env
+  sg, add_signature sg env
 
 let enter_signature_shape ~scope ~parent_shape mod_shape sg env =
   let sg, env = enter_signature ~scope sg env in
@@ -2729,21 +2722,16 @@ let lookup_all_ident_constructors ~errors ~use ~loc usage s env =
 let rec lookup_module_components ~errors ~use ~loc lid env =
   match lid with
   | Lident s ->
-      let path, data =
-        lookup_ident_module Load ~errors ~use ~loc s env
-      in
+      let path, data = lookup_ident_module Load ~errors ~use ~loc s env in
       path, data.mda_components
   | Ldot(l, s) ->
       let path, data = lookup_dot_module ~errors ~use ~loc l s env in
       path, data.mda_components
   | Lapply _ as lid ->
-      let f_path, f_comp, arg =
-        lookup_apply ~errors ~use ~loc lid env
-      in
+      let f_path, f_comp, arg = lookup_apply ~errors ~use ~loc lid env in
       let comps =
         !components_of_functor_appl' ~loc ~f_path ~f_comp ~arg env in
-      Papply (f_path, arg),
-      comps
+      Papply (f_path, arg), comps
 
 and lookup_structure_components ~errors ~use ~loc lid env =
   let path, comps = lookup_module_components ~errors ~use ~loc lid env in
@@ -2776,9 +2764,7 @@ and lookup_all_args ~errors ~use ~loc lid0 env =
     | Lident _ | Ldot _ as f_lid ->
         (f_lid, args)
     | Lapply (f_lid, arg_lid) ->
-        let arg_path, arg_md =
-          lookup_module ~errors ~use ~loc arg_lid env
-        in
+        let arg_path, arg_md = lookup_module ~errors ~use ~loc arg_lid env in
         loop_lid_arg ((f_lid,arg_path,arg_md.md_type)::args) f_lid
   in
   loop_lid_arg [] lid0
@@ -2824,9 +2810,7 @@ and lookup_apply ~errors ~use ~loc lid0 env =
 and lookup_module ~errors ~use ~loc lid env =
   match lid with
   | Lident s ->
-      let path, data =
-        lookup_ident_module Load ~errors ~use ~loc s env
-      in
+      let path, data = lookup_ident_module Load ~errors ~use ~loc s env in
       let md = Lazy_backtrack.force subst_modtype_maker data.mda_declaration in
       path, md
   | Ldot(l, s) ->
@@ -2834,12 +2818,9 @@ and lookup_module ~errors ~use ~loc lid env =
       let md = Lazy_backtrack.force subst_modtype_maker data.mda_declaration in
       path, md
   | Lapply _ as lid ->
-      let path_f, comp_f, path_arg =
-        lookup_apply ~errors ~use ~loc lid env
-      in
+      let path_f, comp_f, path_arg = lookup_apply ~errors ~use ~loc lid env in
       let md = md (modtype_of_functor_appl comp_f path_f path_arg) in
-      Papply(path_f, path_arg),
-      md
+      Papply(path_f, path_arg), md
 
 and lookup_dot_module ~errors ~use ~loc l s env =
   let p, comps = lookup_structure_components ~errors ~use ~loc l env in
@@ -2852,7 +2833,7 @@ and lookup_dot_module ~errors ~use ~loc l s env =
       may_lookup_error errors loc env (Unbound_module (Ldot(l, s)))
 
 let lookup_dot_value ~errors ~use ~loc l s env =
-  let path, comps =
+  let (path, comps) =
     lookup_structure_components ~errors ~use ~loc l env
   in
   match NameMap.find s comps.comp_values with
@@ -2864,9 +2845,7 @@ let lookup_dot_value ~errors ~use ~loc l s env =
       may_lookup_error errors loc env (Unbound_value (Ldot(l, s), No_hint))
 
 let lookup_dot_type ~errors ~use ~loc l s env =
-  let p, comps =
-    lookup_structure_components ~errors ~use ~loc l env
-  in
+  let (p, comps) = lookup_structure_components ~errors ~use ~loc l env in
   match NameMap.find s comps.comp_types with
   | tda ->
       let path = Pdot(p, s) in
@@ -2876,9 +2855,7 @@ let lookup_dot_type ~errors ~use ~loc l s env =
       may_lookup_error errors loc env (Unbound_type (Ldot(l, s)))
 
 let lookup_dot_modtype ~errors ~use ~loc l s env =
-  let p, comps =
-    lookup_structure_components ~errors ~use ~loc l env
-    in
+  let (p, comps) = lookup_structure_components ~errors ~use ~loc l env in
   match NameMap.find s comps.comp_modtypes with
   | desc ->
       let path = Pdot(p, s) in
@@ -2888,9 +2865,7 @@ let lookup_dot_modtype ~errors ~use ~loc l s env =
       may_lookup_error errors loc env (Unbound_modtype (Ldot(l, s)))
 
 let lookup_dot_class ~errors ~use ~loc l s env =
-  let p, comps =
-    lookup_structure_components ~errors ~use ~loc l env
-  in
+  let (p, comps) = lookup_structure_components ~errors ~use ~loc l env in
   match NameMap.find s comps.comp_classes with
   | clda ->
       let path = Pdot(p, s) in
@@ -2900,9 +2875,7 @@ let lookup_dot_class ~errors ~use ~loc l s env =
       may_lookup_error errors loc env (Unbound_class (Ldot(l, s)))
 
 let lookup_dot_cltype ~errors ~use ~loc l s env =
-  let p, comps =
-    lookup_structure_components ~errors ~use ~loc l env
-  in
+  let (p, comps) = lookup_structure_components ~errors ~use ~loc l env in
   match NameMap.find s comps.comp_cltypes with
   | desc ->
       let path = Pdot(p, s) in
@@ -2912,9 +2885,7 @@ let lookup_dot_cltype ~errors ~use ~loc l s env =
       may_lookup_error errors loc env (Unbound_cltype (Ldot(l, s)))
 
 let lookup_all_dot_labels ~errors ~use ~loc usage l s env =
-  let _, comps =
-    lookup_structure_components ~errors ~use ~loc l env
-  in
+  let (_, comps) = lookup_structure_components ~errors ~use ~loc l env in
   match NameMap.find s comps.comp_labels with
   | [] | exception Not_found ->
       may_lookup_error errors loc env (Unbound_label (Ldot(l, s)))
@@ -2932,9 +2903,7 @@ let lookup_all_dot_constructors ~errors ~use ~loc usage l s env =
       lookup_all_ident_constructors
         ~errors ~use ~loc usage s initial_safe_string
   | _ ->
-      let _, comps =
-        lookup_structure_components ~errors ~use ~loc l env
-      in
+      let (_, comps) = lookup_structure_components ~errors ~use ~loc l env in
       match NameMap.find s comps.comp_constrs with
       | [] | exception Not_found ->
           may_lookup_error errors loc env (Unbound_constructor (Ldot(l, s)))
@@ -2951,17 +2920,12 @@ let lookup_module_path ~errors ~use ~loc ~load lid env : Path.t =
   match lid with
   | Lident s ->
       if !Clflags.transparent_modules && not load then
-          lookup_ident_module Don't_load ~errors ~use ~loc s env
-          |> fst
+        fst (lookup_ident_module Don't_load ~errors ~use ~loc s env)
       else
-          lookup_ident_module Load ~errors ~use ~loc s env
-          |> fst
-  | Ldot(l, s) -> lookup_dot_module ~errors ~use ~loc l s env
-          |> fst
+        fst (lookup_ident_module Load ~errors ~use ~loc s env)
+  | Ldot(l, s) -> fst (lookup_dot_module ~errors ~use ~loc l s env)
   | Lapply _ as lid ->
-      let path_f, _comp_f, path_arg =
-        lookup_apply ~errors ~use ~loc lid env
-      in
+      let path_f, _comp_f, path_arg = lookup_apply ~errors ~use ~loc lid env in
       Papply(path_f, path_arg)
 
 let lookup_value ~errors ~use ~loc lid env =
@@ -3285,9 +3249,7 @@ and fold_types f =
   find_all wrap_identity
     (fun env -> env.types) (fun sc -> sc.comp_types)
     (fun k p tda acc -> f k p tda.tda_declaration acc)
-and fold_modtypes : (string -> Path.t -> modtype_declaration -> 'a -> 'a) ->
-  Longident.t option -> t -> 'a -> 'a = fun f ->
-  (* TODO @ulysse TRIPLE check *)
+and fold_modtypes f =
   find_all wrap_identity
     (fun env -> env.modtypes) (fun sc -> sc.comp_modtypes) f
 and fold_classes f =
