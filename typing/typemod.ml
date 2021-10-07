@@ -1464,6 +1464,9 @@ and transl_signature env sg =
                 let id, newenv =
                   Env.enter_module_declaration ~scope name pres md env
                 in
+                let newenv =
+                  Env.add_module_shape id (Shape.Leaf md.md_uid) newenv
+                in
                 Signature_names.check_module names pmd.pmd_name.loc id;
                 Some id, newenv
             in
@@ -2071,11 +2074,12 @@ let simplify_app_summary app_view =
   | false, Some p -> Includemod.Error.Named p, mty
   | false, None -> Includemod.Error.Anonymous, mty
 
-let rec type_module ?(alias=false) sttn funct_body anchor env smod =
+let rec type_module ?(alias=false) ?(no_shape = false)
+  sttn funct_body anchor env smod =
   Builtin_attributes.warning_scope smod.pmod_attributes
-    (fun () -> type_module_aux ~alias sttn funct_body anchor env smod)
+    (fun () -> type_module_aux ~alias ~no_shape sttn funct_body anchor env smod)
 
-and type_module_aux ~alias sttn funct_body anchor env smod =
+and type_module_aux ~alias ~no_shape sttn funct_body anchor env smod =
   match smod.pmod_desc with
     Pmod_ident lid ->
       let path =
@@ -2087,7 +2091,8 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
                  mod_attributes = smod.pmod_attributes;
                  mod_loc = smod.pmod_loc } in
       let aliasable = not (Env.is_functor_arg path env) in
-      let shape = Env.shape_of_path env path in
+      let shape = if no_shape then Shape.dummy_mod
+        else Env.shape_of_path env path in
       let md =
         if alias && aliasable then
           (Env.add_required_global (Path.head path); md)
@@ -2112,7 +2117,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
       md, shape
   | Pmod_structure sstr ->
       let (str, sg, names, shape, _finalenv) =
-        type_structure funct_body anchor env sstr in
+        type_structure ~no_shape funct_body anchor env sstr in
       let md =
         { mod_desc = Tmod_structure str;
           mod_type = Mty_signature sg;
@@ -2158,7 +2163,9 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
           Named (id, param, mty), Types.Named (id, mty.mty_type), newenv,
           Some var, true
       in
-      let body, body_shape = type_module true funct_body None newenv sbody in
+      let body, body_shape =
+        type_module ~no_shape true funct_body None newenv sbody
+      in
       { mod_desc = Tmod_functor(t_arg, body);
         mod_type = Mty_functor(ty_arg, body.mod_type);
         mod_env = env;
@@ -2168,7 +2175,9 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
   | Pmod_apply _ ->
       type_application smod.pmod_loc sttn funct_body env smod
   | Pmod_constraint(sarg, smty) ->
-      let arg, arg_shape = type_module ~alias true funct_body anchor env sarg in
+      let arg, arg_shape =
+        type_module ~alias ~no_shape true funct_body anchor env sarg
+      in
       let mty = transl_modtype env smty in
       let md, final_shape =
         wrap_constraint env true arg mty.mty_type arg_shape
@@ -2393,8 +2402,11 @@ and type_open_decl_aux ?used_slot ?toplevel funct_body parent_shape names env od
     } in
     open_descr, sg, newenv
 
-and type_structure ?(toplevel = false) funct_body anchor env sstr =
+and type_structure ?(toplevel = false) ?(no_shape = false) funct_body anchor env sstr =
   let names = Signature_names.create () in
+
+  (* FIXME @ulysse no_shape only for mod typeof *)
+  let type_module = type_module ~no_shape in
 
   let type_str_item env shape_map {pstr_loc = loc; pstr_desc = desc} =
     match desc with
@@ -2759,6 +2771,7 @@ let type_toplevel_phrase env s =
   type_structure ~toplevel:true false None env s
 
 let type_module_alias = type_module ~alias:true true false None
+let type_module_no_shape = type_module ~no_shape:true true false None
 let type_module = type_module true false None
 let type_structure = type_structure false None
 
@@ -2790,7 +2803,7 @@ let type_module_type_of env smod =
             mod_env = env;
             mod_attributes = smod.pmod_attributes;
             mod_loc = smod.pmod_loc }
-    | _ -> type_module env smod |> fst
+    | _ -> type_module_no_shape env smod |> fst
   in
   let mty = Mtype.scrape_for_type_of ~remove_aliases env tmty.mod_type in
   (* PR#5036: must not contain non-generalized type variables *)
