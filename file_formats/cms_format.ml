@@ -21,6 +21,7 @@ type cms_infos = {
   cms_loadpath : string list;
   cms_source_digest : Digest.t;
   cms_unit_shape : Shape.t;
+  cms_uid_to_loc : Location.t Shape.Uid.Tbl.t;
 }
 
 let input_cms ic = (input_value ic : cms_infos)
@@ -53,6 +54,7 @@ let save_shape filename sourcefile shape =
            cms_unit_shape = shape;
            cms_loadpath = Load_path.get_paths ();
            cms_source_digest = source_digest;
+           cms_uid_to_loc = Env.get_uid_to_loc_tbl ();
          } in
          output_cms oc cms)
 

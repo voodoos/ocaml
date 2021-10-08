@@ -2091,7 +2091,7 @@ and type_module_aux ~alias ~no_shape sttn funct_body anchor env smod =
                  mod_attributes = smod.pmod_attributes;
                  mod_loc = smod.pmod_loc } in
       let aliasable = not (Env.is_functor_arg path env) in
-      let shape = if no_shape then Shape.dummy_mod
+      let shape = if no_shape || Env.is_in_signature env then Shape.dummy_mod
         else Env.shape_of_path env path in
       let md =
         if alias && aliasable then
@@ -2429,6 +2429,7 @@ and type_structure ?(toplevel = false) ?(no_shape = false) funct_body anchor env
             (fun (acc, shape_map) (id, { Asttypes.loc; _ }, _typ)->
               Signature_names.check_value names loc id;
               let vd =  Env.find_value (Pident id) newenv in
+              Env.register_uid vd.val_uid vd.val_loc;
               Sig_value(id, vd, Exported) :: acc,
               Shape.Map.add_value shape_map id vd.val_uid
             )
@@ -2442,6 +2443,7 @@ and type_structure ?(toplevel = false) ?(no_shape = false) funct_body anchor env
     | Pstr_primitive sdesc ->
         let (desc, newenv) = Typedecl.transl_value_decl env loc sdesc in
         Signature_names.check_value names desc.val_loc desc.val_id;
+        Env.register_uid desc.val_val.val_uid desc.val_val.val_loc;
         Tstr_primitive desc,
         [Sig_value(desc.val_id, desc.val_val, Exported)],
         Shape.Map.add_value shape_map desc.val_id desc.val_val.val_uid,
@@ -2458,6 +2460,7 @@ and type_structure ?(toplevel = false) ?(no_shape = false) funct_body anchor env
         let shape_map = List.fold_left
           (fun shape_map -> function
             | Sig_type (id, vd, _, _) ->
+              Env.register_uid vd.type_uid vd.type_loc;
               Shape.Map.add_type shape_map id vd.type_uid
             | _ -> assert false
           )
@@ -2474,7 +2477,8 @@ and type_structure ?(toplevel = false) ?(no_shape = false) funct_body anchor env
         in
         let constructors = tyext.tyext_constructors in
         let shape_map = List.fold_left (fun shape_map ext ->
-          Signature_names.check_typext names ext.ext_loc ext.ext_id;
+            Signature_names.check_typext names ext.ext_loc ext.ext_id;
+            Env.register_uid ext.ext_type.ext_uid ext.ext_loc;
             Shape.Map.add_extcons shape_map ext.ext_id ext.ext_type.ext_uid
           ) shape_map constructors
         in
@@ -2489,6 +2493,7 @@ and type_structure ?(toplevel = false) ?(no_shape = false) funct_body anchor env
         let constructor = ext.tyexn_constructor in
         Signature_names.check_typext names constructor.ext_loc
           constructor.ext_id;
+        Env.register_uid ext.tyexn_constructor.ext_type.ext_uid ext.tyexn_loc;
         Tstr_exception ext,
         [Sig_typext(constructor.ext_id,
                     constructor.ext_type,
@@ -2524,6 +2529,7 @@ and type_structure ?(toplevel = false) ?(no_shape = false) funct_body anchor env
           }
         in
         let md_shape = Shape.add_struct_uid md_shape md_uid in
+        Env.register_uid md_uid pmb_loc;
         (*prerr_endline (Ident.unique_toplevel_name id);*)
         Mtype.lower_nongen outer_scope md.md_type;
         let id, newenv, sg =
@@ -2624,7 +2630,8 @@ and type_structure ?(toplevel = false) ?(no_shape = false) funct_body anchor env
           ) bindings2
         in
         let shape_map =
-          List.fold_left (fun map (id, _, _, shape) ->
+          List.fold_left (fun map (id, mb, uid, shape) ->
+            Env.register_uid uid mb.mb_loc;
             Shape.Map.add_module map id shape
           ) shape_map mbs
         in
@@ -2646,6 +2653,7 @@ and type_structure ?(toplevel = false) ?(no_shape = false) funct_body anchor env
         let shape_map =
           match sg with
           | Sig_modtype (id, mtd, _) ->
+              Env.register_uid mtd.mtd_uid mtd.mtd_loc;
               Shape.Map.add_module_type shape_map id mtd.mtd_uid
           | _ -> assert false
         in
@@ -2664,6 +2672,7 @@ and type_structure ?(toplevel = false) ?(no_shape = false) funct_body anchor env
             Signature_names.check_class_type names loc cls.cls_ty_id;
             Signature_names.check_type names loc cls.cls_obj_id;
             Signature_names.check_type names loc cls.cls_typesharp_id;
+            Env.register_uid cls.cls_decl.cty_uid loc;
             Shape.Map.add_class acc cls.cls_id cls.cls_decl.cty_uid
           ) shape_map classes
         in
@@ -2690,6 +2699,7 @@ and type_structure ?(toplevel = false) ?(no_shape = false) funct_body anchor env
             Signature_names.check_class_type names loc decl.clsty_ty_id;
             Signature_names.check_type names loc decl.clsty_obj_id;
             Signature_names.check_type names loc decl.clsty_typesharp_id;
+            Env.register_uid decl.clsty_ty_decl.clty_uid loc;
             Shape.Map.add_class_type
               acc decl.clsty_ty_id decl.clsty_ty_decl.clty_uid
           ) shape_map classes
