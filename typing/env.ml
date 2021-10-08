@@ -2256,14 +2256,6 @@ let add_components slot root env0 comps =
   let modules =
     add (fun x -> `Module x) comps.comp_modules env0.modules
   in
-  let shapes =
-    let root_shape = shape_of_path env0 root in
-    let comp_shapes =
-      NameMap.mapi (fun modname _ -> Shape.proj root_shape (modname, Module))
-        comps.comp_modules
-    in
-    add (fun x -> `Shape x) comp_shapes env0.shapes
-  in
   { env0 with
     summary = Env_open(env0.summary, root);
     constrs;
@@ -2274,7 +2266,8 @@ let add_components slot root env0 comps =
     classes;
     cltypes;
     modules;
-    shapes;
+    (* We never lookup shapes, we always find them with a full path, so there is
+       no need to extend them here *)
   }
 
 let open_signature slot root env0 : (_,_) result =
