@@ -654,7 +654,7 @@ and signature_components ~loc old_env ~mark env subst orig_shape shape_map paire
           -> begin
               let item =
                 module_declarations ~loc env ~mark subst id1 mty1 mty2
-                  (Shape.proj orig_shape (Ident.name id1, Module))
+                  Shape.(make_proj orig_shape (Item.module_ id1))
               in
               let item, shape_map =
                 match item with

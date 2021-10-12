@@ -2202,7 +2202,7 @@ let add_item_shape ~mod_shape shape_map comp env =
   | Sig_typext(id, _, _, _) ->
       Shape.Map.add_extcons_proj shape_map id mod_shape, env
   | Sig_module(id, _, _, _, _) ->
-      let proj_shape = Shape.proj mod_shape (Ident.name id, Module) in
+      let proj_shape = Shape.(make_proj mod_shape (Item.module_ id)) in
       Shape.Map.add_module shape_map id proj_shape,
       add_module_shape id proj_shape env
   | Sig_modtype(id, _, _)  ->

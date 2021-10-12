@@ -32,6 +32,7 @@ end
 module Item : sig
   type t
 
+  val module_ : Ident.t -> t
   val value : Ident.t -> t
 
   module Map : Map.S with type key = t
@@ -92,7 +93,6 @@ val make_var : var -> t
 val make_abs : var -> t -> t
 val make_app : arg:t -> t -> t
 val make_proj : t -> Item.t -> t
-val proj : t -> (string * Sig_component_kind.t) -> t
 val make_const_fun : t -> t
 val make_persistent : string -> t
 val make_functor : param:(Ident.t option) -> t -> t
