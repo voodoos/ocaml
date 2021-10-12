@@ -567,7 +567,8 @@ and address_lazy = (address_unforced, address) Lazy_backtrack.t
 
 and value_data =
   { vda_description : value_description;
-    vda_address : address_lazy }
+    vda_address : address_lazy;
+    vda_shape : Shape.t }
 
 and value_entry =
   | Val_bound of value_data
@@ -1214,6 +1215,14 @@ let find_hash_type path env =
 
 let find_shape env ns id =
   match ns with
+  | Shape.Sig_component_kind.Value ->
+    begin match IdTbl.find_same id env.values with
+    | Val_bound x -> x.vda_shape
+    | Val_unbound _ -> failwith "Env.find_shape val unbound"
+    | exception Not_found
+      when Ident.persistent id && not (Current_unit_name.is_ident id) ->
+        Shape.make_persistent (Ident.name id)
+    end
   | Shape.Sig_component_kind.Module ->
       begin match IdTbl.find_same id env.shapes with
       | x -> x
@@ -1224,6 +1233,8 @@ let find_shape env ns id =
   | _ -> invalid_arg "Env.find_shape"
 
 let shape_of_path env ?ns = Shape.of_path ?ns ~find_shape:(find_shape env)
+
+let shape_or_leaf shape uid = Option.value ~default:(Shape.make_leaf uid) shape
 
 let required_globals = s_ref []
 let reset_required_globals () = required_globals := []
@@ -1682,7 +1693,10 @@ let rec components_of_module_maker
               | Val_prim _ -> Lazy_backtrack.create_failed Not_found
               | _ -> next_address ()
             in
-            let vda = { vda_description = decl'; vda_address = addr } in
+            let vda_shape = Shape.make_leaf decl'.val_uid in
+            let vda =
+              { vda_description = decl'; vda_address = addr; vda_shape }
+            in
             c.comp_values <- NameMap.add (Ident.name id) vda c.comp_values;
         | Sig_type(id, decl, _, _) ->
             let fresh_decl =
@@ -1843,12 +1857,13 @@ and check_value_name name loc =
         error (Illegal_value_name(loc, name))
     done
 
-and store_value ?check id addr decl env =
+and store_value ?check ~shape id addr decl env  =
   check_value_name (Ident.name id) decl.val_loc;
   Option.iter
     (fun f -> check_usage decl.val_loc id decl.val_uid f !value_declarations)
     check;
-  let vda = { vda_description = decl; vda_address = addr } in
+  let vda_shape = shape_or_leaf shape decl.val_uid in
+  let vda = { vda_description = decl; vda_address = addr; vda_shape } in
   { env with
     values = IdTbl.add id (Val_bound vda) env.values;
     summary = Env_value(env.summary, id, decl) }
@@ -2075,9 +2090,9 @@ let add_functor_arg id env =
    functor_args = Ident.add id () env.functor_args;
    summary = Env_functor_arg (env.summary, id)}
 
-let add_value ?check id desc env =
+let add_value ?check ?shape id desc env =
   let addr = value_declaration_address env id desc in
-  store_value ?check id addr desc env
+  store_value ?check ~shape id addr desc env
 
 let add_type ~check id info env =
   store_type ~check id info env
@@ -2123,7 +2138,7 @@ let add_module_shape = store_shape
 let enter_value ?check name desc env =
   let id = Ident.create_local name in
   let addr = value_declaration_address env id desc in
-  let env = store_value ?check id addr desc env in
+  let env = store_value ?check ~shape:None id addr desc env in
   (id, env)
 
 let enter_type ~scope name info env =
@@ -2162,9 +2177,13 @@ let enter_module ~scope ?arg s presence mty env =
 
 (* Insertion of all components of a signature *)
 
-let add_item comp env =
+let add_item ?mod_shape comp env =
   match comp with
-    Sig_value(id, decl, _)    -> add_value id decl env
+  | Sig_value(id, decl, _)    ->
+    let shape =
+      Option.map (fun s -> Shape.(make_proj s (Item.value id))) mod_shape
+    in
+    add_value ?shape id decl env
   | Sig_type(id, decl, _, _)  -> add_type ~check:false id decl env
   | Sig_typext(id, ext, _, _) ->
       add_extension ~check:false ~rebind:false id ext env
@@ -2193,23 +2212,27 @@ let add_item_shape ~mod_shape shape_map comp env =
   | Sig_class_type(id, _, _, _) ->
       Shape.Map.add_class_type_proj shape_map id mod_shape, env
 
-let rec add_signature sg env =
+let rec add_signature ?mod_shape sg env =
   match sg with
     [] -> env
-  | comp :: rem -> add_signature rem (add_item comp env)
+  | comp :: rem -> add_signature ?mod_shape rem (add_item ?mod_shape comp env)
 
-let enter_signature ~scope sg env =
+let enter_signature ?mod_shape ~scope sg env =
   let sg = Subst.signature (Rescope scope) Subst.identity sg in
-  sg, add_signature sg env
+  sg, add_signature ?mod_shape sg env
 
 let enter_signature_shape ~scope ~parent_shape mod_shape sg env =
-  let sg, env = enter_signature ~scope sg env in
+  let sg, env = enter_signature ~mod_shape ~scope sg env in
   let shape, env =
     List.fold_left (fun (map, env) item ->
       add_item_shape ~mod_shape map item env
     ) (parent_shape, env) sg
   in
   sg, shape, env
+
+let add_item = add_item ?mod_shape:None
+let add_signature = add_signature ?mod_shape:None
+let enter_signature = enter_signature ?mod_shape:None
 
 (* Add "unbound" bindings *)
 

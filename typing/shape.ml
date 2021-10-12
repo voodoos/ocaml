@@ -205,6 +205,7 @@ let make_var var = Var var
 
 let make_abs var t = Abs(var, t)
 
+let make_proj t elt = Proj (t, elt) |> reduce_proj
 let proj t elt = Proj (t, elt) |> reduce_proj
 
 let make_const_fun t = Abs(fresh_var () |> fst, t)
@@ -219,6 +220,9 @@ let make_functor ~param body =
 let make_app ~arg f = App(f, arg) |> reduce_app
 
 let make_structure uid shapes = Struct (uid, shapes)
+
+let make_leaf uid = Leaf uid
+
 let add_struct_uid shape uid = match shape with
   | Struct (None, map) -> Struct (Some uid, map)
   | t -> t
