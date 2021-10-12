@@ -84,6 +84,8 @@ module Item = struct
     type t = string * Sig_component_kind.t
     let compare = compare
 
+    let make str ns = str, ns
+
     let value id = Ident.name id, Sig_component_kind.Value
     let type_ id = Ident.name id, Sig_component_kind.Type
     let module_ id = Ident.name id, Sig_component_kind.Module

@@ -1,5 +1,9 @@
 module Uid : sig
-  type t
+  type t =
+    | Compilation_unit of string
+    | Item of { comp_unit: string; id: int }
+    | Internal
+    | Predef of string
 
   val reinit : unit -> unit
 
@@ -31,6 +35,8 @@ end
 
 module Item : sig
   type t
+
+  val make : string -> Sig_component_kind.t -> t
 
   val module_ : Ident.t -> t
   val value : Ident.t -> t
