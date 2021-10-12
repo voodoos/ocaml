@@ -2263,16 +2263,8 @@ let add_components slot root env0 comps =
     add_l (fun x -> `Label x) comps.comp_labels env0.labels
   in
   let values =
-    let comp_values = NameMap.mapi
-      (fun lbl value_data ->
-        let ns = Shape.Sig_component_kind.Value in
-        let vda_shape = Shape.make_proj
-          (shape_of_path env0 ~ns root)
-          (Shape.Item.make lbl ns)
-        in
-        {value_data with vda_shape })
-      comps.comp_values in
-    add (fun x -> `Value x) comp_values env0.values
+
+    add (fun x -> `Value x) comps.comp_values env0.values
   in
   let types =
     add (fun x -> `Type x) comps.comp_types env0.types
