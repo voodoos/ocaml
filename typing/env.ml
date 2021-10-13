@@ -575,7 +575,8 @@ and value_entry =
 
 and constructor_data =
   { cda_description : constructor_description;
-    cda_address : address_lazy option; }
+    cda_address : address_lazy option;
+    cda_shape : Shape.t }
 
 and label_data = label_description
 
@@ -1227,6 +1228,9 @@ let find_shape env ns id =
   | Shape.Sig_component_kind.Type ->
     let { tda_shape; _ } = IdTbl.find_same id env.types in
     tda_shape
+  | Shape.Sig_component_kind.Extension_constructor ->
+    let { cda_shape; _ } = TycompTbl.find_same id env.constrs in
+    cda_shape
   | Shape.Sig_component_kind.Value ->
     begin match IdTbl.find_same id env.values with
     | Val_bound x -> x.vda_shape
@@ -1728,9 +1732,12 @@ let rec components_of_module_maker
                   in
                   List.iter
                     (fun descr ->
+                      (* TODO @ulysse FIXME *)
+                      let cda_shape = Shape.make_leaf descr.cstr_uid in
                       let cda = {
                         cda_description = descr;
-                        cda_address = None }
+                        cda_address = None;
+                        cda_shape }
                       in
                       c.comp_constrs <-
                         add_to_tbl descr.cstr_name cda c.comp_constrs
@@ -1765,7 +1772,11 @@ let rec components_of_module_maker
                 ext'
             in
             let addr = next_address () in
-            let cda = { cda_description = descr; cda_address = Some addr } in
+            (* TODO @ulysse FIXME *)
+            let cda_shape = Shape.make_leaf descr.cstr_uid in
+            let cda =
+              { cda_description = descr; cda_address = Some addr; cda_shape }
+            in
             c.comp_constrs <- add_to_tbl (Ident.name id) cda c.comp_constrs
         | Sig_module(id, pres, md, _, _) ->
             let md' =
@@ -1890,7 +1901,7 @@ and store_value ?check ?shape id addr decl env  =
     values = IdTbl.add id (Val_bound vda) env.values;
     summary = Env_value(env.summary, id, decl) }
 
-and store_constructor ~check type_decl type_id cstr_id cstr env =
+and store_constructor ~check ?shape type_decl type_id cstr_id cstr env =
   if check && not type_decl.type_loc.Location.loc_ghost
      && Warnings.is_active (Warnings.Unused_constructor ("", Unused))
   then begin
@@ -1915,10 +1926,11 @@ and store_constructor ~check type_decl type_id cstr_id cstr env =
               (constructor_usage_complaint ~rebind:false priv used));
     end;
   end;
+  let cda_shape = shape_or_leaf shape cstr.cstr_uid in
   { env with
     constrs =
       TycompTbl.add cstr_id
-        { cda_description = cstr; cda_address = None } env.constrs;
+        { cda_description = cstr; cda_address = None; cda_shape } env.constrs;
   }
 
 and store_label ~check type_decl type_id lbl_id lbl env =
@@ -2002,12 +2014,13 @@ and store_type_infos id info env =
     types = IdTbl.add id tda env.types;
     summary = Env_type(env.summary, id, info) }
 
-and store_extension ~check ~rebind id addr ext env =
+and store_extension ~check ?shape ~rebind id addr ext env =
   let loc = ext.ext_loc in
   let cstr =
     Datarepr.extension_descr ~current_unit:(get_unit_name ()) (Pident id) ext
   in
-  let cda = { cda_description = cstr; cda_address = Some addr } in
+  let cda_shape = shape_or_leaf shape cstr.cstr_uid in
+  let cda = { cda_description = cstr; cda_address = Some addr; cda_shape } in
   if check && not loc.Location.loc_ghost &&
     Warnings.is_active (Warnings.Unused_extension ("", false, Unused))
   then begin
@@ -2127,9 +2140,9 @@ let add_value ?check ?shape id desc env =
 let add_type ~check ?shape id info env =
   store_type ~check ?shape id info env
 
-and add_extension ~check ~rebind id ext env =
+and add_extension ~check ?shape ~rebind id ext env =
   let addr = extension_declaration_address env id ext in
-  store_extension ~check ~rebind id addr ext env
+  store_extension ~check ?shape ~rebind id addr ext env
 
 and add_module_declaration ?(arg=false) ?shape ~check id presence md env =
   let check =
@@ -2219,7 +2232,8 @@ let add_item ?mod_shape comp env =
     let shape = make_proj (Shape.Item.type_ id) in
     add_type ~check:false ?shape id decl env
   | Sig_typext(id, ext, _, _) ->
-      add_extension ~check:false ~rebind:false id ext env
+    let shape = make_proj (Shape.Item.extension_constructor id) in
+      add_extension ~check:false ?shape ~rebind:false id ext env
   | Sig_module(id, presence, md, _, _) ->
     let shape = make_proj (Shape.Item.module_ id) in
       add_module_declaration ~check:false ?shape id presence md env
@@ -2267,6 +2281,7 @@ let enter_signature_shape ~scope ~parent_shape mod_shape sg env =
 
 let add_value = add_value ?shape:None
 let add_type = add_type ?shape:None
+let add_extension = add_extension ?shape:None
 let add_item = add_item ?mod_shape:None
 let add_modtype = add_modtype ?shape:None
 let add_signature = add_signature ?mod_shape:None
