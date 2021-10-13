@@ -602,9 +602,13 @@ and modtype_data =
 
 and class_data =
   { clda_declaration : class_declaration;
-    clda_address : address_lazy }
+    clda_address : address_lazy;
+    clda_shape : Shape.t; }
 
-and cltype_data = class_type_declaration
+and cltype_data =
+  { cltda_declaration : class_type_declaration;
+    cltda_shape : Shape.t; }
+
 
 let empty_structure =
   Structure_comps {
@@ -1077,10 +1081,10 @@ let find_class_full path env =
 
 let find_cltype path env =
   match path with
-  | Pident id -> IdTbl.find_same id env.cltypes
+  | Pident id -> (IdTbl.find_same id env.cltypes).cltda_declaration
   | Pdot(p, s) ->
       let sc = find_structure_components p env in
-      NameMap.find s sc.comp_cltypes
+      (NameMap.find s sc.comp_cltypes).cltda_declaration
   | Papply _ -> raise Not_found
 
 let find_value path env =
@@ -1244,7 +1248,10 @@ let find_shape env ns id =
      end
   | Shape.Sig_component_kind.Module_type ->
     (IdTbl.find_same id env.modtypes).mta_shape
-  | _ -> invalid_arg "Env.find_shape"
+  | Shape.Sig_component_kind.Class ->
+    (IdTbl.find_same id env.classes).clda_shape
+  | Shape.Sig_component_kind.Class_type ->
+    (IdTbl.find_same id env.cltypes).cltda_shape
   | exception Not_found
         when Ident.persistent id && not (Current_unit_name.is_ident id) ->
           Shape.make_persistent (Ident.name id)
@@ -1836,12 +1843,21 @@ let rec components_of_module_maker
         | Sig_class(id, decl, _, _) ->
             let decl' = Subst.class_declaration sub decl in
             let addr = next_address () in
-            let clda = { clda_declaration = decl'; clda_address = addr } in
+            (* TODO @ulysse FIXME *)
+            let clda_shape = Shape.make_leaf decl'.cty_uid in
+            let clda =
+              { clda_declaration = decl';
+                clda_address = addr;
+                clda_shape }
+            in
             c.comp_classes <- NameMap.add (Ident.name id) clda c.comp_classes
         | Sig_class_type(id, decl, _, _) ->
             let decl' = Subst.cltype_declaration sub decl in
+            (* TODO @ulysse FIXME *)
+            let cltda_shape = Shape.make_leaf decl'.clty_uid in
+            let cltda = { cltda_declaration = decl'; cltda_shape } in
             c.comp_cltypes <-
-              NameMap.add (Ident.name id) decl' c.comp_cltypes)
+              NameMap.add (Ident.name id) cltda c.comp_cltypes)
         items_and_paths;
         Ok (Structure_comps c)
   | Mty_functor(arg, ty_res) ->
@@ -2078,15 +2094,18 @@ and store_modtype ?shape id info env =
     modtypes = IdTbl.add id { mta_declaration = info; mta_shape } env.modtypes;
     summary = Env_modtype(env.summary, id, info) }
 
-and store_class id addr desc env =
-  let clda = { clda_declaration = desc; clda_address = addr } in
+and store_class ?shape id addr desc env =
+  let clda_shape = shape_or_leaf shape desc.cty_uid in
+  let clda = { clda_declaration = desc; clda_address = addr; clda_shape } in
   { env with
     classes = IdTbl.add id clda env.classes;
     summary = Env_class(env.summary, id, desc) }
 
-and store_cltype id desc env =
+and store_cltype ?shape id desc env =
+  let cltda_shape = shape_or_leaf shape desc.clty_uid in
+  let cltda = { cltda_declaration = desc; cltda_shape } in
   { env with
-    cltypes = IdTbl.add id desc env.cltypes;
+    cltypes = IdTbl.add id cltda env.cltypes;
     summary = Env_cltype(env.summary, id, desc) }
 
 let scrape_alias env mty = scrape_alias env None mty
@@ -2162,12 +2181,12 @@ and add_module_declaration ?(arg=false) ?shape ~check id presence md env =
 and add_modtype ?shape id info env =
   store_modtype ?shape id info env
 
-and add_class id ty env =
+and add_class ?shape id ty env =
   let addr = class_declaration_address env id ty in
-  store_class id addr ty env
+  store_class ?shape id addr ty env
 
-and add_cltype id ty env =
-  store_cltype id ty env
+and add_cltype ?shape id ty env =
+  store_cltype ?shape id ty env
 
 let add_module ?arg ?shape id presence mty env =
   add_module_declaration ~check:false ?shape ?arg id presence (md mty) env
@@ -2233,15 +2252,19 @@ let add_item ?mod_shape comp env =
     add_type ~check:false ?shape id decl env
   | Sig_typext(id, ext, _, _) ->
     let shape = make_proj (Shape.Item.extension_constructor id) in
-      add_extension ~check:false ?shape ~rebind:false id ext env
+    add_extension ~check:false ?shape ~rebind:false id ext env
   | Sig_module(id, presence, md, _, _) ->
     let shape = make_proj (Shape.Item.module_ id) in
-      add_module_declaration ~check:false ?shape id presence md env
+    add_module_declaration ~check:false ?shape id presence md env
   | Sig_modtype(id, decl, _)  ->
     let shape = make_proj (Shape.Item.module_type id) in
     add_modtype ?shape id decl env
-  | Sig_class(id, decl, _, _) -> add_class id decl env
-  | Sig_class_type(id, decl, _, _) -> add_cltype id decl env
+  | Sig_class(id, decl, _, _) ->
+    let shape = make_proj (Shape.Item.class_ id) in
+    add_class ?shape id decl env
+  | Sig_class_type(id, decl, _, _) ->
+    let shape = make_proj (Shape.Item.class_type id) in
+    add_cltype ?shape id decl env
 
 let add_item_shape ~mod_shape shape_map comp env =
   match comp with
@@ -2282,6 +2305,8 @@ let enter_signature_shape ~scope ~parent_shape mod_shape sg env =
 let add_value = add_value ?shape:None
 let add_type = add_type ?shape:None
 let add_extension = add_extension ?shape:None
+let add_class = add_class ?shape:None
+let add_cltype = add_cltype ?shape:None
 let add_item = add_item ?mod_shape:None
 let add_modtype = add_modtype ?shape:None
 let add_signature = add_signature ?mod_shape:None
@@ -2763,9 +2788,9 @@ let lookup_ident_class ~errors ~use ~loc s env =
 
 let lookup_ident_cltype ~errors ~use ~loc s env =
   match IdTbl.find_name wrap_identity ~mark:use s env.cltypes with
-  | (path, data) as res ->
-      use_cltype ~use ~loc path data;
-      res
+  | path, cltda ->
+      use_cltype ~use ~loc path cltda.cltda_declaration;
+      path, cltda.cltda_declaration
   | exception Not_found ->
       may_lookup_error errors loc env (Unbound_cltype (Lident s))
 
@@ -2954,10 +2979,10 @@ let lookup_dot_class ~errors ~use ~loc l s env =
 let lookup_dot_cltype ~errors ~use ~loc l s env =
   let (p, comps) = lookup_structure_components ~errors ~use ~loc l env in
   match NameMap.find s comps.comp_cltypes with
-  | desc ->
+  | cltda ->
       let path = Pdot(p, s) in
-      use_cltype ~use ~loc path desc;
-      (path, desc)
+      use_cltype ~use ~loc path cltda.cltda_declaration;
+      (path, cltda.cltda_declaration)
   | exception Not_found ->
       may_lookup_error errors loc env (Unbound_cltype (Ldot(l, s)))
 
@@ -3335,7 +3360,8 @@ and fold_classes f =
     (fun k p clda acc -> f k p clda.clda_declaration acc)
 and fold_cltypes f =
   find_all wrap_identity
-    (fun env -> env.cltypes) (fun sc -> sc.comp_cltypes) f
+    (fun env -> env.cltypes) (fun sc -> sc.comp_cltypes)
+    (fun k p cltda acc -> f k p cltda.cltda_declaration acc)
 
 let filter_non_loaded_persistent f env =
   let to_remove =
