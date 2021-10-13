@@ -582,7 +582,8 @@ and label_data = label_description
 
 and type_data =
   { tda_declaration : type_declaration;
-    tda_descriptions : type_descriptions; }
+    tda_descriptions : type_descriptions;
+    tda_shape : Shape.t; }
 
 and module_data =
   { mda_declaration : module_declaration_lazy;
@@ -1100,6 +1101,7 @@ let type_of_cstr path = function
         {
           tda_declaration = decl;
           tda_descriptions = Type_record (labels, repr);
+          tda_shape = Shape.make_leaf decl.type_uid;
         }
       | _ -> assert false
       end
@@ -1110,7 +1112,11 @@ let find_type_data path env =
   | Regular p -> begin
       match Path.Map.find p env.local_constraints with
       | decl ->
-          { tda_declaration = decl; tda_descriptions = Type_abstract }
+          {
+            tda_declaration = decl;
+            tda_descriptions = Type_abstract;
+            tda_shape = Shape.make_leaf decl.type_uid;
+          }
       | exception Not_found -> find_type_full p env
     end
   | Cstr (ty_path, s) ->
@@ -1216,9 +1222,8 @@ let find_hash_type path env =
 let find_shape env ns id =
   match ns with
   | Shape.Sig_component_kind.Type ->
-    begin match IdTbl.find_same id env.values with
-    | Val_bound x -> x.vda_shape
-    | Val_unbound _ -> failwith "Env.find_shape val unbound"
+    begin match IdTbl.find_same id env.types with
+    | { tda_shape; _ } -> tda_shape
     | exception Not_found
       when Ident.persistent id && not (Current_unit_name.is_ident id) ->
         Shape.make_persistent (Ident.name id)
@@ -1744,9 +1749,12 @@ let rec components_of_module_maker
               | Type_abstract -> Type_abstract
               | Type_open -> Type_open
             in
+            (* TODO @ulysse FIXME *)
+            let tda_shape = Shape.make_leaf decl.type_uid in
             let tda =
               { tda_declaration = final_decl;
-                tda_descriptions = descrs; }
+                tda_descriptions = descrs;
+                tda_shape }
             in
             c.comp_types <- NameMap.add (Ident.name id) tda c.comp_types;
             env := store_type_infos id fresh_decl !env
@@ -1936,7 +1944,7 @@ and store_label ~check type_decl type_id lbl_id lbl env =
     labels = TycompTbl.add lbl_id lbl env.labels;
   }
 
-and store_type ~check id info env =
+and store_type ~check ?shape id info env =
   let loc = info.type_loc in
   if check then
     check_usage loc id info.type_uid
@@ -1964,7 +1972,8 @@ and store_type ~check id info env =
     | Type_abstract -> Type_abstract, env
     | Type_open -> Type_open, env
   in
-  let tda = { tda_declaration = info; tda_descriptions = descrs } in
+  let tda_shape = shape_or_leaf shape info.type_uid in
+  let tda = { tda_declaration = info; tda_descriptions = descrs; tda_shape } in
   { env with
     types = IdTbl.add id tda env.types;
     summary = Env_type(env.summary, id, info) }
@@ -1975,7 +1984,15 @@ and store_type_infos id info env =
      manifest-ness of the type.  Used in components_of_module to
      keep track of type abbreviations (e.g. type t = float) in the
      computation of label representations. *)
-  let tda = { tda_declaration = info; tda_descriptions = Type_abstract } in
+  (* TODO @ulysse FIXME *)
+  let tda_shape = Shape.make_leaf info.type_uid in
+  let tda =
+    {
+      tda_declaration = info;
+      tda_descriptions = Type_abstract;
+      tda_shape
+    }
+  in
   { env with
     types = IdTbl.add id tda env.types;
     summary = Env_type(env.summary, id, info) }
@@ -2103,8 +2120,8 @@ let add_value ?check ?shape id desc env =
   let addr = value_declaration_address env id desc in
   store_value ?check ?shape id addr desc env
 
-let add_type ~check id info env =
-  store_type ~check id info env
+let add_type ~check ?shape id info env =
+  store_type ~check ?shape id info env
 
 and add_extension ~check ~rebind id ext env =
   let addr = extension_declaration_address env id ext in
@@ -2240,6 +2257,7 @@ let enter_signature_shape ~scope ~parent_shape mod_shape sg env =
   sg, shape, env
 
 let add_value = add_value ?shape:None
+let add_type = add_type ?shape:None
 let add_item = add_item ?mod_shape:None
 let add_signature = add_signature ?mod_shape:None
 let enter_signature = enter_signature ?mod_shape:None
