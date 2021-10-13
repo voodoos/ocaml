@@ -1769,7 +1769,7 @@ let rec components_of_module_maker
                 tda_shape }
             in
             c.comp_types <- NameMap.add (Ident.name id) tda c.comp_types;
-            env := store_type_infos id fresh_decl !env
+            env := store_type_infos ~tda_shape id fresh_decl !env
         | Sig_typext(id, ext, _, _) ->
             let ext' = Subst.extension_constructor sub ext in
             let descr =
@@ -2009,14 +2009,12 @@ and store_type ~check ?shape id info env =
     types = IdTbl.add id tda env.types;
     summary = Env_type(env.summary, id, info) }
 
-and store_type_infos id info env =
+and store_type_infos ~tda_shape id info env =
   (* Simplified version of store_type that doesn't compute and store
      constructor and label infos, but simply record the arity and
      manifest-ness of the type.  Used in components_of_module to
      keep track of type abbreviations (e.g. type t = float) in the
      computation of label representations. *)
-  (* TODO @ulysse FIXME *)
-  let tda_shape = Shape.make_leaf info.type_uid in
   let tda =
     {
       tda_declaration = info;
