@@ -2221,7 +2221,8 @@ let add_item ?mod_shape comp env =
   | Sig_typext(id, ext, _, _) ->
       add_extension ~check:false ~rebind:false id ext env
   | Sig_module(id, presence, md, _, _) ->
-      add_module_declaration ~check:false id presence md env
+    let shape = make_proj (Shape.Item.module_ id) in
+      add_module_declaration ~check:false ?shape id presence md env
   | Sig_modtype(id, decl, _)  ->
     let shape = make_proj (Shape.Item.module_type id) in
     add_modtype ?shape id decl env
