@@ -1215,6 +1215,14 @@ let find_hash_type path env =
 
 let find_shape env ns id =
   match ns with
+  | Shape.Sig_component_kind.Type ->
+    begin match IdTbl.find_same id env.values with
+    | Val_bound x -> x.vda_shape
+    | Val_unbound _ -> failwith "Env.find_shape val unbound"
+    | exception Not_found
+      when Ident.persistent id && not (Current_unit_name.is_ident id) ->
+        Shape.make_persistent (Ident.name id)
+    end
   | Shape.Sig_component_kind.Value ->
     begin match IdTbl.find_same id env.values with
     | Val_bound x -> x.vda_shape
@@ -1858,7 +1866,7 @@ and check_value_name name loc =
         error (Illegal_value_name(loc, name))
     done
 
-and store_value ?check ~shape id addr decl env  =
+and store_value ?check ?shape id addr decl env  =
   check_value_name (Ident.name id) decl.val_loc;
   Option.iter
     (fun f -> check_usage decl.val_loc id decl.val_uid f !value_declarations)
@@ -2093,7 +2101,7 @@ let add_functor_arg id env =
 
 let add_value ?check ?shape id desc env =
   let addr = value_declaration_address env id desc in
-  store_value ?check ~shape id addr desc env
+  store_value ?check ?shape id addr desc env
 
 let add_type ~check id info env =
   store_type ~check id info env
@@ -2139,7 +2147,7 @@ let add_module_shape = store_shape
 let enter_value ?check name desc env =
   let id = Ident.create_local name in
   let addr = value_declaration_address env id desc in
-  let env = store_value ?check ~shape:None id addr desc env in
+  let env = store_value ?check id addr desc env in
   (id, env)
 
 let enter_type ~scope name info env =
@@ -2231,6 +2239,7 @@ let enter_signature_shape ~scope ~parent_shape mod_shape sg env =
   in
   sg, shape, env
 
+let add_value = add_value ?shape:None
 let add_item = add_item ?mod_shape:None
 let add_signature = add_signature ?mod_shape:None
 let enter_signature = enter_signature ?mod_shape:None
