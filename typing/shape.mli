@@ -38,8 +38,13 @@ module Item : sig
 
   val make : string -> Sig_component_kind.t -> t
 
-  val module_ : Ident.t -> t
   val value : Ident.t -> t
+  val type_ : Ident.t -> t
+  val module_ : Ident.t -> t
+  val module_type : Ident.t -> t
+  val extension_constructor : Ident.t -> t
+  val class_ : Ident.t -> t
+  val class_type : Ident.t -> t
 
   module Map : Map.S with type key = t
 end
