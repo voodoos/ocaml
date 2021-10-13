@@ -3625,8 +3625,9 @@ and type_expect_
         match name.txt with
         | None -> None, env
         | Some name ->
-          let id, env = Env.enter_module_declaration ~scope name pres md env in
-          let env = Env.add_module_shape id md_shape env in
+          let id, env = Env.enter_module_declaration
+            ~scope ~shape:md_shape name pres md env
+          in
           Some id, env
       in
       Typetexp.widen context;
@@ -4758,10 +4759,9 @@ and type_unpacks ?(in_function : (Location.t * type_expr) option)
           md_loc = unpack.tu_name.loc;
           md_uid = unpack.tu_uid; }
       in
-      let (id, env) =
-        Env.enter_module_declaration ~scope unpack.tu_name.txt pres md env
+      let (id, env) = Env.enter_module_declaration
+        ~scope ~shape:md_shape unpack.tu_name.txt pres md env
       in
-      let env = Env.add_module_shape id md_shape env in
       Typetexp.widen context;
       env, (id, unpack.tu_name, pres, modl) :: tunpacks
     ) (env, []) unpacks

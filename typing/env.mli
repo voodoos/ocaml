@@ -275,21 +275,21 @@ val make_copy_of_types: t -> (t -> t)
 
 (* Insertion by identifier *)
 
-val add_value: ?check:(string -> Warnings.t) ->
-  Ident.t -> value_description -> t -> t
+val add_value:
+  ?check:(string -> Warnings.t) -> Ident.t -> value_description -> t -> t
 val add_type: check:bool -> Ident.t -> type_declaration -> t -> t
 val add_extension:
   check:bool -> rebind:bool -> Ident.t -> extension_constructor -> t -> t
-val add_module:
-  ?arg:bool -> Ident.t -> module_presence -> module_type -> t -> t
-val add_module_declaration: ?arg:bool -> check:bool -> Ident.t ->
-  module_presence -> module_declaration -> t -> t
+val add_module: ?arg:bool -> ?shape:Shape.t ->
+  Ident.t -> module_presence -> module_type -> t -> t
+val add_module_declaration: ?arg:bool -> ?shape:Shape.t -> check:bool ->
+  Ident.t -> module_presence -> module_declaration -> t -> t
 val add_modtype: Ident.t -> modtype_declaration -> t -> t
 val add_class: Ident.t -> class_declaration -> t -> t
 val add_cltype: Ident.t -> class_type_declaration -> t -> t
 val add_local_type: Path.t -> type_declaration -> t -> t
 
-val add_module_shape: Ident.t -> Shape.t -> t -> t
+(* val add_module_shape: Ident.t -> Shape.t -> t -> t *)
 
 
 (* Insertion of persistent signatures *)
@@ -342,7 +342,7 @@ val enter_module:
   scope:int -> ?arg:bool -> string -> module_presence ->
   module_type -> t -> Ident.t * t
 val enter_module_declaration:
-  scope:int -> ?arg:bool -> string -> module_presence ->
+  scope:int -> ?shape:Shape.t -> ?arg:bool -> string -> module_presence ->
   module_declaration -> t -> Ident.t * t
 val enter_modtype:
   scope:int -> string -> modtype_declaration -> t -> Ident.t * t
