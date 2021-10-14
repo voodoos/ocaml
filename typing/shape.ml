@@ -182,7 +182,7 @@ let rec reduce ?(fuel = 1) ~env_lookup t =
   match t with
   | Comp_unit name as t ->
       begin match read_shape name with
-      | Some t -> reduce_if_gas t
+      | Some t -> reduce t
       | None -> t
       end
   | App(abs, body) ->
