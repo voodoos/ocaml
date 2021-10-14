@@ -22,7 +22,7 @@
 *.lib
 *.dll
 *.la
-*.cm[ioxat]
+*.cm[ioxats]
 *.cmx[as]
 *.cmti
 *.annot
