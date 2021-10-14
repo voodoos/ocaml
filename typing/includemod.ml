@@ -429,7 +429,8 @@ and try_modtypes ~loc env ~mark subst mty1 mty2 orig_shape =
       let cc_arg, env, subst =
         functor_param ~loc env ~mark:(negate_mark mark) subst param1 param2
       in
-      let var, shape_var = Shape.fresh_var () in
+      (* TODO @ulysse FIXME is it ok to use a placeholder uid here ? *)
+      let var, shape_var = Shape.fresh_var Uid.internal_not_actually_unique in
       let cc_res =
         let res_shape = Shape.make_app orig_shape ~arg:shape_var in
         modtypes ~loc env ~mark subst res1 res2 res_shape

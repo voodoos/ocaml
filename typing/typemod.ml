@@ -1744,13 +1744,16 @@ and transl_recmodule_modtypes env sdecls =
   let init =
     List.map2
       (fun id pmd ->
+         let md_uid = Uid.mk ~current_unit:(Env.get_unit_name ()) in
          let md =
            { md_type = approx_modtype approx_env pmd.pmd_type;
              md_loc = pmd.pmd_loc;
              md_attributes = pmd.pmd_attributes;
-             md_uid = Uid.mk ~current_unit:(Env.get_unit_name ()) }
+             md_uid }
          in
-         let id_shape = Option.map (fun id -> id, Shape.make_var id) id in
+         let id_shape =
+           Option.map (fun id -> id, Shape.make_var id md_uid) id
+         in
          (id_shape, pmd.pmd_name, md, ()))
       ids sdecls
   in
@@ -2131,33 +2134,37 @@ and type_module_aux ~alias ~no_shape sttn funct_body anchor env smod =
       md, shape
   | Pmod_functor(arg_opt, sbody) ->
       let t_arg, ty_arg, newenv, funct_shape_param, funct_body =
-        match arg_opt with
-        | Unit -> Unit, Types.Unit, env, None, false
-        | Named (param, smty) ->
-          let mty = transl_modtype_functor_arg env smty in
-          let scope = Ctype.create_scope () in
-          let (id, newenv, var) =
-            match param.txt with
-            | None ->
-              let var, _shape_var = Shape.fresh_var ?name:param.txt () in
-              None, env, var
-            | Some name ->
-              let arg_md =
-                { md_type = mty.mty_type;
-                  md_attributes = [];
-                  md_loc = param.loc;
-                  md_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
-                }
-              in
-              let id = Ident.create_scoped ~scope name in
-              let _shape_var = Shape.make_var id in
-              let newenv = Env.add_module_declaration
-                ~arg:true ~check:true id Mp_present arg_md env
-              in
-              Some id, newenv, id
-          in
-          Named (id, param, mty), Types.Named (id, mty.mty_type), newenv,
-          Some var, true
+      match arg_opt with
+      | Unit -> Unit, Types.Unit, env, None, false
+      | Named (param, smty) ->
+        let mty = transl_modtype_functor_arg env smty in
+        let scope = Ctype.create_scope () in
+        let (id, newenv, var) =
+          match param.txt with
+          | None ->
+            let var, _shape_var = Shape.fresh_var ?name:param.txt
+              Uid.internal_not_actually_unique
+            in
+            None, env, var
+          | Some name ->
+            let md_uid =  Uid.mk ~current_unit:(Env.get_unit_name ()) in
+            let arg_md =
+              { md_type = mty.mty_type;
+                md_attributes = [];
+                md_loc = param.loc;
+                md_uid;
+              }
+            in
+            let id = Ident.create_scoped ~scope name in
+            let shape = Shape.make_var id md_uid in
+            let newenv = Env.add_module_declaration
+              ~shape ~arg:true ~check:true id Mp_present arg_md env
+            in
+            Env.register_uid md_uid param.loc;
+            Some id, newenv, id
+        in
+        Named (id, param, mty), Types.Named (id, mty.mty_type), newenv,
+        Some var, true
       in
       let body, body_shape =
         type_module ~no_shape true funct_body None newenv sbody

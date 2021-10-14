@@ -51,7 +51,7 @@ end
 
 type var = Ident.t
 type t =
-  | Var of var
+  | Var of var * Uid.t
   | Abs of var * t
   | App of t * t
   | Struct of Uid.t option * t Item.Map.t
@@ -92,7 +92,7 @@ end
 (* Forward declaration -- to be filled in by Cms_format *)
 val load_shape : (string -> t) ref
 
-val fresh_var : ?name:string -> unit -> var * t
+val fresh_var : ?name:string -> Uid.t -> var * t
 
 val dummy_mod : t
 
@@ -100,7 +100,7 @@ val of_path :
   find_shape:(Sig_component_kind.t -> Ident.t -> t) ->
   ?ns:Sig_component_kind.t -> Path.t -> t
 
-val make_var : var -> t
+val make_var : Ident.t -> Uid.t -> t
 val make_abs : var -> t -> t
 val make_app : arg:t -> t -> t
 val make_proj : t -> Item.t -> t

@@ -105,7 +105,7 @@ end
 
 type var = Ident.t
 type t =
-  | Var of var
+  | Var of var * Uid.t
   | Abs of var * t
   | App of t * t
   | Struct of Uid.t option * t Item.Map.t
@@ -115,7 +115,7 @@ type t =
 
 let print fmt =
   let rec aux fmt = function
-    | Var id -> Format.fprintf fmt "%a" Ident.print id
+    | Var (id, uid) -> Format.fprintf fmt "%a(%a)" Ident.print id Uid.print uid
     | Abs (id, t) ->
         Format.fprintf fmt "Abs(@[%a,@ @[%a@]@])" Ident.print id aux t
     | App (t1, t2) -> Format.fprintf fmt "@[%a(@,%a)@]" aux t1 aux t2
@@ -142,12 +142,12 @@ let print fmt =
 
 let load_shape = ref (fun _ -> failwith "filled in by Cms_format")
 
-let fresh_var ?(name="shape-var") () =
+let fresh_var ?(name="shape-var") uid =
   let var = Ident.create_local name in
-  var, Var var
+  var, Var (var, uid)
 
 let rec subst var ~arg = function
-  | Var v when var = v -> arg
+  | Var (id, _uid) when var = id -> arg
   | Abs (v, t) -> Abs(v, subst var ~arg t)
   | App (abs, t) -> App(subst var ~arg abs, subst var ~arg t) |> reduce_app
   | Struct (uid, m) ->
@@ -163,6 +163,9 @@ and reduce_proj = function
   | Proj (Struct (_uid, map), item) as t ->
       (try Item.Map.find item map
         with Not_found -> t) (* SHould never happen ?*)
+  | Proj ((Leaf _) as l, _ ) ->
+    (* When stuck projecting in a leaf we propagate the leaf as a best effort *)
+    l
   | t -> t
 
 let rec reduce ~env_lookup t =
@@ -183,9 +186,11 @@ let rec reduce ~env_lookup t =
   | Proj(str, item) -> reduce_proj (Proj(reduce str, item))
   | Abs(var, body) -> Abs(var, reduce body)
   | Struct (uid, map) -> Struct (uid, Item.Map.map reduce map)
-  | Var id as t ->
-      begin try env_lookup id
-      with Not_found -> t (* stuck. *)
+  | Var (id, uid) as t ->
+      begin try
+        let res = env_lookup id in
+        if res = t then Leaf uid else res
+        with Not_found -> Leaf uid
       end
   | t -> t
 
@@ -203,14 +208,15 @@ let rec of_path ~find_shape ?(ns = Sig_component_kind.Module) =
       of_path ~find_shape ~ns:ns_mod p2
     )
 
-let make_var var = Var var
+let make_var var uid = Var (var, uid)
 
 let make_abs var t = Abs(var, t)
 
 let make_proj t elt = Proj (t, elt) |> reduce_proj
 let proj t elt = Proj (t, elt) |> reduce_proj
 
-let make_const_fun t = Abs(fresh_var () |> fst, t)
+let make_const_fun t =
+  Abs(fresh_var Uid.internal_not_actually_unique |> fst, t)
 
 let make_persistent s = Comp_unit s
 
