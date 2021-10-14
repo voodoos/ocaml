@@ -2136,10 +2136,11 @@ and type_module_aux ~alias ~no_shape sttn funct_body anchor env smod =
         | Named (param, smty) ->
           let mty = transl_modtype_functor_arg env smty in
           let scope = Ctype.create_scope () in
-          let var, shape_var = Shape.fresh_var ?name:param.txt () in
-          let (id, newenv) =
+          let (id, newenv, var) =
             match param.txt with
-            | None -> None, env
+            | None ->
+              let var, _shape_var = Shape.fresh_var ?name:param.txt () in
+              None, env, var
             | Some name ->
               let arg_md =
                 { md_type = mty.mty_type;
@@ -2148,10 +2149,12 @@ and type_module_aux ~alias ~no_shape sttn funct_body anchor env smod =
                   md_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
                 }
               in
-              let id, newenv = Env.enter_module_declaration
-                ~scope ~shape:shape_var ~arg:true name Mp_present arg_md env
+              let id = Ident.create_scoped ~scope name in
+              let _shape_var = Shape.make_var id in
+              let newenv = Env.add_module_declaration
+                ~arg:true ~check:true id Mp_present arg_md env
               in
-              Some id, newenv
+              Some id, newenv, id
           in
           Named (id, param, mty), Types.Named (id, mty.mty_type), newenv,
           Some var, true
