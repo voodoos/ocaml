@@ -18,6 +18,7 @@ let read_magic_number ic =
   really_input_string ic len_magic_number
 
 type cms_infos = {
+  cms_sourcefile : string;
   cms_loadpath : string list;
   cms_source_digest : Digest.t;
   cms_unit_shape : Shape.t;
@@ -51,6 +52,7 @@ let save_shape filename sourcefile shape =
        (fun _temp_file_name oc ->
          let source_digest = Digest.file sourcefile in
          let cms = {
+           cms_sourcefile = sourcefile;
            cms_unit_shape = shape;
            cms_loadpath = Load_path.get_paths ();
            cms_source_digest = source_digest;
