@@ -115,4 +115,4 @@ val add_struct_uid : t -> Uid.t -> t
 (** [env_lookup] is used for recursive modules.
 
     FIXME: doc *)
-val reduce : env_lookup:(Ident.t -> t) -> t -> t
+val reduce : ?fuel:int -> env_lookup:(Ident.t -> t) -> t -> t

@@ -168,8 +168,12 @@ and reduce_proj = function
     l
   | t -> t
 
-let rec reduce ~env_lookup t =
-  let reduce = reduce ~env_lookup in
+let rec reduce ?(fuel = 1) ~env_lookup t =
+  let reduce_if_gas = if fuel > 0 then
+    reduce ~fuel:(fuel -1) ~env_lookup
+    else Fun.id
+  in
+  let reduce = reduce ~fuel ~env_lookup in
   let read_shape unit_name =
     match Load_path.find_uncap (unit_name ^ ".cms") with
     | filename -> Some (!load_shape filename)
@@ -178,7 +182,7 @@ let rec reduce ~env_lookup t =
   match t with
   | Comp_unit name as t ->
       begin match read_shape name with
-      | Some t -> reduce t
+      | Some t -> reduce_if_gas t
       | None -> t
       end
   | App(abs, body) ->
@@ -189,7 +193,7 @@ let rec reduce ~env_lookup t =
   | Var (id, uid) as t ->
       begin try
         let res = env_lookup id in
-        if res = t then Leaf uid else res
+        if res = t then Leaf uid else res |> reduce_if_gas
         with Not_found -> Leaf uid
       end
   | t -> t
