@@ -573,7 +573,9 @@ and signatures ~loc env ~mark subst sig1 sig2 mod_shape =
         in
         begin match unpaired, errors, oks with
             | [], [], cc ->
-                let shape = Shape.make_structure None shape_map in
+                let shape =
+                  Shape.(make_structure (get_struct_uid mod_shape) shape_map)
+                in
                 if len1 = len2 then (* see PR#5098 *)
                   Ok (simplify_structure_coercion cc id_pos_list, shape)
                 else

@@ -111,6 +111,7 @@ val make_structure : Uid.t option -> Map.t -> t
 val make_leaf : Uid.t -> t
 
 val add_struct_uid : t -> Uid.t -> t
+val get_struct_uid : t -> Uid.t option
 
 (** [env_lookup] is used for recursive modules.
 

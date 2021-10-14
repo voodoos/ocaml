@@ -239,6 +239,10 @@ let add_struct_uid shape uid = match shape with
   | Struct (None, map) -> Struct (Some uid, map)
   | t -> t
 
+let get_struct_uid shape = match shape with
+  | Struct (uid, _) -> uid
+  | _ -> None
+
 
 module Map = struct
   type shape = t
