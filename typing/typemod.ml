@@ -2962,7 +2962,12 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
       if !Clflags.print_types then (* #7656 *)
         ignore @@ Warnings.parse_options false "-32-34-37-38-60";
       let (str, sg, names, shape, finalenv) =
-        type_structure initial_env ast in
+        type_structure initial_env ast
+      in
+      let shape =
+        Shape.add_struct_uid shape
+          (Uid.of_compilation_unit_id (Ident.create_persistent modulename))
+      in
       let simple_sg = Signature_names.simplify finalenv names sg in
       if !Clflags.print_types then begin
         Typecore.force_delayed_checks ();
