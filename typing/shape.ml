@@ -187,9 +187,8 @@ let rec reduce ?(fuel = 1) ~env_lookup t =
       end
   | App(abs, body) ->
     reduce_app (App(reduce abs, reduce body))
-  | Proj(str, item) -> reduce_proj (Proj(reduce str, item))
+  | Proj(str, item) -> reduce_proj (Proj(reduce str, item)) |> reduce
   | Abs(var, body) -> Abs(var, reduce body)
-  | Struct (uid, map) -> Struct (uid, Item.Map.map reduce map)
   | Var (id, uid) as t ->
       begin try
         let res = env_lookup id in
