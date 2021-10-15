@@ -2124,14 +2124,9 @@ and type_module_aux ~alias ~no_shape sttn funct_body anchor env smod =
           mod_loc = smod.pmod_loc }
       in
       let sg' = Signature_names.simplify _finalenv names sg in
-      let md, shape =
-        if List.length sg' = List.length sg
-        then md, shape
-        else
-          wrap_constraint env false md (Mty_signature sg')
-            shape Tmodtype_implicit
-      in
-      md, shape
+      if List.length sg' = List.length sg then md, shape else
+      wrap_constraint env false md (Mty_signature sg')
+        shape Tmodtype_implicit
   | Pmod_functor(arg_opt, sbody) ->
       let t_arg, ty_arg, newenv, funct_shape_param, funct_body =
         match arg_opt with
@@ -2783,7 +2778,9 @@ let type_toplevel_phrase env s =
   type_structure ~toplevel:true false None env s
 
 let type_module_alias = type_module ~alias:true true false None
-let type_module_no_shape = type_module ~no_shape:true true false None
+let type_module_no_shape env smod =
+  let md, _shape = type_module ~no_shape:true true false None env smod in
+  md
 let type_module = type_module true false None
 let type_structure = type_structure false None
 
@@ -2815,7 +2812,7 @@ let type_module_type_of env smod =
             mod_env = env;
             mod_attributes = smod.pmod_attributes;
             mod_loc = smod.pmod_loc }
-    | _ -> type_module_no_shape env smod |> fst
+    | _ -> type_module_no_shape env smod
   in
   let mty = Mtype.scrape_for_type_of ~remove_aliases env tmty.mod_type in
   (* PR#5036: must not contain non-generalized type variables *)
@@ -2929,8 +2926,7 @@ let type_package env m p fl =
 (* Fill in the forward declarations *)
 
 let type_open_decl ?used_slot env od =
-  type_open_decl ?used_slot ?toplevel:None false
-    (Signature_names.create ()) env
+  type_open_decl ?used_slot ?toplevel:None false (Signature_names.create ()) env
     od
 
 let type_open_descr ?used_slot env od =
@@ -2961,8 +2957,7 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
       if !Clflags.print_types then (* #7656 *)
         ignore @@ Warnings.parse_options false "-32-34-37-38-60";
       let (str, sg, names, shape, finalenv) =
-        type_structure initial_env ast
-      in
+        type_structure initial_env ast in
       let shape =
         Shape.set_uid shape
           (Uid.of_compilation_unit_id (Ident.create_persistent modulename))
