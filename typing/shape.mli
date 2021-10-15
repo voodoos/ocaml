@@ -52,7 +52,7 @@ end
 type var = Ident.t
 type t =
   | Var of var * Uid.t
-  | Abs of var * t
+  | Abs of var * Uid.t * t
   | App of t * t
   | Struct of Uid.t option * t Item.Map.t
   | Leaf of Uid.t
@@ -101,12 +101,11 @@ val of_path :
   ?ns:Sig_component_kind.t -> Path.t -> t
 
 val make_var : Ident.t -> Uid.t -> t
-val make_abs : var -> t -> t
+val make_abs : var -> Uid.t -> t -> t
 val make_app : arg:t -> t -> t
 val make_proj : t -> Item.t -> t
-val make_const_fun : t -> t
 val make_persistent : string -> t
-val make_functor : param:(Ident.t option) -> t -> t
+val make_functor : param:((Ident.t * Uid.t) option) -> t -> t
 val make_structure : Uid.t option -> Map.t -> t
 val make_leaf : Uid.t -> t
 

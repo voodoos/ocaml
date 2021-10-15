@@ -106,7 +106,7 @@ end
 type var = Ident.t
 type t =
   | Var of var * Uid.t
-  | Abs of var * t
+  | Abs of var * Uid.t * t
   | App of t * t
   | Struct of Uid.t option * t Item.Map.t
   | Leaf of Uid.t
@@ -116,8 +116,9 @@ type t =
 let print fmt =
   let rec aux fmt = function
     | Var (id, uid) -> Format.fprintf fmt "%a(%a)" Ident.print id Uid.print uid
-    | Abs (id, t) ->
-        Format.fprintf fmt "Abs(@[%a,@ @[%a@]@])" Ident.print id aux t
+    | Abs (id, uid, t) ->
+        Format.fprintf fmt "Abs(@[%a(%a),@ @[%a@]@])"
+          Ident.print id Uid.print uid aux t
     | App (t1, t2) -> Format.fprintf fmt "@[%a(@,%a)@]" aux t1 aux t2
     | Leaf uid -> Format.fprintf fmt "<%a>" Uid.print uid
     | Proj (t, (name, ns)) ->
@@ -148,7 +149,7 @@ let fresh_var ?(name="shape-var") uid =
 
 let rec subst var ~arg = function
   | Var (id, _uid) when var = id -> arg
-  | Abs (v, t) -> Abs(v, subst var ~arg t)
+  | Abs (v, uid, t) -> Abs(v, uid, subst var ~arg t)
   | App (abs, t) -> App(subst var ~arg abs, subst var ~arg t) |> reduce_app
   | Struct (uid, m) ->
       Struct (uid, Item.Map.map (fun s -> subst var ~arg s) m)
@@ -156,7 +157,7 @@ let rec subst var ~arg = function
   | (Comp_unit _ | Leaf _ | Var _) as body -> body
 
 and reduce_app = function
-  | App (Abs (var, body), arg) -> subst var ~arg body
+  | App (Abs (var, _uid, body), arg) -> subst var ~arg body
   | t -> t
 
 and reduce_proj = function
@@ -188,7 +189,7 @@ let rec reduce ?(fuel = 1) ~env_lookup t =
   | App(abs, body) ->
     reduce_app (App(reduce abs, reduce body))
   | Proj(str, item) -> reduce_proj (Proj(reduce str, item)) |> reduce
-  | Abs(var, body) -> Abs(var, reduce body)
+  | Abs(var, uid, body) -> Abs(var, uid, reduce body)
   | Var (id, uid) as t ->
       begin try
         let res = env_lookup id in
@@ -213,20 +214,17 @@ let rec of_path ~find_shape ?(ns = Sig_component_kind.Module) =
 
 let make_var var uid = Var (var, uid)
 
-let make_abs var t = Abs(var, t)
+let make_abs var uid t = Abs(var, uid, t)
 
 let make_proj t elt = Proj (t, elt) |> reduce_proj
 let proj t elt = Proj (t, elt) |> reduce_proj
-
-let make_const_fun t =
-  Abs(fresh_var Uid.internal_not_actually_unique |> fst, t)
 
 let make_persistent s = Comp_unit s
 
 let make_functor ~param body =
   match param with
   | None -> body
-  | Some id -> Abs(id, body)
+  | Some (id, uid) -> Abs(id, uid, body)
 
 let make_app ~arg f = App(f, arg) |> reduce_app
 
