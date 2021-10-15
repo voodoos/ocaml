@@ -352,7 +352,8 @@ val enter_cltype:
 
 (* Same as [add_signature] but refreshes (new stamp) and rescopes bound idents
    in the process. *)
-val enter_signature: scope:int -> signature -> t -> signature * t
+val enter_signature: ?mod_shape:Shape.t -> scope:int -> signature -> t ->
+  signature * t
 
 (* Same as [enter_signature] but also extends the shape map ([parent_shape])
    with all the the items from the signature, their shape being a projection

@@ -2332,7 +2332,6 @@ let add_cltype = add_cltype ?shape:None
 let add_item = add_item ?mod_shape:None
 let add_modtype = add_modtype ?shape:None
 let add_signature = add_signature ?mod_shape:None
-let enter_signature = enter_signature ?mod_shape:None
 
 (* Add "unbound" bindings *)
 

@@ -2338,14 +2338,12 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
       let lid_app = None in
       raise(Includemod.Apply_error {loc=apply_loc;env;lid_app;mty_f;args})
 
-and type_open_decl ?used_slot ?toplevel funct_body parent_shape names env sod =
+and type_open_decl ?used_slot ?toplevel funct_body names env sod =
   Builtin_attributes.warning_scope sod.popen_attributes
     (fun () ->
-       type_open_decl_aux ?used_slot ?toplevel funct_body parent_shape names env
-         sod
-    )
+       type_open_decl_aux ?used_slot ?toplevel funct_body names env sod)
 
-and type_open_decl_aux ?used_slot ?toplevel funct_body parent_shape names env od
+and type_open_decl_aux ?used_slot ?toplevel funct_body names env od
   =
   let loc = od.popen_loc in
   match od.popen_expr.pmod_desc with
@@ -2371,8 +2369,8 @@ and type_open_decl_aux ?used_slot ?toplevel funct_body parent_shape names env od
   | _ ->
     let md, mod_shape = type_module true funct_body None env od.popen_expr in
     let scope = Ctype.create_scope () in
-    let sg, _shape, newenv =
-      Env.enter_signature_shape ~scope ~parent_shape mod_shape
+    let sg, newenv =
+      Env.enter_signature ~scope ~mod_shape
         (extract_sig_open env md.mod_loc md.mod_type) env
     in
     let info, visibility =
@@ -2664,7 +2662,7 @@ and type_structure ?(toplevel = false) ?(no_shape = false) funct_body anchor env
         Tstr_modtype mtd, [sg], shape_map, newenv
     | Pstr_open sod ->
         let (od, sg, newenv) =
-          type_open_decl ~toplevel funct_body shape_map names env sod
+          type_open_decl ~toplevel funct_body names env sod
         in
         Tstr_open od, sg, shape_map, newenv
     | Pstr_class cl ->
@@ -2931,7 +2929,7 @@ let type_package env m p fl =
 (* Fill in the forward declarations *)
 
 let type_open_decl ?used_slot env od =
-  type_open_decl ?used_slot ?toplevel:None false Shape.Map.empty
+  type_open_decl ?used_slot ?toplevel:None false 
     (Signature_names.create ()) env
     od
 
