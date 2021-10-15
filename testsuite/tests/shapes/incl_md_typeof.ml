@@ -14,7 +14,7 @@ end
 [%%expect{|
 {
  ("Foo", module) -> {.2
-                     ("Bar", module) -> {
+                     ("Bar", module) -> {.0
                                          };
                      };
  }
@@ -43,7 +43,7 @@ end
 [%%expect{|
 {
  ("E", module) -> {.6
-                   ("Bar", module) -> {
+                   ("Bar", module) -> {.5
                                        };
                    };
  }

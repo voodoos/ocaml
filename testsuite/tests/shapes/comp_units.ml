@@ -25,7 +25,7 @@ module Mproj = Unit
 module F (X : sig type t end) = X
 [%%expect{|
 {
- ("F", module) -> Abs(X/91, X/91);
+ ("F", module) -> Abs(X/91(.4), X/91(.3));
  }
 module F : functor (X : sig type t end) -> sig type t = X.t end
 |}]

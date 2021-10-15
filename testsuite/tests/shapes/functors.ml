@@ -17,7 +17,7 @@ module type S = sig type t val x : t end
 module Falias (X : S) = X
 [%%expect{|
 {
- ("Falias", module) -> Abs(X/93, X/93);
+ ("Falias", module) -> Abs(X/93(.4), X/93(.3));
  }
 module Falias : functor (X : S) -> sig type t = X.t val x : t end
 |}]
@@ -28,10 +28,10 @@ end
 [%%expect{|
 {
  ("Finclude", module) ->
-     Abs(X/98,
+     Abs(X/97(.6),
          {
-          ("t", type) -> X/98 . "t"[type];
-          ("x", value) -> X/98 . "x"[value];
+          ("t", type) -> X/97(.5) . "t"[type];
+          ("x", value) -> X/97(.5) . "x"[value];
           });
  }
 module Finclude : functor (X : S) -> sig type t = X.t val x : t end
@@ -44,10 +44,10 @@ end
 [%%expect{|
 {
  ("Fredef", module) ->
-     Abs(X/106, {
-                 ("t", type) -> <.8>;
-                 ("x", value) -> <.9>;
-                 });
+     Abs(X/104(.10), {
+                      ("t", type) -> <.8>;
+                      ("x", value) -> <.9>;
+                      });
  }
 module Fredef : functor (X : S) -> sig type t = X.t val x : X.t end
 |}]
@@ -59,10 +59,10 @@ end
 [%%expect{|
 {
  ("Fignore", module) ->
-     Abs(shape-var/113, {
-                         ("t", type) -> <.11>;
-                         ("x", value) -> <.13>;
-                         });
+     Abs(shape-var/110(.14), {
+                              ("t", type) -> <.11>;
+                              ("x", value) -> <.13>;
+                              });
  }
 module Fignore : S -> sig type t = Fresh val x : t end
 |}]
@@ -222,9 +222,10 @@ module Big_to_small1 : B2S = functor (X : Big) -> X
 [%%expect{|
 {
  ("Big_to_small1", module) ->
-     Abs(shape-var/204, {
-                         ("t", type) -> shape-var/204 . "t"[type];
-                         });
+     Abs(shape-var/200(.40),
+         {
+          ("t", type) -> shape-var/200(<internal>) . "t"[type];
+          });
  }
 module Big_to_small1 : B2S
 |}]
@@ -233,9 +234,10 @@ module Big_to_small2 : B2S = functor (X : Big) -> struct include X end
 [%%expect{|
 {
  ("Big_to_small2", module) ->
-     Abs(shape-var/211, {
-                         ("t", type) -> shape-var/211 . "t"[type];
-                         });
+     Abs(shape-var/206(.42),
+         {
+          ("t", type) -> shape-var/206(<internal>) . "t"[type];
+          });
  }
 module Big_to_small2 : B2S
 |}]

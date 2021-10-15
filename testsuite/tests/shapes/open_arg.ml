@@ -23,8 +23,8 @@ end = struct end
 
 [%%expect{|
 {
- ("Make", module) -> Abs(I/93, {
-                                });
+ ("Make", module) -> Abs(I/93(.3), {
+                                    });
  }
 module Make : functor (I : sig end) -> sig end
 |}]
