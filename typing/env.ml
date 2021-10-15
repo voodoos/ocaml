@@ -2362,7 +2362,6 @@ let add_components slot root env0 comps =
     add_l (fun x -> `Label x) comps.comp_labels env0.labels
   in
   let values =
-
     add (fun x -> `Value x) comps.comp_values env0.values
   in
   let types =
@@ -2390,8 +2389,6 @@ let add_components slot root env0 comps =
     classes;
     cltypes;
     modules;
-    (* We never lookup shapes, we always find them with a full path, so there is
-       no need to extend them here *)
   }
 
 let open_signature slot root env0 : (_,_) result =
