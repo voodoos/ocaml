@@ -2160,7 +2160,6 @@ and type_module_aux ~alias ~no_shape sttn funct_body anchor env smod =
               let newenv = Env.add_module_declaration
                 ~shape ~arg:true ~check:true id Mp_present arg_md env
               in
-              Env.register_uid md_uid param.loc;
               Some id, newenv, id
           in
           Named (id, param, mty), Types.Named (id, mty.mty_type), newenv,
