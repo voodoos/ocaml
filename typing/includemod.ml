@@ -430,8 +430,7 @@ and try_modtypes ~loc env ~mark subst mty1 mty2 orig_shape =
         functor_param ~loc env ~mark:(negate_mark mark) subst param1 param2
       in
       (* TODO @ulysse FIXME is it ok to use a placeholder uid here ? *)
-      let uid = Uid.internal_not_actually_unique in
-      let var, shape_var = Shape.fresh_var uid in
+      let var, shape_var = Shape.fresh_var Uid.internal_not_actually_unique in
       let cc_res =
         let res_shape = Shape.make_app orig_shape ~arg:shape_var in
         modtypes ~loc env ~mark subst res1 res2 res_shape
@@ -439,12 +438,12 @@ and try_modtypes ~loc env ~mark subst mty1 mty2 orig_shape =
       begin match cc_arg, cc_res with
       | Ok Tcoerce_none, Ok (Tcoerce_none, res_shape) ->
           let final_shape =
-            Shape.make_functor ~param:(Some (var, uid)) res_shape
+            Shape.make_functor ~param:(Some var) res_shape
           in
           Ok (Tcoerce_none, final_shape)
       | Ok cc_arg, Ok (cc_res, res_shape) ->
           let final_shape =
-            Shape.make_functor ~param:(Some (var, uid)) res_shape
+            Shape.make_functor ~param:(Some var) res_shape
           in
           Ok (Tcoerce_functor(cc_arg, cc_res), final_shape)
       | _, Error {Error.symptom = Error.Functor Error.Params res; _} ->

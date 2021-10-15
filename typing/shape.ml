@@ -106,7 +106,7 @@ end
 type var = Ident.t
 type t =
   | Var of var * Uid.t
-  | Abs of var * Uid.t * t
+  | Abs of var * Uid.t option * t
   | App of t * t
   | Struct of Uid.t option * t Item.Map.t
   | Leaf of Uid.t
@@ -118,7 +118,8 @@ let print fmt =
     | Var (id, uid) -> Format.fprintf fmt "%a(%a)" Ident.print id Uid.print uid
     | Abs (id, uid, t) ->
         Format.fprintf fmt "Abs(@[%a(%a),@ @[%a@]@])"
-          Ident.print id Uid.print uid aux t
+          Ident.print id
+          (Format.pp_print_option Uid.print) uid aux t
     | App (t1, t2) -> Format.fprintf fmt "@[%a(@,%a)@]" aux t1 aux t2
     | Leaf uid -> Format.fprintf fmt "<%a>" Uid.print uid
     | Proj (t, (name, ns)) ->
@@ -227,7 +228,7 @@ let make_persistent s = Comp_unit s
 let make_functor ~param body =
   match param with
   | None -> body
-  | Some (id, uid) -> Abs(id, uid, body)
+  | Some id -> Abs(id, None, body)
 
 let make_app ~arg f = App(f, arg) |> reduce_app
 
@@ -235,15 +236,14 @@ let make_structure uid shapes = Struct (uid, shapes)
 
 let make_leaf uid = Leaf uid
 
-let add_struct_uid shape uid = match shape with
+let set_uid shape uid = match shape with
   | Struct (None, map) -> Struct (Some uid, map)
+  | Abs(var, None, t) -> Abs(var, Some uid, t)
   | t -> t
 
 let get_struct_uid shape = match shape with
   | Struct (uid, _) -> uid
   | _ -> None
-
-
 module Map = struct
   type shape = t
   type nonrec t = t Item.Map.t

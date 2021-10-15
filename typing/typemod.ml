@@ -2145,7 +2145,7 @@ and type_module_aux ~alias ~no_shape sttn funct_body anchor env smod =
               let var, _shape_var = Shape.fresh_var ?name:param.txt
                 Uid.internal_not_actually_unique
               in
-              None, env, (var, Uid.internal_not_actually_unique)
+              None, env, var
             | Some name ->
               let md_uid =  Uid.mk ~current_unit:(Env.get_unit_name ()) in
               let arg_md =
@@ -2161,7 +2161,7 @@ and type_module_aux ~alias ~no_shape sttn funct_body anchor env smod =
                 ~shape ~arg:true ~check:true id Mp_present arg_md env
               in
               Env.register_uid md_uid param.loc;
-              Some id, newenv, (id, md_uid)
+              Some id, newenv, id
           in
           Named (id, param, mty), Types.Named (id, mty.mty_type), newenv,
           Some var, true
@@ -2533,7 +2533,7 @@ and type_structure ?(toplevel = false) ?(no_shape = false) funct_body anchor env
             md_uid;
           }
         in
-        let md_shape = Shape.add_struct_uid md_shape md_uid in
+        let md_shape = Shape.set_uid md_shape md_uid in
         Env.register_uid md_uid pmb_loc;
         (*prerr_endline (Ident.unique_toplevel_name id);*)
         Mtype.lower_nongen outer_scope md.md_type;
@@ -2965,10 +2965,6 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
         ignore @@ Warnings.parse_options false "-32-34-37-38-60";
       let (str, sg, names, shape, finalenv) =
         type_structure initial_env ast
-      in
-      let shape =
-        Shape.add_struct_uid shape
-          (Uid.of_compilation_unit_id (Ident.create_persistent modulename))
       in
       let simple_sg = Signature_names.simplify finalenv names sg in
       if !Clflags.print_types then begin
