@@ -2496,7 +2496,9 @@ and type_structure ?(toplevel = false) ?(no_shape = false) funct_body anchor env
         let constructor = ext.tyexn_constructor in
         Signature_names.check_typext names constructor.ext_loc
           constructor.ext_id;
-        Env.register_uid ext.tyexn_constructor.ext_type.ext_uid ext.tyexn_loc;
+        Env.register_uid
+          constructor.ext_type.ext_uid
+          constructor.ext_loc;
         Tstr_exception ext,
         [Sig_typext(constructor.ext_id,
                     constructor.ext_type,
