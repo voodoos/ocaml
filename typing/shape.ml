@@ -188,7 +188,10 @@ let rec reduce ?(fuel = 1) ~env_lookup t =
       end
   | App(abs, body) ->
     reduce_app (App(reduce abs, reduce body))
-  | Proj(str, item) -> reduce_proj (Proj(reduce str, item)) |> reduce
+  | Proj(str, item) as p ->
+    let r = reduce_proj (Proj(reduce str, item)) in
+    if r = p then p
+    else reduce r
   | Abs(var, uid, body) -> Abs(var, uid, reduce body)
   | Var (id, uid) as t ->
       begin try
