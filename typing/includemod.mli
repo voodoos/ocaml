@@ -164,7 +164,7 @@ val check_modtype_equiv:
   loc:Location.t -> Env.t -> Ident.t -> module_type -> module_type -> unit
 
 val signatures: Env.t -> mark:mark ->
-  signature -> signature -> Shape.t -> module_coercion * Shape.t
+  signature -> signature -> module_coercion
 
 val compunit:
       Env.t -> mark:mark -> string -> signature ->

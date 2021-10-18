@@ -1044,9 +1044,13 @@ let modtypes ?shape ~loc env ~mark mty1 mty2 =
   match modtypes ~loc env ~mark Subst.identity mty1 mty2 shape with
   | Ok (cc, shape) -> cc, if keep_res then Some shape else None
   | Error reason -> raise (Error (env, Error.(In_Module_type reason)))
-let signatures env ~mark sig1 sig2 s =
-  match signatures ~loc:Location.none env ~mark Subst.identity sig1 sig2 s with
-  | Ok x -> x
+
+let signatures env ~mark sig1 sig2 =
+  match
+    signatures ~loc:Location.none env ~mark Subst.identity sig1 sig2
+      Shape.dummy_mod
+  with
+  | Ok (cc, _) -> cc
   | Error reason -> raise (Error(env,Error.(In_Signature reason)))
 
 let type_declarations ~loc env ~mark id decl1 decl2 =
