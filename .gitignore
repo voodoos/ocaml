@@ -24,7 +24,7 @@
 *.la
 *.cm[ioxats]
 *.cmx[as]
-*.cmti
+*.cm[ts]i
 *.annot
 *.exe
 *.exe.manifest

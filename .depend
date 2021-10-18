@@ -1143,14 +1143,12 @@ typing/rec_check.cmi : \
 typing/shape.cmo : \
     typing/path.cmi \
     utils/misc.cmi \
-    utils/load_path.cmi \
     utils/identifiable.cmi \
     typing/ident.cmi \
     typing/shape.cmi
 typing/shape.cmx : \
     typing/path.cmx \
     utils/misc.cmx \
-    utils/load_path.cmx \
     utils/identifiable.cmx \
     typing/ident.cmx \
     typing/shape.cmi
