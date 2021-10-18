@@ -1041,9 +1041,14 @@ end
 
 (* Hide the context and substitution parameters to the outside world *)
 
-let modtypes ~loc env ~mark mty1 mty2 shape =
+let modtypes ?shape ~loc env ~mark mty1 mty2 =
+  let shape, keep_res =
+    match shape with
+    | None -> Shape.dummy_mod, false
+    | Some shape -> shape, true
+  in
   match modtypes ~loc env ~mark Subst.identity mty1 mty2 shape with
-  | Ok x -> x
+  | Ok (cc, shape) -> cc, if keep_res then Some shape else None
   | Error reason -> raise (Error (env, Error.(In_Module_type reason)))
 let signatures env ~mark sig1 sig2 s =
   match signatures ~loc:Location.none env ~mark Subst.identity sig1 sig2 s with
@@ -1057,10 +1062,10 @@ let type_declarations ~loc env ~mark id decl1 decl2 =
       raise (Error(env,Error.(In_Type_declaration(id,reason))))
   | Error _ -> assert false
 
-let strengthened_module_decl ~loc ~aliasable env ~mark md1 path1 md2 shape =
+let strengthened_module_decl ~loc ~aliasable env ~mark md1 path1 md2 =
   match strengthened_module_decl ~loc ~aliasable env ~mark Subst.identity
-    md1 path1 md2 shape with
-  | Ok x -> x
+    md1 path1 md2 Shape.dummy_mod with
+  | Ok (x, _shape) -> x
   | Error mdiff ->
       raise (Error(env,Error.(In_Module_type mdiff)))
 

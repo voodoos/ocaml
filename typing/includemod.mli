@@ -146,13 +146,12 @@ val is_runtime_component: Types.signature_item -> bool
 (* Typechecking *)
 
 val modtypes:
-  loc:Location.t -> Env.t -> mark:mark ->
-  module_type -> module_type -> Shape.t -> module_coercion * Shape.t
+  ?shape:Shape.t -> loc:Location.t -> Env.t -> mark:mark ->
+  module_type -> module_type -> module_coercion * Shape.t option
 
 val strengthened_module_decl:
   loc:Location.t -> aliasable:bool -> Env.t -> mark:mark ->
-  module_declaration -> Path.t -> module_declaration -> Shape.t ->
-  module_coercion * Shape.t
+  module_declaration -> Path.t -> module_declaration -> module_coercion
 
 val check_modtype_inclusion :
   loc:Location.t -> Env.t -> Types.module_type -> Path.t -> Types.module_type ->
