@@ -142,8 +142,6 @@ let print fmt =
   in
   Format.fprintf fmt"@[%a@]@." aux
 
-let load_shape = ref (fun _ -> failwith "filled in by Cms_format")
-
 let fresh_var ?(name="shape-var") uid =
   let var = Ident.create_local name in
   var, Var (var, uid)
@@ -170,37 +168,41 @@ and reduce_proj = function
     l
   | t -> t
 
-let rec reduce ?(fuel = 1) ~env_lookup t =
-  let reduce_if_gas = if fuel > 0 then
-    reduce ~fuel:(fuel -1) ~env_lookup
-    else Fun.id
-  in
-  let reduce = reduce ~fuel ~env_lookup in
-  let read_shape unit_name =
-    match Load_path.find_uncap (unit_name ^ ".cms") with
-    | filename -> Some (!load_shape filename)
-    | exception Not_found -> None
-  in
-  match t with
-  | Comp_unit name as t ->
-      begin match read_shape name with
-      | Some t -> reduce t
-      | None -> t
-      end
-  | App(abs, body) ->
-    reduce_app (App(reduce abs, reduce body))
-  | Proj(str, item) as p ->
-    let r = reduce_proj (Proj(reduce str, item)) in
-    if r = p then p
-    else reduce r
-  | Abs(var, uid, body) -> Abs(var, uid, reduce body)
-  | Var (id, uid) as t ->
-      begin try
-        let res = env_lookup id in
-        if res = t then Leaf uid else res |> reduce_if_gas
+module Make_reduce(Params : sig
+    val fuel : int
+    val read_unit_shape : unit_name:string -> t option
+    val find_shape : Ident.t -> t
+  end) = struct
+  let rec reduce fuel t =
+    let reduce_if_gas =
+      if fuel > 0
+      then reduce (fuel -1)
+      else Fun.id
+    in
+    let reduce = reduce fuel in
+    match t with
+    | Comp_unit unit_name as t ->
+        begin match Params.read_unit_shape ~unit_name with
+        | Some t -> reduce t
+        | None -> t
+        end
+    | App(abs, body) ->
+        reduce_app (App(reduce abs, reduce body))
+    | Proj(str, item) as p ->
+        let r = reduce_proj (Proj(reduce str, item)) in
+        if r = p then p
+        else reduce r
+    | Abs(var, uid, body) -> Abs(var, uid, reduce body)
+    | Var (id, uid) as t ->
+        begin try
+          let res = Params.find_shape id in
+          if res = t then Leaf uid else res |> reduce_if_gas
         with Not_found -> Leaf uid
-      end
-  | t -> t
+        end
+    | t -> t
+
+  let reduce = reduce Params.fuel
+end
 
 let dummy_mod = Struct (None, Item.Map.empty)
 

@@ -2989,7 +2989,7 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
             Includemod.compunit initial_env ~mark:Mark_positive
               sourcefile sg intf_file dclsig shape
           in
-          Cms_format.save_shape (outputprefix ^ ".cms") sourcefile shape;
+          Cms_format.save_shape (outputprefix ^ ".cms") sourcefile (Some shape);
           Typecore.force_delayed_checks ();
           (* It is important to run these checks after the inclusion test above,
              so that value declarations which are not used internally but
@@ -3022,7 +3022,8 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
               Env.save_signature ~alerts
                 simple_sg modulename (outputprefix ^ ".cmi")
             in
-            Cms_format.save_shape (outputprefix ^ ".cms") sourcefile shape;
+            Cms_format.save_shape (outputprefix ^ ".cms") sourcefile
+              (Some shape);
             let annots = Cmt_format.Implementation str in
             Cmt_format.save_cmt  (outputprefix ^ ".cmt") modulename
               annots (Some sourcefile) initial_env (Some cmi);
@@ -3047,7 +3048,8 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
 
 let save_signature modname tsg outputprefix source_file initial_env cmi =
   Cmt_format.save_cmt  (outputprefix ^ ".cmti") modname
-    (Cmt_format.Interface tsg) (Some source_file) initial_env (Some cmi)
+    (Cmt_format.Interface tsg) (Some source_file) initial_env (Some cmi);
+  Cms_format.save_shape (outputprefix ^  ".cmsi") source_file None
 
 let type_interface env ast =
   transl_signature env ast

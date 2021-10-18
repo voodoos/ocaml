@@ -89,9 +89,6 @@ module Map : sig
   val add_class_type_proj : t -> Ident.t -> shape -> t
 end
 
-(* Forward declaration -- to be filled in by Cms_format *)
-val load_shape : (string -> t) ref
-
 val fresh_var : ?name:string -> Uid.t -> var * t
 
 val dummy_mod : t
@@ -112,7 +109,11 @@ val make_leaf : Uid.t -> t
 val set_uid : t -> Uid.t -> t
 val get_struct_uid : t -> Uid.t option
 
-(** [env_lookup] is used for recursive modules.
-
-    FIXME: doc *)
-val reduce : ?fuel:int -> env_lookup:(Ident.t -> t) -> t -> t
+(* TODO: doc *)
+module Make_reduce(Params : sig
+    val fuel : int
+    val read_unit_shape : unit_name:string -> t option
+    val find_shape : Ident.t -> t
+  end) : sig
+  val reduce : t -> t
+end
