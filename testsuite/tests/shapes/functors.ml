@@ -167,10 +167,11 @@ module Fgen () = struct
 end
 [%%expect{|
 {
- ("Fgen", module) -> {.30
-                      ("t", type) -> <.27>;
-                      ("x", value) -> <.29>;
-                      };
+ ("Fgen", module) ->
+     Abs(unit/177(.30), {
+                         ("t", type) -> <.27>;
+                         ("x", value) -> <.29>;
+                         });
  }
 module Fgen : functor () -> sig type t = Fresher val x : t end
 |}]
@@ -222,9 +223,9 @@ module Big_to_small1 : B2S = functor (X : Big) -> X
 [%%expect{|
 {
  ("Big_to_small1", module) ->
-     Abs(shape-var/200(.40),
+     Abs(shape-var/201(.40),
          {
-          ("t", type) -> shape-var/200(<internal>) . "t"[type];
+          ("t", type) -> shape-var/201(<internal>) . "t"[type];
           });
  }
 module Big_to_small1 : B2S
@@ -234,9 +235,9 @@ module Big_to_small2 : B2S = functor (X : Big) -> struct include X end
 [%%expect{|
 {
  ("Big_to_small2", module) ->
-     Abs(shape-var/206(.42),
+     Abs(shape-var/207(.42),
          {
-          ("t", type) -> shape-var/206(<internal>) . "t"[type];
+          ("t", type) -> shape-var/207(<internal>) . "t"[type];
           });
  }
 module Big_to_small2 : B2S
