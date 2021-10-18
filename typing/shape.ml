@@ -289,6 +289,8 @@ module Map = struct
 
   let empty = Item.Map.empty
 
+  let add t item shape = Item.Map.add item shape t
+
   let add_value t id uid = Item.Map.add (Item.value id) (leaf uid) t
   let add_value_proj t id shape =
     let item = Item.value id in

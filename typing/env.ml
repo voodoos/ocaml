@@ -2261,77 +2261,67 @@ let enter_module ~scope ?arg s presence mty env =
 
 (* Insertion of all components of a signature *)
 
-let add_item ?mod_shape comp env =
-  let make_proj item =
-    Option.map (fun s -> Shape.proj s item) mod_shape
+let add_item (map, mod_shape) comp env =
+  let proj_shape item =
+    match mod_shape with
+    | None -> map, None
+    | Some mod_shape ->
+        let shape = Shape.proj mod_shape item in
+        Shape.Map.add map item shape, Some shape
   in
   match comp with
   | Sig_value(id, decl, _)    ->
-    let shape = make_proj (Shape.Item.value id) in
-    add_value ?shape id decl env
+    let map, shape = proj_shape (Shape.Item.value id) in
+    map, add_value ?shape id decl env
   | Sig_type(id, decl, _, _)  ->
-    let shape = make_proj (Shape.Item.type_ id) in
-    add_type ~check:false ?shape id decl env
+    let map, shape = proj_shape (Shape.Item.type_ id) in
+    map, add_type ~check:false ?shape id decl env
   | Sig_typext(id, ext, _, _) ->
-    let shape = make_proj (Shape.Item.extension_constructor id) in
-    add_extension ~check:false ?shape ~rebind:false id ext env
+    let map, shape = proj_shape (Shape.Item.extension_constructor id) in
+    map, add_extension ~check:false ?shape ~rebind:false id ext env
   | Sig_module(id, presence, md, _, _) ->
-    let shape = make_proj (Shape.Item.module_ id) in
-    add_module_declaration ~check:false ?shape id presence md env
+    let map, shape = proj_shape (Shape.Item.module_ id) in
+    map, add_module_declaration ~check:false ?shape id presence md env
   | Sig_modtype(id, decl, _)  ->
-    let shape = make_proj (Shape.Item.module_type id) in
-    add_modtype ?shape id decl env
+    let map, shape = proj_shape (Shape.Item.module_type id) in
+    map, add_modtype ?shape id decl env
   | Sig_class(id, decl, _, _) ->
-    let shape = make_proj (Shape.Item.class_ id) in
-    add_class ?shape id decl env
+    let map, shape = proj_shape (Shape.Item.class_ id) in
+    map, add_class ?shape id decl env
   | Sig_class_type(id, decl, _, _) ->
-    let shape = make_proj (Shape.Item.class_type id) in
-    add_cltype ?shape id decl env
+    let map, shape = proj_shape (Shape.Item.class_type id) in
+    map, add_cltype ?shape id decl env
 
-let add_item_shape ~mod_shape shape_map comp env =
-  match comp with
-  | Sig_value(id, _, _)    ->
-      Shape.Map.add_value_proj shape_map id mod_shape, env
-  | Sig_type(id, _, _, _)  ->
-      Shape.Map.add_type_proj shape_map id mod_shape, env
-  | Sig_typext(id, _, _, _) ->
-      Shape.Map.add_extcons_proj shape_map id mod_shape, env
-  | Sig_module(id, _, _, _, _) ->
-      let proj_shape = Shape.proj mod_shape (Shape.Item.module_ id) in
-      Shape.Map.add_module shape_map id proj_shape, env
-  | Sig_modtype(id, _, _)  ->
-      Shape.Map.add_module_type_proj shape_map id mod_shape, env
-  | Sig_class(id, _, _, _) ->
-      Shape.Map.add_class_proj shape_map id mod_shape, env
-  | Sig_class_type(id, _, _, _) ->
-      Shape.Map.add_class_type_proj shape_map id mod_shape, env
-
-let rec add_signature ?mod_shape sg env =
+let rec add_signature (map, mod_shape) sg env =
   match sg with
-    [] -> env
-  | comp :: rem -> add_signature ?mod_shape rem (add_item ?mod_shape comp env)
-
-let enter_signature ?mod_shape ~scope sg env =
-  let sg = Subst.signature (Rescope scope) Subst.identity sg in
-  sg, add_signature ?mod_shape sg env
+    [] -> map, env
+  | comp :: rem ->
+      let map, env = add_item (map, mod_shape) comp env in
+      add_signature (map, mod_shape) rem env
 
 let enter_signature_shape ~scope ~parent_shape mod_shape sg env =
-  let sg, env = enter_signature ~mod_shape ~scope sg env in
-  let shape, env =
-    List.fold_left (fun (map, env) item ->
-      add_item_shape ~mod_shape map item env
-    ) (parent_shape, env) sg
-  in
+  let sg = Subst.signature (Rescope scope) Subst.identity sg in
+  let shape, env = add_signature (parent_shape, mod_shape) sg env in
   sg, shape, env
+
+let enter_signature ?mod_shape ~scope sg env =
+  let sg, _, env =
+    enter_signature_shape ~scope ~parent_shape:Shape.Map.empty mod_shape sg env
+  in
+  sg, env
+
+let enter_signature_shape ~scope ~parent_shape mod_shape sg env =
+  enter_signature_shape ~scope ~parent_shape (Some mod_shape) sg env
 
 let add_value = add_value ?shape:None
 let add_type = add_type ?shape:None
 let add_extension = add_extension ?shape:None
 let add_class = add_class ?shape:None
 let add_cltype = add_cltype ?shape:None
-let add_item = add_item ?mod_shape:None
 let add_modtype = add_modtype ?shape:None
-let add_signature = add_signature ?mod_shape:None
+let add_signature sg env =
+  let _, env = add_signature (Shape.Map.empty, None) sg env in
+  env
 
 (* Add "unbound" bindings *)
 

@@ -289,9 +289,6 @@ val add_class: Ident.t -> class_declaration -> t -> t
 val add_cltype: Ident.t -> class_type_declaration -> t -> t
 val add_local_type: Path.t -> type_declaration -> t -> t
 
-(* val add_module_shape: Ident.t -> Shape.t -> t -> t *)
-
-
 (* Insertion of persistent signatures *)
 
 (* [add_persistent_structure id env] is an environment such that
@@ -313,7 +310,6 @@ val filter_non_loaded_persistent : (Ident.t -> bool) -> t -> t
 
 (* Insertion of all fields of a signature. *)
 
-val add_item: signature_item -> t -> t
 val add_signature: signature -> t -> t
 
 (* Insertion of all fields of a signature, relative to the given path.

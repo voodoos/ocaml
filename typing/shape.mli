@@ -97,6 +97,8 @@ module Map : sig
 
   val empty : t
 
+  val add : t -> Item.t -> shape -> t
+
   val add_value : t -> Ident.t -> Uid.t -> t
   val add_value_proj : t -> Ident.t -> shape -> t
 
