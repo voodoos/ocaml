@@ -110,7 +110,7 @@ val set_uid : t -> Uid.t -> t
 val get_struct_uid : t -> Uid.t option
 
 (* TODO: doc *)
-module Make_reduce(Params : sig
+module Make_reduce(_ : sig
     val fuel : int
     val read_unit_shape : unit_name:string -> t option
     val find_shape : Ident.t -> t
