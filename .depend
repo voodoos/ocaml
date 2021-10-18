@@ -6547,6 +6547,7 @@ toplevel/native/topeval.cmo : \
     lambda/translmod.cmi \
     toplevel/topcommon.cmi \
     lambda/simplif.cmi \
+    typing/shape.cmi \
     asmcomp/proc.cmi \
     typing/printtyped.cmi \
     typing/printtyp.cmi \
@@ -6584,6 +6585,7 @@ toplevel/native/topeval.cmx : \
     lambda/translmod.cmx \
     toplevel/topcommon.cmx \
     lambda/simplif.cmx \
+    typing/shape.cmx \
     asmcomp/proc.cmx \
     typing/printtyped.cmx \
     typing/printtyp.cmx \
