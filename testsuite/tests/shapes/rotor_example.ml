@@ -11,8 +11,7 @@ module type Stringable = sig
   val to_string : t -> string
 end
 [%%expect{|
-{
- ("Stringable", module type) -> <.2>;
+{("Stringable", module type) -> .2: ·;
  }
 module type Stringable = sig type t val to_string : t -> string end
 |}]
@@ -23,13 +22,12 @@ module Pair (X : Stringable) (Y : Stringable) = struct
     X.to_string x ^ " " ^ Y.to_string y
 end
 [%%expect{|
-{
- ("Pair", module) ->
-     Abs(X/93(.9),
-         Abs(Y/94(), {
-                      ("t", type) -> <.5>;
-                      ("to_string", value) -> <.6>;
-                      }));
+{("Pair", module) ->
+     .9:
+     Abs(X/94,
+         Abs(Y/95, {("t", type) -> .5: ·;
+                    ("to_string", value) -> .6: ·;
+                    }));
  }
 module Pair :
   functor (X : Stringable) (Y : Stringable) ->
@@ -41,11 +39,11 @@ module Int = struct
   let to_string i = string_of_int i
 end
 [%%expect{|
-{
- ("Int", module) -> {.13
-                     ("t", type) -> <.10>;
-                     ("to_string", value) -> <.11>;
-                     };
+{("Int", module) ->
+     .13:
+     {("t", type) -> .10: ·;
+      ("to_string", value) -> .11: ·;
+      };
  }
 module Int : sig type t = int val to_string : int -> string end
 |}]
@@ -55,11 +53,10 @@ module String = struct
   let to_string s = s
 end
 [%%expect{|
-{
- ("String", module) ->
-     {.17
-      ("t", type) -> <.14>;
-      ("to_string", value) -> <.15>;
+{("String", module) ->
+     .17:
+     {("t", type) -> .14: ·;
+      ("to_string", value) -> .15: ·;
       };
  }
 module String : sig type t = string val to_string : 'a -> 'a end
@@ -67,11 +64,11 @@ module String : sig type t = string val to_string : 'a -> 'a end
 
 module P = Pair(Int)(Pair(String)(Int))
 [%%expect{|
-{
- ("P", module) -> {.18
-                   ("t", type) -> <.5>;
-                   ("to_string", value) -> <.6>;
-                   };
+{("P", module) ->
+     .18:
+     {("t", type) -> .5: ·;
+      ("to_string", value) -> .6: ·;
+      };
  }
 module P :
   sig
@@ -82,7 +79,6 @@ module P :
 
 P.to_string (0, ("!=", 1))
 [%%expect{|
-{
- }
+{}
 - : string = "0 != 1"
 |}]

@@ -10,8 +10,7 @@ end
 ;;
 
 [%%expect{|
-{
- ("Make", module type) -> <.1>;
+{("Make", module type) -> .1: ·;
  }
 module type Make = functor (I : sig end) -> sig end
 |}]
@@ -22,9 +21,7 @@ end = struct end
 ;;
 
 [%%expect{|
-{
- ("Make", module) -> Abs(I/93(.3), {
-                                    });
+{("Make", module) -> .3: Abs(I/94, {});
  }
 module Make : functor (I : sig end) -> sig end
 |}]
@@ -35,8 +32,7 @@ module type of struct
 end
 
 [%%expect{|
-{
- ("Make", module type) -> <.5>;
+{("Make", module type) -> .5: ·;
  }
 module type Make = functor (I : sig end) -> sig end
 |}]

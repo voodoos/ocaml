@@ -8,56 +8,49 @@
 
 module Mdirect = Stdlib__Unit
 [%%expect{|
-{
- ("Mdirect", module) -> CU Stdlib__Unit;
+{("Mdirect", module) -> .0: CU Stdlib__Unit;
  }
 module Mdirect = Unit
 |}]
 
 module Mproj = Stdlib.Unit
 [%%expect{|
-{
- ("Mproj", module) -> CU Stdlib . "Unit"[module];
+{("Mproj", module) -> .1: CU Stdlib . "Unit"[module];
  }
 module Mproj = Unit
 |}]
 
 module F (X : sig type t end) = X
 [%%expect{|
-{
- ("F", module) -> Abs(X/91(.4), X/91(.3));
+{("F", module) -> .4: Abs(X/92, .3: X/92);
  }
 module F : functor (X : sig type t end) -> sig type t = X.t end
 |}]
 
 module App_direct = F (Stdlib__Unit)
 [%%expect{|
-{
- ("App_direct", module) -> CU Stdlib__Unit;
+{("App_direct", module) -> .5: CU Stdlib__Unit;
  }
 module App_direct : sig type t = Unit.t end
 |}]
 
 module App_proj = F (Stdlib.Unit)
 [%%expect{|
-{
- ("App_proj", module) -> CU Stdlib . "Unit"[module];
+{("App_proj", module) -> .6: CU Stdlib . "Unit"[module];
  }
 module App_proj : sig type t = Unit.t end
 |}]
 
 module App_direct_indir = F (Mdirect)
 [%%expect{|
-{
- ("App_direct_indir", module) -> CU Stdlib__Unit;
+{("App_direct_indir", module) -> .0: CU Stdlib__Unit;
  }
 module App_direct_indir : sig type t = Mdirect.t end
 |}]
 
 module App_proj_indir = F (Mproj)
 [%%expect{|
-{
- ("App_proj_indir", module) -> CU Stdlib . "Unit"[module];
+{("App_proj_indir", module) -> .1: CU Stdlib . "Unit"[module];
  }
 module App_proj_indir : sig type t = Mproj.t end
 |}]
@@ -67,8 +60,7 @@ module App_proj_indir : sig type t = Mproj.t end
 
 include Stdlib__Unit
 [%%expect{|
-{
- ("compare", value) -> CU Stdlib__Unit . "compare"[value];
+{("compare", value) -> CU Stdlib__Unit . "compare"[value];
  ("equal", value) -> CU Stdlib__Unit . "equal"[value];
  ("t", type) -> CU Stdlib__Unit . "t"[type];
  ("to_string", value) -> CU Stdlib__Unit . "to_string"[value];
@@ -81,8 +73,7 @@ val to_string : t -> string = <fun>
 
 include Stdlib.Unit
 [%%expect{|
-{
- ("compare", value) -> CU Stdlib . "Unit"[module] . "compare"[value];
+{("compare", value) -> CU Stdlib . "Unit"[module] . "compare"[value];
  ("equal", value) -> CU Stdlib . "Unit"[module] . "equal"[value];
  ("t", type) -> CU Stdlib . "Unit"[module] . "t"[type];
  ("to_string", value) -> CU Stdlib . "Unit"[module] . "to_string"[value];
@@ -95,8 +86,8 @@ val to_string : t -> string = <fun>
 
 module Without_constraint = Set.Make(Int)
 [%%expect{|
-{
- ("Without_constraint", module) ->
+{("Without_constraint", module) ->
+     .9:
      CU Stdlib . "Set"[module] . "Make"[module](CU Stdlib . "Int"[module]);
  }
 module Without_constraint :
@@ -154,141 +145,184 @@ end = struct
   module M = Set.Make(Int)
 end
 [%%expect{|
-{
- ("With_identity_constraint", module) ->
-     {.12
-      ("M", module) ->
-          {.10
-           ("add", value) ->
+{("With_identity_constraint", module) ->
+     .12:
+     {("M", module) ->
+          .10:
+          {("add", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "add"[value];
            ("add_seq", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "add_seq"[value];
            ("cardinal", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "cardinal"[value];
            ("choose", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "choose"[value];
            ("choose_opt", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "choose_opt"[value];
            ("compare", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "compare"[value];
            ("diff", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "diff"[value];
            ("disjoint", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "disjoint"[value];
            ("elements", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "elements"[value];
            ("elt", type) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "elt"[type];
            ("empty", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "empty"[value];
            ("equal", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "equal"[value];
            ("exists", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "exists"[value];
            ("filter", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "filter"[value];
            ("filter_map", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "filter_map"[value];
            ("find", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "find"[value];
            ("find_first", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "find_first"[value];
            ("find_first_opt", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "find_first_opt"[value];
            ("find_last", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "find_last"[value];
            ("find_last_opt", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "find_last_opt"[value];
            ("find_opt", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "find_opt"[value];
            ("fold", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "fold"[value];
            ("for_all", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "for_all"[value];
            ("inter", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "inter"[value];
            ("is_empty", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "is_empty"[value];
            ("iter", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "iter"[value];
            ("map", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "map"[value];
            ("max_elt", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "max_elt"[value];
            ("max_elt_opt", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "max_elt_opt"[value];
            ("mem", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "mem"[value];
            ("min_elt", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "min_elt"[value];
            ("min_elt_opt", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "min_elt_opt"[value];
            ("of_list", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "of_list"[value];
            ("of_seq", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "of_seq"[value];
            ("partition", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "partition"[value];
            ("remove", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "remove"[value];
            ("singleton", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "singleton"[value];
            ("split", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "split"[value];
            ("subset", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "subset"[value];
            ("t", type) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "t"[type];
            ("to_rev_seq", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "to_rev_seq"[value];
            ("to_seq", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "to_seq"[value];
            ("to_seq_from", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "to_seq_from"[value];
            ("union", value) ->
+               .10:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "union"[value];
            };
@@ -303,12 +337,12 @@ end = struct
   module M = Set.Make(Int)
 end
 [%%expect{|
-{
- ("With_constraining_constraint", module) ->
-     {.16
-      ("M", module) ->
-          {.13
-           ("t", type) ->
+{("With_constraining_constraint", module) ->
+     .16:
+     {("M", module) ->
+          .13:
+          {("t", type) ->
+               .13:
                CU Stdlib . "Set"[module] . "Make"[module](
                CU Stdlib . "Int"[module]) . "t"[type];
            };

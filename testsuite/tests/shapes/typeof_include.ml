@@ -12,8 +12,7 @@ module type S = sig
 end
 
 [%%expect{|
-{
- ("S", module type) -> <.2>;
+{("S", module type) -> .2: ·;
  }
 module type S = sig module M : sig end module type T = sig end end
 |}]
