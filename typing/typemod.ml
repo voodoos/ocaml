@@ -2267,7 +2267,7 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
         mod_env = env;
         mod_attributes = app_view.attributes;
         mod_loc = funct.mod_loc },
-      funct_shape
+      Shape.make_app ~arg:app_view.shape funct_shape
   | Mty_functor (Named (param, mty_param), mty_res) as mty_functor ->
       let coercion, _param_shape =
         try
@@ -2929,7 +2929,7 @@ let type_package env m p fl =
 (* Fill in the forward declarations *)
 
 let type_open_decl ?used_slot env od =
-  type_open_decl ?used_slot ?toplevel:None false 
+  type_open_decl ?used_slot ?toplevel:None false
     (Signature_names.create ()) env
     od
 

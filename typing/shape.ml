@@ -227,7 +227,11 @@ let make_persistent s = Comp_unit s
 
 let make_functor ~param body =
   match param with
-  | None -> body
+  | None -> Abs (
+      fresh_var ~name:"unit" Uid.internal_not_actually_unique |> fst,
+      None,
+      body
+    )
   | Some id -> Abs(id, None, body)
 
 let make_app ~arg f = App(f, arg) |> reduce_app
