@@ -894,9 +894,9 @@ let sign_of_cmi ~freshen { Persistent_env.Persistent_signature.cmi; _ } =
     in
     components_of_module ~alerts ~uid:md.md_uid
       empty freshening_subst Subst.identity
-      path mda_address (Mty_signature sign) (Shape.make_persistent name)
+      path mda_address (Mty_signature sign) (Shape.for_persistent_unit name)
   in
-  let mda_shape = Shape.make_persistent name in
+  let mda_shape = Shape.for_persistent_unit name in
   {
     mda_declaration;
     mda_components;
@@ -1112,7 +1112,7 @@ let type_of_cstr path = function
         {
           tda_declaration = decl;
           tda_descriptions = Type_record (labels, repr);
-          tda_shape = Shape.make_leaf decl.type_uid;
+          tda_shape = Shape.leaf decl.type_uid;
         }
       | _ -> assert false
       end
@@ -1126,7 +1126,7 @@ let find_type_data path env =
           {
             tda_declaration = decl;
             tda_descriptions = Type_abstract;
-            tda_shape = Shape.make_leaf decl.type_uid;
+            tda_shape = Shape.leaf decl.type_uid;
           }
       | exception Not_found -> find_type_full p env
     end
@@ -1244,7 +1244,7 @@ let find_shape env ns id =
     | Shape.Sig_component_kind.Module ->
         begin match IdTbl.find_same id env.modules with
         | Mod_local { mda_shape; _ } -> mda_shape
-        | Mod_persistent -> Shape.make_persistent (Ident.name id)
+        | Mod_persistent -> Shape.for_persistent_unit (Ident.name id)
         | _ -> raise Not_found
       end
     | Shape.Sig_component_kind.Module_type ->
@@ -1255,12 +1255,12 @@ let find_shape env ns id =
       (IdTbl.find_same id env.cltypes).cltda_shape
   with
   | Not_found when Ident.persistent id && not (Current_unit_name.is_ident id) ->
-      Shape.make_persistent (Ident.name id)
+      Shape.for_persistent_unit (Ident.name id)
 
 let shape_of_path env ?ns = Shape.of_path ?ns ~find_shape:(find_shape env)
 
 let shape_or_leaf uid = function
-  | None -> Shape.make_leaf uid
+  | None -> Shape.leaf uid
   | Some shape -> shape
 
 let required_globals = s_ref []
@@ -1720,7 +1720,7 @@ let rec components_of_module_maker
               | Val_prim _ -> Lazy_backtrack.create_failed Not_found
               | _ -> next_address ()
             in
-            let vda_shape = Shape.make_proj cm_shape (Shape.Item.value id) in
+            let vda_shape = Shape.proj cm_shape (Shape.Item.value id) in
             let vda =
               { vda_description = decl'; vda_address = addr; vda_shape }
             in
@@ -1742,7 +1742,7 @@ let rec components_of_module_maker
                   List.iter
                     (fun descr ->
                       (* TODO @ulysse FIXME *)
-                      let cda_shape = Shape.make_leaf descr.cstr_uid in
+                      let cda_shape = Shape.leaf descr.cstr_uid in
                       let cda = {
                         cda_description = descr;
                         cda_address = None;
@@ -1765,7 +1765,7 @@ let rec components_of_module_maker
               | Type_abstract -> Type_abstract
               | Type_open -> Type_open
             in
-            let tda_shape = Shape.make_proj cm_shape (Shape.Item.type_ id) in
+            let tda_shape = Shape.proj cm_shape (Shape.Item.type_ id) in
             let tda =
               { tda_declaration = final_decl;
                 tda_descriptions = descrs;
@@ -1781,7 +1781,7 @@ let rec components_of_module_maker
             in
             let addr = next_address () in
             let cda_shape =
-              Shape.make_proj cm_shape
+              Shape.proj cm_shape
                 (Shape.Item.extension_constructor id)
             in
             let cda =
@@ -1809,12 +1809,12 @@ let rec components_of_module_maker
             let alerts =
               Builtin_attributes.alerts_of_attrs md.md_attributes
             in
-            let shape = Shape.make_proj cm_shape (Shape.Item.module_ id) in
+            let shape = Shape.proj cm_shape (Shape.Item.module_ id) in
             let comps =
               components_of_module ~alerts ~uid:md.md_uid !env freshening_sub
                 prefixing_sub path addr md.md_type shape
             in
-            let mda_shape = Shape.make_leaf md.md_uid in
+            let mda_shape = Shape.leaf md.md_uid in
             let mda =
               { mda_declaration = md';
                 mda_components = comps;
@@ -1839,7 +1839,7 @@ let rec components_of_module_maker
               Subst.modtype_declaration (Rescope (Path.scope cm_path))
                 prefixing_sub fresh_decl
             in
-            let shape = Shape.make_proj cm_shape (Shape.Item.module_type id) in
+            let shape = Shape.proj cm_shape (Shape.Item.module_type id) in
             let mta = { mtda_declaration; mtda_shape = shape } in
             c.comp_modtypes <-
               NameMap.add (Ident.name id) mta c.comp_modtypes;
@@ -1847,7 +1847,7 @@ let rec components_of_module_maker
         | Sig_class(id, decl, _, _) ->
             let decl' = Subst.class_declaration sub decl in
             let addr = next_address () in
-            let shape = Shape.make_proj cm_shape (Shape.Item.class_ id) in
+            let shape = Shape.proj cm_shape (Shape.Item.class_ id) in
             let clda =
               { clda_declaration = decl';
                 clda_address = addr;
@@ -1857,7 +1857,7 @@ let rec components_of_module_maker
         | Sig_class_type(id, decl, _, _) ->
             let decl' = Subst.cltype_declaration sub decl in
             (* TODO @ulysse FIXME *)
-            let shape = Shape.make_proj cm_shape (Shape.Item.class_type id) in
+            let shape = Shape.proj cm_shape (Shape.Item.class_type id) in
             let cltda = { cltda_declaration = decl'; cltda_shape = shape } in
             c.comp_cltypes <-
               NameMap.add (Ident.name id) cltda c.comp_cltypes)
@@ -1949,7 +1949,7 @@ and store_constructor ~check type_decl type_id cstr_id cstr env =
               (constructor_usage_complaint ~rebind:false priv used));
     end;
   end;
-  let cda_shape = Shape.make_leaf cstr.cstr_uid in
+  let cda_shape = Shape.leaf cstr.cstr_uid in
   { env with
     constrs =
       TycompTbl.add cstr_id
@@ -2143,7 +2143,7 @@ let components_of_functor_appl ~loc ~f_path ~f_comp ~arg env =
     !check_well_formed_module env loc
       ("the signature of " ^ Path.name p) mty;
     let shape =
-      Shape.make_app f_comp.fcomp_shape ~arg:(shape_of_path env arg)
+      Shape.app f_comp.fcomp_shape ~arg:(shape_of_path env arg)
     in
     let comps =
       components_of_module ~alerts:Misc.Stdlib.String.Map.empty
@@ -2221,18 +2221,18 @@ let add_local_type path info env =
 let enter_value ?check name desc env =
   let id = Ident.create_local name in
   let addr = value_declaration_address env id desc in
-  let env = store_value ?check id addr desc (Shape.make_leaf desc.val_uid)env in
+  let env = store_value ?check id addr desc (Shape.leaf desc.val_uid) env in
   (id, env)
 
 let enter_type ~scope name info env =
   let id = Ident.create_scoped ~scope name in
-  let env = store_type ~check:true id info (Shape.make_leaf info.type_uid) env in
+  let env = store_type ~check:true id info (Shape.leaf info.type_uid) env in
   (id, env)
 
 let enter_extension ~scope ~rebind name ext env =
   let id = Ident.create_scoped ~scope name in
   let addr = extension_declaration_address env id ext in
-  let shape = Shape.make_leaf ext.ext_uid (* FIXME? *)in
+  let shape = Shape.leaf ext.ext_uid (* FIXME? *)in
   let env = store_extension ~check:true ~rebind id addr ext shape env in
   (id, env)
 
@@ -2242,18 +2242,18 @@ let enter_module_declaration ~scope ?shape ?arg s presence md env =
 
 let enter_modtype ~scope name mtd env =
   let id = Ident.create_scoped ~scope name in
-  let env = store_modtype id mtd (Shape.make_leaf mtd.mtd_uid) env in
+  let env = store_modtype id mtd (Shape.leaf mtd.mtd_uid) env in
   (id, env)
 
 let enter_class ~scope name desc env =
   let id = Ident.create_scoped ~scope name in
   let addr = class_declaration_address env id desc in
-  let env = store_class id addr desc (Shape.make_leaf desc.cty_uid) env in
+  let env = store_class id addr desc (Shape.leaf desc.cty_uid) env in
   (id, env)
 
 let enter_cltype ~scope name desc env =
   let id = Ident.create_scoped ~scope name in
-  let env = store_cltype id desc (Shape.make_leaf desc.clty_uid) env in
+  let env = store_cltype id desc (Shape.leaf desc.clty_uid) env in
   (id, env)
 
 let enter_module ~scope ?arg s presence mty env =
@@ -2263,7 +2263,7 @@ let enter_module ~scope ?arg s presence mty env =
 
 let add_item ?mod_shape comp env =
   let make_proj item =
-    Option.map (fun s -> Shape.make_proj s item) mod_shape
+    Option.map (fun s -> Shape.proj s item) mod_shape
   in
   match comp with
   | Sig_value(id, decl, _)    ->
@@ -2297,7 +2297,7 @@ let add_item_shape ~mod_shape shape_map comp env =
   | Sig_typext(id, _, _, _) ->
       Shape.Map.add_extcons_proj shape_map id mod_shape, env
   | Sig_module(id, _, _, _, _) ->
-      let proj_shape = Shape.(make_proj mod_shape (Item.module_ id)) in
+      let proj_shape = Shape.proj mod_shape (Shape.Item.module_ id) in
       Shape.Map.add_module shape_map id proj_shape, env
   | Sig_modtype(id, _, _)  ->
       Shape.Map.add_module_type_proj shape_map id mod_shape, env

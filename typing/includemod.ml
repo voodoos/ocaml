@@ -432,19 +432,15 @@ and try_modtypes ~loc env ~mark subst mty1 mty2 orig_shape =
       (* TODO @ulysse FIXME is it ok to use a placeholder uid here ? *)
       let var, shape_var = Shape.fresh_var Uid.internal_not_actually_unique in
       let cc_res =
-        let res_shape = Shape.make_app orig_shape ~arg:shape_var in
+        let res_shape = Shape.app orig_shape ~arg:shape_var in
         modtypes ~loc env ~mark subst res1 res2 res_shape
       in
       begin match cc_arg, cc_res with
       | Ok Tcoerce_none, Ok (Tcoerce_none, res_shape) ->
-          let final_shape =
-            Shape.make_functor ~param:(Some var) res_shape
-          in
+          let final_shape = Shape.abs var res_shape in
           Ok (Tcoerce_none, final_shape)
       | Ok cc_arg, Ok (cc_res, res_shape) ->
-          let final_shape =
-            Shape.make_functor ~param:(Some var) res_shape
-          in
+          let final_shape = Shape.abs var res_shape in
           Ok (Tcoerce_functor(cc_arg, cc_res), final_shape)
       | _, Error {Error.symptom = Error.Functor Error.Params res; _} ->
           let got_params, got_res = res.got in
@@ -577,9 +573,7 @@ and signatures ~loc env ~mark subst sig1 sig2 mod_shape =
         in
         begin match unpaired, errors, oks with
             | [], [], cc ->
-                let shape =
-                  Shape.(make_structure (get_struct_uid mod_shape) shape_map)
-                in
+                let shape = Shape.str ?uid:mod_shape.Shape.uid shape_map in
                 if len1 = len2 then (* see PR#5098 *)
                   Ok (simplify_structure_coercion cc id_pos_list, shape)
                 else
@@ -661,12 +655,12 @@ and signature_components ~loc old_env ~mark env subst orig_shape shape_map paire
           -> begin
               let item =
                 module_declarations ~loc env ~mark subst id1 mty1 mty2
-                  Shape.(make_proj orig_shape (Item.module_ id1))
+                  Shape.(proj orig_shape (Item.module_ id1))
               in
               let item, shape_map =
                 match item with
                 | Ok (cc, mod_shape) ->
-                    let mod_shape = Shape.set_uid mod_shape mty1.md_uid in
+                    let mod_shape = Shape.set_uid_if_none mod_shape mty1.md_uid in
                     Ok cc, Shape.Map.add_module shape_map id1 mod_shape
                 | Error diff ->
                     (* Don't bother extending the map, we're never going to use

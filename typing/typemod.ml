@@ -1750,7 +1750,7 @@ and transl_recmodule_modtypes env sdecls =
              md_uid }
          in
          let id_shape =
-           Option.map (fun id -> id, Shape.make_var id md_uid) id
+           Option.map (fun id -> id, Shape.var md_uid id) id
          in
          (id_shape, pmd.pmd_name, md, ()))
       ids sdecls
@@ -2129,17 +2129,14 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
   | Pmod_functor(arg_opt, sbody) ->
       let t_arg, ty_arg, newenv, funct_shape_param, funct_body =
         match arg_opt with
-        | Unit -> Unit, Types.Unit, env, None, false
+        | Unit ->
+            Unit, Types.Unit, env, Shape.for_unnamed_functor_param, false
         | Named (param, smty) ->
           let mty = transl_modtype_functor_arg env smty in
           let scope = Ctype.create_scope () in
           let (id, newenv, var) =
             match param.txt with
-            | None ->
-              let var, _shape_var = Shape.fresh_var ?name:param.txt
-                Uid.internal_not_actually_unique
-              in
-              None, env, var
+            | None -> None, env, Shape.for_unnamed_functor_param
             | Some name ->
               let md_uid =  Uid.mk ~current_unit:(Env.get_unit_name ()) in
               let arg_md =
@@ -2150,14 +2147,14 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
                 }
               in
               let id = Ident.create_scoped ~scope name in
-              let shape = Shape.make_var id md_uid in
+              let shape = Shape.var md_uid id in
               let newenv = Env.add_module_declaration
                 ~shape ~arg:true ~check:true id Mp_present arg_md env
               in
               Some id, newenv, id
           in
           Named (id, param, mty), Types.Named (id, mty.mty_type), newenv,
-          Some var, true
+          var, true
       in
       let body, body_shape =
         type_module true funct_body None newenv sbody
@@ -2167,7 +2164,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
         mod_env = env;
         mod_attributes = smod.pmod_attributes;
         mod_loc = smod.pmod_loc },
-      Shape.make_functor ~param:funct_shape_param body_shape
+      Shape.abs funct_shape_param body_shape
   | Pmod_apply _ ->
       type_application smod.pmod_loc sttn funct_body env smod
   | Pmod_constraint(sarg, smty) ->
@@ -2261,7 +2258,7 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
         mod_env = env;
         mod_attributes = app_view.attributes;
         mod_loc = funct.mod_loc },
-      Shape.make_app ~arg:app_view.shape funct_shape
+      Shape.app funct_shape ~arg:app_view.shape
   | Mty_functor (Named (param, mty_param), mty_res) as mty_functor ->
       let coercion, _param_shape =
         try
@@ -2322,7 +2319,7 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
         mod_env = env;
         mod_attributes = app_view.attributes;
         mod_loc = app_view.loc },
-      Shape.make_app ~arg:app_view.shape funct_shape
+      Shape.app ~arg:app_view.shape funct_shape
   | Mty_alias path ->
       raise(Error(app_view.f_loc, env, Cannot_scrape_alias path))
   | _ ->
@@ -2520,7 +2517,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             md_uid;
           }
         in
-        let md_shape = Shape.set_uid md_shape md_uid in
+        let md_shape = Shape.set_uid_if_none md_shape md_uid in
         Env.register_uid md_uid pmb_loc;
         (*prerr_endline (Ident.unique_toplevel_name id);*)
         Mtype.lower_nongen outer_scope md.md_type;
@@ -2763,7 +2760,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
     let str = { str_items = items; str_type = sg; str_final_env = final_env } in
     Cmt_format.set_saved_types
       (Cmt_format.Partial_structure str :: previous_saved_types);
-    str, sg, names, Shape.make_structure None shape_map, final_env
+    str, sg, names, Shape.str shape_map, final_env
   in
   if toplevel then run ()
   else Builtin_attributes.warning_scope [] run
@@ -2951,7 +2948,7 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
       let (str, sg, names, shape, finalenv) =
         type_structure initial_env ast in
       let shape =
-        Shape.set_uid shape
+        Shape.set_uid_if_none shape
           (Uid.of_compilation_unit_id (Ident.create_persistent modulename))
       in
       let simple_sg = Signature_names.simplify finalenv names sg in

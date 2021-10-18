@@ -65,16 +65,31 @@ module Item : sig
 end
 
 type var = Ident.t
-type t =
-  | Var of var * Uid.t
-  | Abs of var * Uid.t option * t
+type t = { uid: Uid.t option; desc: desc }
+and desc =
+  | Var of var
+  | Abs of var * t
   | App of t * t
-  | Struct of Uid.t option * t Item.Map.t
-  | Leaf of Uid.t
+  | Struct of t Item.Map.t
+  | Leaf
   | Proj of t * Item.t
   | Comp_unit of string
 
 val print : Format.formatter -> t -> unit
+
+(* Smart constructors *)
+
+val for_unnamed_functor_param : var
+val fresh_var : ?name:string -> Uid.t -> var * t
+
+val var : Uid.t -> Ident.t -> t
+val abs : ?uid:Uid.t -> var -> t -> t
+val app : ?uid:Uid.t -> t -> arg:t -> t
+val str : ?uid:Uid.t -> t Item.Map.t -> t
+val proj : ?uid:Uid.t -> t -> Item.t -> t
+val leaf : Uid.t -> t
+
+val for_persistent_unit : string -> t
 
 module Map : sig
   type shape = t
@@ -104,25 +119,13 @@ module Map : sig
   val add_class_type_proj : t -> Ident.t -> shape -> t
 end
 
-val fresh_var : ?name:string -> Uid.t -> var * t
-
 val dummy_mod : t
 
 val of_path :
   find_shape:(Sig_component_kind.t -> Ident.t -> t) ->
   ?ns:Sig_component_kind.t -> Path.t -> t
 
-val make_var : Ident.t -> Uid.t -> t
-val make_abs : var -> Uid.t option -> t -> t
-val make_app : arg:t -> t -> t
-val make_proj : t -> Item.t -> t
-val make_persistent : string -> t
-val make_functor : param:(Ident.t option) -> t -> t
-val make_structure : Uid.t option -> Map.t -> t
-val make_leaf : Uid.t -> t
-
-val set_uid : t -> Uid.t -> t
-val get_struct_uid : t -> Uid.t option
+val set_uid_if_none : t -> Uid.t -> t
 
 (* TODO: doc *)
 module Make_reduce(_ : sig

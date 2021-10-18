@@ -119,75 +119,113 @@ module Item = struct
 end
 
 type var = Ident.t
-type t =
-  | Var of var * Uid.t
-  | Abs of var * Uid.t option * t
+type t = { uid: Uid.t option; desc: desc }
+and desc =
+  | Var of var
+  | Abs of var * t
   | App of t * t
-  | Struct of Uid.t option * t Item.Map.t
-  | Leaf of Uid.t
+  | Struct of t Item.Map.t
+  | Leaf
   | Proj of t * Item.t
   | Comp_unit of string
 
 let print fmt =
-  let rec aux fmt = function
-    | Var (id, uid) -> Format.fprintf fmt "%a(%a)" Ident.print id Uid.print uid
-    | Abs (id, uid, t) ->
-        Format.fprintf fmt "Abs(@[%a(%a),@ @[%a@]@])"
-          Ident.print id
-          (Format.pp_print_option Uid.print) uid aux t
+  let rec aux fmt { uid; desc } =
+    match uid with
+    | None -> print_desc fmt desc
+    | Some uid ->
+        Format.fprintf fmt "%a:@ %a"
+          Uid.print uid
+          print_desc desc
+  and print_desc fmt = function
+    | Var id -> Format.fprintf fmt "%a" Ident.print id
+    | Abs (id, t) ->
+        Format.fprintf fmt "Abs(@[%a,@ @[%a@]@])"
+          Ident.print id aux t
     | App (t1, t2) -> Format.fprintf fmt "@[%a(@,%a)@]" aux t1 aux t2
-    | Leaf uid -> Format.fprintf fmt "<%a>" Uid.print uid
+    | Leaf -> Format.fprintf fmt "·"
     | Proj (t, (name, ns)) ->
         Format.fprintf fmt "@[%a@ .@ %S[%s]@]"
           aux t
           name
           (Sig_component_kind.to_string ns)
     | Comp_unit name -> Format.fprintf fmt "CU %s" name
-    | Struct (uid, map) ->
+    | Struct map ->
         let print_map fmt =
-          Item.Map.iter (fun (name, ns) shape ->
+          Item.Map.iter (fun (name, ns) t ->
               Format.fprintf fmt "@[<hv 4>(%S, %s) ->@ %a;@]@,"
                 name
                 (Sig_component_kind.to_string ns)
-                aux shape
+                aux t
             )
         in
-        Format.fprintf fmt "{@[<v>%a@,%a@]}"
-          (Format.pp_print_option Uid.print) uid print_map map
+        Format.fprintf fmt "{@[<v>%a@]}" print_map map
   in
   Format.fprintf fmt"@[%a@]@." aux
 
+let overwrite_uid uid t =
+  match uid with
+  | None -> t
+  | Some _ -> { t with uid }
+
 let fresh_var ?(name="shape-var") uid =
   let var = Ident.create_local name in
-  var, Var (var, uid)
+  var, { uid = Some uid; desc = Var var }
 
-let rec subst var ~arg = function
-  | Var (id, _uid) when var = id -> arg
-  | Abs (v, uid, t) -> Abs(v, uid, subst var ~arg t)
-  | App (abs, t) -> App(subst var ~arg abs, subst var ~arg t) |> reduce_app
-  | Struct (uid, m) ->
-      Struct (uid, Item.Map.map (fun s -> subst var ~arg s) m)
-  | Proj (t, item) -> Proj(subst var ~arg t, item) |> reduce_proj
-  | (Comp_unit _ | Leaf _ | Var _) as body -> body
+let for_unnamed_functor_param = Ident.create_local "()"
 
-and reduce_app = function
-  | App (Abs (var, _uid, body), arg) -> subst var ~arg body
-  | t -> t
+let var uid id =
+  { uid = Some uid; desc = Var id }
 
-and reduce_proj = function
-  | Proj (Struct (_uid, map), item) as t ->
-      (try Item.Map.find item map
-        with Not_found -> t) (* SHould never happen ?*)
-  | Proj ((Leaf _) as l, _ ) ->
-    (* When stuck projecting in a leaf we propagate the leaf as a best effort *)
-    l
-  | t -> t
+let abs ?uid var body =
+  { uid; desc = Abs (var, body) }
+
+let str ?uid map =
+  { uid; desc = Struct map }
+
+let leaf uid =
+  { uid = Some uid; desc = Leaf }
+
+let proj ?uid t item =
+  match t.desc with
+  | Leaf ->
+      (* When stuck projecting in a leaf we propagate the leaf as a best effort *)
+      t
+  | Struct map ->
+      begin try Item.Map.find item map
+      with Not_found -> t (* ill-typed program *)
+      end
+  | _ ->
+      { uid; desc = Proj (t, item) }
+
+let rec app ?uid f ~arg =
+  match f.desc with
+  | Abs (var, body) ->
+      let res = subst var ~arg body in
+      overwrite_uid uid res
+  | _ ->
+      { uid; desc = App (f, arg) }
+
+and subst var ~arg t =
+  match t.desc with
+  | Var id when var = id -> arg
+  | Abs (v, e) ->
+      abs ?uid:t.uid v (subst var ~arg e)
+  | App (f, e) ->
+      app ?uid:t.uid (subst var ~arg f) ~arg:(subst var ~arg e)
+  | Struct m ->
+      { t with desc = Struct (Item.Map.map (fun s -> subst var ~arg s) m) }
+  | Proj (t, item) ->
+      proj ?uid:t.uid (subst var ~arg t) item
+  | Comp_unit _ | Leaf | Var _ ->
+      t
+
 
 module Make_reduce(Params : sig
-    val fuel : int
-    val read_unit_shape : unit_name:string -> t option
-    val find_shape : Ident.t -> t
-  end) = struct
+  val fuel : int
+  val read_unit_shape : unit_name:string -> t option
+  val find_shape : Ident.t -> t
+end) = struct
   let rec reduce fuel t =
     let reduce_if_gas =
       if fuel > 0
@@ -195,31 +233,37 @@ module Make_reduce(Params : sig
       else Fun.id
     in
     let reduce = reduce fuel in
-    match t with
-    | Comp_unit unit_name as t ->
+    match t.desc with
+    | Comp_unit unit_name ->
         begin match Params.read_unit_shape ~unit_name with
         | Some t -> reduce t
         | None -> t
         end
-    | App(abs, body) ->
-        reduce_app (App(reduce abs, reduce body))
-    | Proj(str, item) as p ->
-        let r = reduce_proj (Proj(reduce str, item)) in
-        if r = p then p
+    | App(f, arg) ->
+        app ?uid:t.uid (reduce f) ~arg:(reduce arg)
+    | Proj(str, item) ->
+        let r = proj ?uid:t.uid (reduce str) item in
+        if r = t
+        then t
         else reduce r
-    | Abs(var, uid, body) -> Abs(var, uid, reduce body)
-    | Var (id, uid) as t ->
+    | Abs(var, body) ->
+        { t with desc = Abs(var, reduce body) }
+    | Var id ->
         begin try
           let res = Params.find_shape id in
-          if res = t then Leaf uid else res |> reduce_if_gas
-        with Not_found -> Leaf uid
+          if res = t then
+            raise Not_found
+          else
+            reduce_if_gas res
+        with Not_found -> { t with desc = Leaf } (* avoid loops. *)
         end
-    | t -> t
+    | _ ->
+        t
 
   let reduce = reduce Params.fuel
 end
 
-let dummy_mod = Struct (None, Item.Map.empty)
+let dummy_mod = { uid = None; desc = Struct Item.Map.empty }
 
 let rec of_path ~find_shape ?(ns = Sig_component_kind.Module) =
   let ns_mod = Sig_component_kind.Module in
@@ -227,56 +271,30 @@ let rec of_path ~find_shape ?(ns = Sig_component_kind.Module) =
   | Path.Pident id -> find_shape ns id
   | Path.Pdot (path, name) ->
       let t = of_path ~find_shape ~ns:ns_mod path in
-      Proj (t, (name, ns)) |> reduce_proj
-  | Path.Papply (p1, p2) -> App(
-      of_path ~find_shape ~ns:ns_mod p1,
-      of_path ~find_shape ~ns:ns_mod p2
-    )
+      proj t (name, ns)
+  | Path.Papply (p1, p2) ->
+      app (of_path ~find_shape ~ns:ns_mod p1)
+        ~arg:(of_path ~find_shape ~ns:ns_mod p2)
 
-let make_var var uid = Var (var, uid)
+let for_persistent_unit s = { uid = None; desc = Comp_unit s }
 
-let make_abs var uid t = Abs(var, uid, t)
+let set_uid_if_none t uid =
+  match t.uid with
+  | None -> { t with uid = Some uid }
+  | _ -> t
 
-let make_proj t elt = Proj (t, elt) |> reduce_proj
-let proj t elt = Proj (t, elt) |> reduce_proj
-
-let make_persistent s = Comp_unit s
-
-let make_functor ~param body =
-  match param with
-  | None -> Abs (
-      fresh_var ~name:"unit" Uid.internal_not_actually_unique |> fst,
-      None,
-      body
-    )
-  | Some id -> Abs(id, None, body)
-
-let make_app ~arg f = App(f, arg) |> reduce_app
-
-let make_structure uid shapes = Struct (uid, shapes)
-
-let make_leaf uid = Leaf uid
-
-let set_uid shape uid = match shape with
-  | Struct (None, map) -> Struct (Some uid, map)
-  | Abs(var, None, t) -> Abs(var, Some uid, t)
-  | t -> t
-
-let get_struct_uid shape = match shape with
-  | Struct (uid, _) -> uid
-  | _ -> None
 module Map = struct
   type shape = t
   type nonrec t = t Item.Map.t
 
   let empty = Item.Map.empty
 
-  let add_value t id uid = Item.Map.add (Item.value id) (Leaf uid) t
+  let add_value t id uid = Item.Map.add (Item.value id) (leaf uid) t
   let add_value_proj t id shape =
     let item = Item.value id in
     Item.Map.add item (proj shape item) t
 
-  let add_type t id uid = Item.Map.add (Item.type_ id) (Leaf uid) t
+  let add_type t id uid = Item.Map.add (Item.type_ id) (leaf uid) t
   let add_type_proj t id shape =
     let item = Item.type_ id in
     Item.Map.add item (proj shape item) t
@@ -287,23 +305,23 @@ module Map = struct
     Item.Map.add item (proj shape item) t
 
   let add_module_type t id uid =
-    Item.Map.add (Item.module_type id) (Leaf uid) t
+    Item.Map.add (Item.module_type id) (leaf uid) t
   let add_module_type_proj t id shape =
     let item = Item.module_type id in
     Item.Map.add item (proj shape item) t
 
   let add_extcons t id uid =
-    Item.Map.add (Item.extension_constructor id) (Leaf uid) t
+    Item.Map.add (Item.extension_constructor id) (leaf uid) t
   let add_extcons_proj t id shape =
     let item = Item.extension_constructor id in
     Item.Map.add item (proj shape item) t
 
-  let add_class t id uid = Item.Map.add (Item.class_ id) (Leaf uid) t
+  let add_class t id uid = Item.Map.add (Item.class_ id) (leaf uid) t
   let add_class_proj t id shape =
     let item = Item.class_ id in
     Item.Map.add item (proj shape item) t
 
-  let add_class_type t id uid = Item.Map.add (Item.class_type id) (Leaf uid) t
+  let add_class_type t id uid = Item.Map.add (Item.class_type id) (leaf uid) t
   let add_class_type_proj t id shape =
     let item = Item.class_type id in
     Item.Map.add item (proj shape item) t
