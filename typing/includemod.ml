@@ -666,6 +666,7 @@ and signature_components ~loc old_env ~mark env subst orig_shape shape_map paire
               let item, shape_map =
                 match item with
                 | Ok (cc, mod_shape) ->
+                    let mod_shape = Shape.set_uid mod_shape mty1.md_uid in
                     Ok cc, Shape.Map.add_module shape_map id1 mod_shape
                 | Error diff ->
                     (* Don't bother extending the map, we're never going to use
