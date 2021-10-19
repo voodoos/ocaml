@@ -2043,10 +2043,7 @@ let package_subtype env p1 fl1 p2 fl2 =
   | exception Error(_, _, Cannot_scrape_package_type _) -> false
   | mty1, mty2 ->
     let loc = Location.none in
-    (* FIXME *)
-    match
-      Includemod.modtypes ~loc ~mark:Mark_both env mty1 mty2
-    with
+    match Includemod.modtypes ~loc ~mark:Mark_both env mty1 mty2 with
     | Tcoerce_none, _shape -> true
     | _ | exception Includemod.Error _ -> false
 
