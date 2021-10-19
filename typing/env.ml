@@ -1746,7 +1746,6 @@ let rec components_of_module_maker
                   in
                   List.iter
                     (fun descr ->
-                      (* TODO @ulysse FIXME *)
                       let cda_shape = Shape.leaf descr.cstr_uid in
                       let cda = {
                         cda_description = descr;
@@ -2236,7 +2235,7 @@ let enter_type ~scope name info env =
 let enter_extension ~scope ~rebind name ext env =
   let id = Ident.create_scoped ~scope name in
   let addr = extension_declaration_address env id ext in
-  let shape = Shape.leaf ext.ext_uid (* FIXME? *)in
+  let shape = Shape.leaf ext.ext_uid in
   let env = store_extension ~check:true ~rebind id addr ext shape env in
   (id, env)
 
