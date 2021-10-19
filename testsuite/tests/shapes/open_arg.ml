@@ -3,7 +3,6 @@
    * expect
 *)
 
-(* FIXME *)
 module type Make = functor (I : sig end) -> sig
   open I
 end

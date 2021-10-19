@@ -18,7 +18,6 @@ end
 module Foo : sig module Bar : sig end end
 |}]
 
-(* FIXME *)
 module type Extended = sig
   include module type of struct include Foo end
   module Bar : sig
