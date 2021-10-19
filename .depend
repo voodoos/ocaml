@@ -1594,6 +1594,7 @@ typing/typedecl_variance.cmi : \
     parsing/asttypes.cmi
 typing/typedtree.cmo : \
     typing/types.cmi \
+    typing/shape.cmi \
     typing/primitive.cmi \
     typing/path.cmi \
     parsing/parsetree.cmi \
@@ -1605,6 +1606,7 @@ typing/typedtree.cmo : \
     typing/typedtree.cmi
 typing/typedtree.cmx : \
     typing/types.cmx \
+    typing/shape.cmx \
     typing/primitive.cmx \
     typing/path.cmx \
     parsing/parsetree.cmi \
@@ -1616,6 +1618,7 @@ typing/typedtree.cmx : \
     typing/typedtree.cmi
 typing/typedtree.cmi : \
     typing/types.cmi \
+    typing/shape.cmi \
     typing/primitive.cmi \
     typing/path.cmi \
     parsing/parsetree.cmi \
