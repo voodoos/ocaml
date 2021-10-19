@@ -2275,10 +2275,10 @@ let add_item (map, mod_shape) comp env =
         Shape.Map.add map item shape, Some shape
   in
   match comp with
-  | Sig_value(id, decl, _)    ->
+  | Sig_value(id, decl, _) ->
     let map, shape = proj_shape (Shape.Item.value id) in
     map, add_value ?shape id decl env
-  | Sig_type(id, decl, _, _)  ->
+  | Sig_type(id, decl, _, _) ->
     let map, shape = proj_shape (Shape.Item.type_ id) in
     map, add_type ~check:false ?shape id decl env
   | Sig_typext(id, ext, _, _) ->
