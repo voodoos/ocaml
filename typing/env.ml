@@ -888,15 +888,15 @@ let sign_of_cmi ~freshen { Persistent_env.Persistent_signature.cmi; _ } =
   let mda_declaration =
     Lazy_backtrack.create (Subst.identity, Subst.Make_local, md)
   in
+  let mda_shape = Shape.for_persistent_unit name in
   let mda_components =
     let freshening_subst =
       if freshen then (Some Subst.identity) else None
     in
     components_of_module ~alerts ~uid:md.md_uid
       empty freshening_subst Subst.identity
-      path mda_address (Mty_signature sign) (Shape.for_persistent_unit name)
+      path mda_address (Mty_signature sign) mda_shape
   in
-  let mda_shape = Shape.for_persistent_unit name in
   {
     mda_declaration;
     mda_components;
