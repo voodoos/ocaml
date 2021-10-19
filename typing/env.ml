@@ -2182,7 +2182,7 @@ let add_type ~check ?shape id info env =
 
 and add_extension ~check ?shape ~rebind id ext env =
   let addr = extension_declaration_address env id ext in
-  let shape = shape_or_leaf ext.ext_uid (* FIXME? *) shape in
+  let shape = shape_or_leaf ext.ext_uid shape in
   store_extension ~check ~rebind id addr ext shape env
 
 and add_module_declaration ?(arg=false) ?shape ~check id presence md env =
