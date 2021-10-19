@@ -1818,12 +1818,11 @@ let rec components_of_module_maker
               components_of_module ~alerts ~uid:md.md_uid !env freshening_sub
                 prefixing_sub path addr md.md_type shape
             in
-            let mda_shape = Shape.leaf md.md_uid in
             let mda =
               { mda_declaration = md';
                 mda_components = comps;
                 mda_address = addr;
-                mda_shape; }
+                mda_shape = shape; }
             in
             c.comp_modules <-
               NameMap.add (Ident.name id) mda c.comp_modules;
