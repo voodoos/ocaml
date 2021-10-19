@@ -14,7 +14,7 @@
 (**************************************************************************)
 
 module Uid : sig
-  type t =
+  type t = private
     | Compilation_unit of string
     | Item of { comp_unit: string; id: int }
     | Internal
