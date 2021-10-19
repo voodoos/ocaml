@@ -275,6 +275,8 @@ let of_path ~find_shape ?(ns = Sig_component_kind.Module) =
 
 let for_persistent_unit s = { uid = None; desc = Comp_unit s }
 
+let leaf_for_unpack = { uid = None; desc = Leaf }
+
 let set_uid_if_none t uid =
   match t.uid with
   | None -> { t with uid = Some uid }

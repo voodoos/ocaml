@@ -2226,7 +2226,7 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
         mod_env = env;
         mod_attributes = smod.pmod_attributes;
         mod_loc = smod.pmod_loc },
-      Shape.dummy_mod (* TODO @ulysse Pmod_unpack*)
+      Shape.leaf_for_unpack
   | Pmod_extension ext ->
       raise (Error_forward (Builtin_attributes.error_of_extension ext))
 

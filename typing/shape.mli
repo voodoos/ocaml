@@ -90,6 +90,7 @@ val proj : ?uid:Uid.t -> t -> Item.t -> t
 val leaf : Uid.t -> t
 
 val for_persistent_unit : string -> t
+val leaf_for_unpack : t
 
 module Map : sig
   type shape = t
