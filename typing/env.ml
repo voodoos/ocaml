@@ -1828,7 +1828,7 @@ let rec components_of_module_maker
             c.comp_modules <-
               NameMap.add (Ident.name id) mda c.comp_modules;
             env :=
-              store_module ~freshening_sub ~check:None id addr pres md shape 
+              store_module ~freshening_sub ~check:None id addr pres md shape
                 !env
         | Sig_modtype(id, decl, _) ->
             let fresh_decl =
