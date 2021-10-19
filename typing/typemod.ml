@@ -1613,7 +1613,7 @@ and transl_signature env sg =
               Signature_names.check_class names loc cls.cls_id;
               Signature_names.check_class_type names loc cls.cls_ty_id;
               Signature_names.check_type names loc cls.cls_typesharp_id;
-              Env.register_uid cls.cls_decl.cty_uid cls.cls_decl.cty_loc
+              Env.register_uid cls.cls_decl.cty_uid cls.cls_decl.cty_loc;
             ) classes;
             let (trem, rem, final_env) = transl_sig newenv srem in
             let sg =
@@ -1643,7 +1643,7 @@ and transl_signature env sg =
               Signature_names.check_type names loc decl.clsty_typesharp_id;
               Env.register_uid
                 decl.clsty_ty_decl.clty_uid
-                decl.clsty_ty_decl.clty_loc
+                decl.clsty_ty_decl.clty_loc;
             ) classes;
             let (trem,rem, final_env) = transl_sig newenv srem in
             let sg =
