@@ -1861,7 +1861,6 @@ let rec components_of_module_maker
             c.comp_classes <- NameMap.add (Ident.name id) clda c.comp_classes
         | Sig_class_type(id, decl, _, _) ->
             let decl' = Subst.cltype_declaration sub decl in
-            (* TODO @ulysse FIXME *)
             let shape = Shape.proj cm_shape (Shape.Item.class_type id) in
             let cltda = { cltda_declaration = decl'; cltda_shape = shape } in
             c.comp_cltypes <-
