@@ -266,7 +266,7 @@ let package_files ~ppf_dump initial_env files targetcmx ~backend =
   (* Set the name of the current compunit *)
   Compilenv.reset ?packname:!Clflags.for_package targetname;
   Misc.try_finally (fun () ->
-      let coercion, _shape (* FIXME? *) =
+      let coercion =
         Typemod.package_units initial_env files targetcmi targetname in
       package_object_files ~ppf_dump files targetcmx targetobj targetname
         coercion ~backend
