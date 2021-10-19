@@ -1230,32 +1230,37 @@ let find_hash_type path env =
   | Papply _ ->
       raise Not_found
 
-let find_shape env ns id =
-  try match ns with
-    | Shape.Sig_component_kind.Type ->
+let find_shape env (ns : Shape.Sig_component_kind.t) id =
+  match ns with
+  | Type ->
       (IdTbl.find_same id env.types).tda_shape
-    | Shape.Sig_component_kind.Extension_constructor ->
+  | Extension_constructor ->
       (TycompTbl.find_same id env.constrs).cda_shape
-    | Shape.Sig_component_kind.Value ->
+  | Value ->
       begin match IdTbl.find_same id env.values with
       | Val_bound x -> x.vda_shape
-      | Val_unbound _ -> failwith "Env.find_shape val unbound"
+      | Val_unbound _ -> raise Not_found
       end
-    | Shape.Sig_component_kind.Module ->
-        begin match IdTbl.find_same id env.modules with
-        | Mod_local { mda_shape; _ } -> mda_shape
-        | Mod_persistent -> Shape.for_persistent_unit (Ident.name id)
-        | _ -> raise Not_found
+  | Module ->
+      begin match IdTbl.find_same id env.modules with
+      | Mod_local { mda_shape; _ } -> mda_shape
+      | Mod_persistent -> Shape.for_persistent_unit (Ident.name id)
+      | Mod_unbound _ ->
+          (* Only present temporarily while approximating the environment for
+             recursive modules.
+             [find_shape] is only ever called after the environment gets
+             properly populated. *)
+          assert false
+      | exception Not_found
+        when Ident.persistent id && not (Current_unit_name.is_ident id) ->
+          Shape.for_persistent_unit (Ident.name id)
       end
-    | Shape.Sig_component_kind.Module_type ->
+  | Module_type ->
       (IdTbl.find_same id env.modtypes).mtda_shape
-    | Shape.Sig_component_kind.Class ->
+  | Class ->
       (IdTbl.find_same id env.classes).clda_shape
-    | Shape.Sig_component_kind.Class_type ->
+  | Class_type ->
       (IdTbl.find_same id env.cltypes).cltda_shape
-  with
-  | Not_found when Ident.persistent id && not (Current_unit_name.is_ident id) ->
-      Shape.for_persistent_unit (Ident.name id)
 
 let shape_of_path env ?ns = Shape.of_path ?ns ~find_shape:(find_shape env)
 
