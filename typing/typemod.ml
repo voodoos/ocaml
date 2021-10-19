@@ -2970,6 +2970,7 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
         gen_annot outputprefix sourcefile (Cmt_format.Implementation str);
         { structure = str;
           coercion = Tcoerce_none;
+          shape;
           signature = simple_sg
         } (* result is ignored by Compile.implementation *)
       end else begin
@@ -2999,6 +3000,7 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
           gen_annot outputprefix sourcefile annots;
           { structure = str;
             coercion;
+            shape;
             signature = dclsig
           }
         end else begin
@@ -3030,6 +3032,7 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
           end;
           { structure = str;
             coercion;
+            shape;
             signature = simple_sg
           }
         end
