@@ -2,7 +2,7 @@
 (*                                                                        *)
 (*                                 OCaml                                  *)
 (*                                                                        *)
-(*                          Thomas Refis, Tarides                         *)
+(*                Ulysse Gérard, Thomas Refis, Tarides                    *)
 (*                                                                        *)
 (*   Copyright 2021 Institut National de Recherche en Informatique et     *)
 (*     en Automatique.                                                    *)
