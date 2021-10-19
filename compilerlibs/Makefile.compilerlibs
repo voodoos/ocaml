@@ -76,6 +76,7 @@ TYPING = \
   typing/path.cmo \
   typing/primitive.cmo \
   typing/type_immediacy.cmo \
+  typing/shape.cmo \
   typing/types.cmo \
   typing/btype.cmo \
   typing/oprint.cmo \
@@ -98,6 +99,7 @@ TYPING = \
   typing/tast_iterator.cmo \
   typing/tast_mapper.cmo \
   typing/stypes.cmo \
+  file_formats/cms_format.cmo \
   file_formats/cmt_format.cmo \
   typing/cmt2annot.cmo \
   typing/untypeast.cmo \
