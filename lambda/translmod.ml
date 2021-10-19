@@ -267,7 +267,8 @@ let init_shape id modl =
                              id Mp_present md env) rem
     | Sig_module(id, Mp_absent, md, _, _) :: rem ->
         init_shape_struct
-          (Env.add_module_declaration ~check:false id Mp_absent md env) rem
+          (Env.add_module_declaration ~check:false
+                             id Mp_absent md env) rem
     | Sig_modtype(id, minfo, _) :: rem ->
         init_shape_struct (Env.add_modtype id minfo env) rem
     | Sig_class _ :: rem ->
