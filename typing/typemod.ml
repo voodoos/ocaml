@@ -1548,15 +1548,15 @@ and transl_signature env sg =
               decls rem,
             final_env
         | Psig_modtype pmtd ->
-            let newenv, mtd, id, decl = transl_modtype_decl env pmtd in
+            let newenv, mtd, decl = transl_modtype_decl env pmtd in
             Signature_names.check_modtype names pmtd.pmtd_loc mtd.mtd_id;
             Env.register_uid decl.mtd_uid mtd.mtd_loc;
             let (trem, rem, final_env) = transl_sig newenv srem in
             mksig (Tsig_modtype mtd) env loc :: trem,
-            Sig_modtype (id, decl, Exported) :: rem,
+            Sig_modtype (mtd.mtd_id, decl, Exported) :: rem,
             final_env
         | Psig_modtypesubst pmtd ->
-            let newenv, mtd, _id, decl = transl_modtype_decl env pmtd in
+            let newenv, mtd, decl = transl_modtype_decl env pmtd in
             let info =
               let mty = match mtd.mtd_type with
                 | Some tmty -> tmty.mty_type
@@ -1714,7 +1714,7 @@ and transl_modtype_decl_aux env
      mtd_loc=pmtd_loc;
     }
   in
-  newenv, mtd, id, decl
+  newenv, mtd, decl
 
 and transl_recmodule_modtypes env sdecls =
   let make_env curr =
@@ -2653,11 +2653,12 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         newenv
     | Pstr_modtype pmtd ->
         (* check that it is non-abstract *)
-        let newenv, mtd, id, decl = transl_modtype_decl env pmtd in
+        let newenv, mtd, decl = transl_modtype_decl env pmtd in
         Signature_names.check_modtype names pmtd.pmtd_loc mtd.mtd_id;
         Env.register_uid decl.mtd_uid decl.mtd_loc;
-        let shape_map = Shape.Map.add_module_type shape_map id decl.mtd_uid in
-        Tstr_modtype mtd, [Sig_modtype (id, decl, Exported)], shape_map, newenv
+        let id = mtd.mtd_id in
+        let map = Shape.Map.add_module_type shape_map id decl.mtd_uid in
+        Tstr_modtype mtd, [Sig_modtype (id, decl, Exported)], map, newenv
     | Pstr_open sod ->
         let (od, sg, newenv) =
           type_open_decl ~toplevel funct_body names env sod
