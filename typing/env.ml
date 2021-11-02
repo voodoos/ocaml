@@ -2306,19 +2306,20 @@ let rec add_signature (map, mod_shape) sg env =
       let map, env = add_item (map, mod_shape) comp env in
       add_signature (map, mod_shape) rem env
 
-let enter_signature_shape ~scope ~parent_shape mod_shape sg env =
+let enter_signature_and_shape ~scope ~parent_shape mod_shape sg env =
   let sg = Subst.signature (Rescope scope) Subst.identity sg in
   let shape, env = add_signature (parent_shape, mod_shape) sg env in
   sg, shape, env
 
 let enter_signature ?mod_shape ~scope sg env =
   let sg, _, env =
-    enter_signature_shape ~scope ~parent_shape:Shape.Map.empty mod_shape sg env
+    enter_signature_and_shape ~scope ~parent_shape:Shape.Map.empty
+      mod_shape sg env
   in
   sg, env
 
-let enter_signature_shape ~scope ~parent_shape mod_shape sg env =
-  enter_signature_shape ~scope ~parent_shape (Some mod_shape) sg env
+let enter_signature_and_shape ~scope ~parent_shape mod_shape sg env =
+  enter_signature_and_shape ~scope ~parent_shape (Some mod_shape) sg env
 
 let add_value = add_value ?shape:None
 let add_type = add_type ?shape:None

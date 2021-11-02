@@ -2760,8 +2760,8 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         let scope = Ctype.create_scope () in
         (* Rename all identifiers bound by this signature to avoid clashes *)
         let sg, shape, new_env =
-          Env.enter_signature_shape ~scope ~parent_shape:shape_map modl_shape
-            (extract_sig_open env smodl.pmod_loc modl.mod_type) env
+          Env.enter_signature_and_shape ~scope ~parent_shape:shape_map
+            modl_shape (extract_sig_open env smodl.pmod_loc modl.mod_type) env
         in
         Signature_group.iter (Signature_names.check_sig_item names loc) sg;
         let incl =
