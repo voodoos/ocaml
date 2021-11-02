@@ -171,7 +171,7 @@ let print fmt =
         in
         Format.fprintf fmt "{@[<v>%a@,%a@]}" print_uid_opt uid print_map map
   in
-  Format.fprintf fmt"@[%a@]@." aux
+  Format.fprintf fmt"@[%a@]@;" aux
 
 let overwrite_uid uid t =
   match uid with
