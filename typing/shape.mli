@@ -130,11 +130,18 @@ val of_path :
 
 val set_uid_if_none : t -> Uid.t -> t
 
-(* TODO: doc *)
-module Make_reduce(_ : sig
+(** The [Make_reduce] functor is used to generate a reduction function for
+    shapes with a given fuel limit and custom environment / external units
+    loading functions.
+*)
+module Make_reduce(Context : sig
+    type env
+
     val fuel : int
+
     val read_unit_shape : unit_name:string -> t option
-    val find_shape : Ident.t -> t
+
+    val find_shape : env -> Ident.t -> t
   end) : sig
-  val reduce : t -> t
+  val reduce : Context.env -> t -> t
 end
