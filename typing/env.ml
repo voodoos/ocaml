@@ -1281,7 +1281,8 @@ let find_shape env (ns : Shape.Sig_component_kind.t) id =
   | Class_type ->
       (IdTbl.find_same id env.cltypes).cltda_shape
 
-let shape_of_path env ?ns = Shape.of_path ?ns ~find_shape:(find_shape env)
+let shape_of_path ~namespace env =
+  Shape.of_path ~namespace ~find_shape:(find_shape env)
 
 let shape_or_leaf uid = function
   | None -> Shape.leaf uid
@@ -2134,7 +2135,10 @@ let components_of_functor_appl ~loc ~f_path ~f_comp ~arg env =
     let addr = Lazy_backtrack.create_failed Not_found in
     !check_well_formed_module env loc
       ("the signature of " ^ Path.name p) mty;
-    let shape = Shape.app f_comp.fcomp_shape ~arg:(shape_of_path env arg) in
+    let shape_arg =
+      shape_of_path ~namespace:Shape.Sig_component_kind.Module env arg
+    in
+    let shape = Shape.app f_comp.fcomp_shape ~arg:shape_arg in
     let comps =
       components_of_module ~alerts:Misc.Stdlib.String.Map.empty
         ~uid:Uid.internal_not_actually_unique

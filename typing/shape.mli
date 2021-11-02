@@ -126,7 +126,7 @@ val dummy_mod : t
 
 val of_path :
   find_shape:(Sig_component_kind.t -> Ident.t -> t) ->
-  ?ns:Sig_component_kind.t -> Path.t -> t
+  namespace:Sig_component_kind.t -> Path.t -> t
 
 val set_uid_if_none : t -> Uid.t -> t
 

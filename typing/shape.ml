@@ -277,13 +277,13 @@ end
 
 let dummy_mod = { uid = None; desc = Struct Item.Map.empty }
 
-let of_path ~find_shape ?(ns = Sig_component_kind.Module) =
+let of_path ~find_shape ~namespace =
   let rec aux : Sig_component_kind.t -> Path.t -> t = fun ns -> function
     | Pident id -> find_shape ns id
     | Pdot (path, name) -> proj (aux Module path) (name, ns)
     | Papply (p1, p2) -> app (aux Module p1) ~arg:(aux Module p2)
   in
-  aux ns
+  aux namespace
 
 let for_persistent_unit s =
   { uid = Some (Uid.of_compilation_unit_id (Ident.create_persistent s));

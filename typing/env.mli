@@ -113,7 +113,8 @@ val find_module_address: Path.t -> t -> address
 val find_class_address: Path.t -> t -> address
 val find_constructor_address: Path.t -> t -> address
 
-val shape_of_path: t -> ?ns:Shape.Sig_component_kind.t -> Path.t -> Shape.t
+val shape_of_path:
+  namespace:Shape.Sig_component_kind.t -> t -> Path.t -> Shape.t
 
 val add_functor_arg: Ident.t -> t -> t
 val is_functor_arg: Path.t -> t -> bool

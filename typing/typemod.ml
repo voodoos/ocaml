@@ -2131,7 +2131,9 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
                  mod_attributes = smod.pmod_attributes;
                  mod_loc = smod.pmod_loc } in
       let aliasable = not (Env.is_functor_arg path env) in
-      let shape = Env.shape_of_path env path in
+      let shape =
+        Env.shape_of_path ~namespace:Shape.Sig_component_kind.Module env path
+      in
       let md =
         if alias && aliasable then
           (Env.add_required_global (Path.head path); md)
