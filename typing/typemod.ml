@@ -2493,8 +2493,10 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         let shape_map = List.fold_left
           (fun shape_map -> function
             | Sig_type (id, vd, _, _) ->
-              Env.register_uid vd.type_uid vd.type_loc;
-              Shape.Map.add_type shape_map id vd.type_uid
+              if not (Btype.is_row_name (Ident.name id)) then begin
+                Env.register_uid vd.type_uid vd.type_loc;
+                Shape.Map.add_type shape_map id vd.type_uid
+              end else shape_map
             | _ -> assert false
           )
           shape_map
@@ -2700,7 +2702,11 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             Signature_names.check_type names loc cls.cls_obj_id;
             Signature_names.check_type names loc cls.cls_typesharp_id;
             Env.register_uid cls.cls_decl.cty_uid loc;
-            Shape.Map.add_class acc cls.cls_id cls.cls_decl.cty_uid
+            let map f id acc = f acc id cls.cls_decl.cty_uid in
+            map Shape.Map.add_class cls.cls_id acc
+            |> map Shape.Map.add_class_type cls.cls_ty_id
+            |> map Shape.Map.add_type cls.cls_obj_id
+            |> map Shape.Map.add_type cls.cls_typesharp_id
           ) shape_map classes
         in
         Tstr_class
@@ -2727,8 +2733,10 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             Signature_names.check_type names loc decl.clsty_obj_id;
             Signature_names.check_type names loc decl.clsty_typesharp_id;
             Env.register_uid decl.clsty_ty_decl.clty_uid loc;
-            Shape.Map.add_class_type
-              acc decl.clsty_ty_id decl.clsty_ty_decl.clty_uid
+            let map f id acc = f acc id decl.clsty_ty_decl.clty_uid in
+            map Shape.Map.add_class_type decl.clsty_ty_id acc
+            |> map Shape.Map.add_type decl.clsty_obj_id
+            |> map Shape.Map.add_type decl.clsty_typesharp_id
           ) shape_map classes
         in
         Tstr_class_type
