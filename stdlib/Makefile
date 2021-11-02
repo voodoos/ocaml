@@ -22,7 +22,7 @@ TARGET_BINDIR ?= $(BINDIR)
 COMPILER=$(ROOTDIR)/ocamlc$(EXE)
 CAMLC=$(OCAMLRUN) $(COMPILER)
 COMPFLAGS=-strict-sequence -absname -w +a-4-9-41-42-44-45-48-70 \
-          -g -warn-error +A -bin-annot -shapes -nostdlib -principal \
+          -g -warn-error +A -bin-annot -annot-shapes -nostdlib -principal \
           -safe-string -strict-formats
 ifeq "$(FLAMBDA)" "true"
 OPTCOMPFLAGS += -O3

@@ -64,6 +64,15 @@ Force error messages to show absolute paths for file names.
 Deprecated since OCaml 4.11. Please use "-bin-annot" instead.
 }%notop
 
+\notop{\item["-annot-shapes"]
+Dump information about the definitions of the current compilation unit in binary
+format. This information is represented as shapes, an abstraction of modules.
+The information for file \var{src}".ml" (resp. \var{src}".mli") is put into file
+\var{src}".cms" (resp. \var{src}".cmsi"). The "*.cms" and "*.cmsi" files
+produced by "-annot-shape" are more lightweight than the cmt produced by
+"-bin-annot" but contain enough information for most external tooling needs.
+}%notop
+
 \item["-args" \var{filename}]
 Read additional newline-terminated command line arguments from \var{filename}.
 \top{It is not possible to pass a \var{scriptfile} via file to the toplevel.

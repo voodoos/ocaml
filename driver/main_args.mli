@@ -74,6 +74,7 @@ end
 module type Compiler_options = sig
   val _a : unit -> unit
   val _annot : unit -> unit
+  val _annot_shapes : unit -> unit
   val _binannot : unit -> unit
   val _c : unit -> unit
   val _cc : string -> unit
@@ -108,7 +109,6 @@ module type Compiler_options = sig
   val _with_runtime : unit -> unit
   val _without_runtime : unit -> unit
   val _safe_string : unit -> unit
-  val _shapes : unit -> unit
   val _short_paths : unit -> unit
   val _thread : unit -> unit
   val _v : unit -> unit

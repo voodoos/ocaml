@@ -36,12 +36,12 @@ let mk_annot f =
   "-annot", Arg.Unit f, " (deprecated) Save information in <filename>.annot"
 ;;
 
-let mk_binannot f =
-  "-bin-annot", Arg.Unit f, " Save typedtree in <filename>.cmt"
+let mk_annot_shapes f =
+  "-annot-shapes", Arg.Unit f, " Save shapes in <filename>.cms"
 ;;
 
-let mk_shapes f =
-  "-shapes", Arg.Unit f, " Save shapes in <filename>.cms"
+let mk_binannot f =
+  "-bin-annot", Arg.Unit f, " Save typedtree in <filename>.cmt"
 ;;
 
 let mk_c f =
@@ -965,6 +965,7 @@ end
 module type Compiler_options = sig
   val _a : unit -> unit
   val _annot : unit -> unit
+  val _annot_shapes : unit -> unit
   val _binannot : unit -> unit
   val _c : unit -> unit
   val _cc : string -> unit
@@ -999,7 +1000,6 @@ module type Compiler_options = sig
   val _with_runtime : unit -> unit
   val _without_runtime : unit -> unit
   val _safe_string : unit -> unit
-  val _shapes : unit -> unit
   val _short_paths : unit -> unit
   val _thread : unit -> unit
   val _v : unit -> unit
@@ -1160,8 +1160,8 @@ struct
     mk_alert F._alert;
     mk_absname F._absname;
     mk_annot F._annot;
+    mk_annot_shapes F._annot_shapes;
     mk_binannot F._binannot;
-    mk_shapes F._shapes;
     mk_c F._c;
     mk_cc F._cc;
     mk_cclib F._cclib;
@@ -1342,8 +1342,8 @@ struct
     mk_afl_instrument F._afl_instrument;
     mk_afl_inst_ratio F._afl_inst_ratio;
     mk_annot F._annot;
+    mk_annot_shapes F._annot_shapes;
     mk_binannot F._binannot;
-    mk_shapes F._shapes;
     mk_inline_branch_factor F._inline_branch_factor;
     mk_c F._c;
     mk_cc F._cc;
@@ -1852,6 +1852,7 @@ module Default = struct
   module Compiler = struct
     let _a = set make_archive
     let _annot = set annotations
+    let _annot_shapes = set shapes
     let _args = Arg.read_arg
     let _args0 = Arg.read_arg0
     let _binannot = set binary_annotations
@@ -1883,7 +1884,6 @@ module Default = struct
     let _plugin _p = plugin := true
     let _pp s = preprocessor := (Some s)
     let _runtime_variant s = runtime_variant := s
-    let _shapes = set shapes
     let _stop_after pass =
       let module P = Compiler_pass in
         match P.of_string pass with
