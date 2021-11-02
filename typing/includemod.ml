@@ -1100,15 +1100,20 @@ end
 
 (* Hide the context and substitution parameters to the outside world *)
 
-let modtypes ?shape ~loc env ~mark mty1 mty2 =
-  let shape, keep_res =
-    match shape with
-    | None -> Shape.dummy_mod, false
-    | Some shape -> shape, true
-  in
-  match modtypes ~in_eq:false ~loc env ~mark Subst.identity mty1 mty2 shape with
-  | Ok (cc, shape) -> cc, if keep_res then Some shape else None
+let modtypes_with_shape ~shape ~loc env ~mark mty1 mty2 =
+  match modtypes ~in_eq:false ~loc env ~mark
+          Subst.identity mty1 mty2 shape
+  with
+  | Ok (cc, shape) -> cc, shape
   | Error reason -> raise (Error (env, Error.(In_Module_type reason)))
+
+let modtypes ~loc env ~mark mty1 mty2 =
+  match modtypes ~in_eq:false ~loc env ~mark
+          Subst.identity mty1 mty2 Shape.dummy_mod
+  with
+  | Ok (cc, _) -> cc
+  | Error reason -> raise (Error (env, Error.(In_Module_type reason)))
+
 let signatures env ~mark sig1 sig2 =
   match signatures ~in_eq:false ~loc:Location.none env ~mark
           Subst.identity sig1 sig2 Shape.dummy_mod

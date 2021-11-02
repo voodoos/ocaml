@@ -1981,8 +1981,9 @@ let check_recmodule_inclusion env bindings =
         and mty_actual' = subst_and_strengthen env scope s id mty_actual in
         let coercion, shape =
           try
-            Includemod.modtypes ~loc:modl.mod_loc ~mark:Mark_both env
-              mty_actual' mty_decl' ~shape
+            Includemod.modtypes_with_shape ~shape
+              ~loc:modl.mod_loc ~mark:Mark_both
+              env mty_actual' mty_decl'
           with Includemod.Error msg ->
             raise(Error(modl.mod_loc, env, Not_included msg)) in
         let modl' =
@@ -2003,7 +2004,7 @@ let check_recmodule_inclusion env bindings =
             mb_loc = loc;
           }
         in
-        mb, Option.get shape, uid
+        mb, shape, uid
       in
       List.map check_inclusion bindings
     end
@@ -2060,16 +2061,31 @@ let package_subtype env p1 fl1 p2 fl2 =
   | mty1, mty2 ->
     let loc = Location.none in
     match Includemod.modtypes ~loc ~mark:Mark_both env mty1 mty2 with
-    | Tcoerce_none, _shape -> true
+    | Tcoerce_none -> true
     | _ | exception Includemod.Error _ -> false
 
 let () = Ctype.package_subtype := package_subtype
 
-let wrap_constraint env mark arg mty ?shape explicit =
+let wrap_constraint env mark arg mty explicit =
+  let mark = if mark then Includemod.Mark_both else Includemod.Mark_neither in
+  let coercion =
+    try
+      Includemod.modtypes ~loc:arg.mod_loc env ~mark arg.mod_type mty
+    with Includemod.Error msg ->
+      raise(Error(arg.mod_loc, env, Not_included msg)) in
+  { mod_desc = Tmod_constraint(arg, mty, explicit, coercion);
+    mod_type = mty;
+    mod_env = env;
+    mod_attributes = [];
+    mod_loc = arg.mod_loc }
+
+let wrap_constraint_with_shape env mark arg mty
+  shape explicit =
   let mark = if mark then Includemod.Mark_both else Includemod.Mark_neither in
   let coercion, shape =
     try
-      Includemod.modtypes ~loc:arg.mod_loc env ~mark arg.mod_type mty ?shape
+      Includemod.modtypes_with_shape ~shape ~loc:arg.mod_loc env ~mark
+        arg.mod_type mty
     with Includemod.Error msg ->
       raise(Error(arg.mod_loc, env, Not_included msg)) in
   { mod_desc = Tmod_constraint(arg, mty, explicit, coercion);
@@ -2153,11 +2169,11 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
       in
       let sg' = Signature_names.simplify _finalenv names sg in
       if List.length sg' = List.length sg then md, shape else
-      let md, shape_opt =
-        wrap_constraint env false md (Mty_signature sg')
-          ~shape Tmodtype_implicit
+      let md, shape =
+        wrap_constraint_with_shape env false md
+          (Mty_signature sg') shape Tmodtype_implicit
       in
-      md, Option.get shape_opt
+      md, shape
   | Pmod_functor(arg_opt, sbody) ->
       let t_arg, ty_arg, newenv, funct_shape_param, funct_body =
         match arg_opt with
@@ -2200,15 +2216,15 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
   | Pmod_constraint(sarg, smty) ->
       let arg, arg_shape = type_module ~alias true funct_body anchor env sarg in
       let mty = transl_modtype env smty in
-      let md, final_shape_opt =
-        wrap_constraint env true arg mty.mty_type ~shape:arg_shape
+      let md, final_shape =
+        wrap_constraint_with_shape env true arg mty.mty_type arg_shape
           (Tmodtype_explicit mty)
       in
       { md with
         mod_loc = smod.pmod_loc;
         mod_attributes = smod.pmod_attributes;
       },
-      Option.get final_shape_opt
+      final_shape
   | Pmod_unpack sexp ->
       if !Clflags.principal then Ctype.begin_def ();
       let exp = Typecore.type_exp env sexp in
@@ -2288,7 +2304,7 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
         mod_loc = funct.mod_loc },
       Shape.app funct_shape ~arg:app_view.shape
   | Mty_functor (Named (param, mty_param), mty_res) as mty_functor ->
-      let coercion, _param_shape =
+      let coercion =
         try
           Includemod.modtypes
             ~loc:app_view.arg.mod_loc ~mark:Mark_both env
@@ -2329,7 +2345,7 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
               Includemod.modtypes
                 ~loc:app_view.loc ~mark:Mark_neither env mty_res nondep_mty
             with
-            | Tcoerce_none, None -> ()
+            | Tcoerce_none -> ()
             | _ ->
                 fatal_error
                   "unexpected coercion from original module type to \
@@ -2933,7 +2949,7 @@ let type_package env m p fl =
       with Ctype.Unify _ ->
         raise (Error(modl.mod_loc, env, Scoping_pack (n,ty))))
     fl';
-  let modl, _shape = wrap_constraint env true modl mty Tmodtype_implicit in
+  let modl = wrap_constraint env true modl mty Tmodtype_implicit in
   modl, fl'
 
 (* Fill in the forward declarations *)
