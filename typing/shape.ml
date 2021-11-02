@@ -284,7 +284,9 @@ let of_path ~find_shape ?(ns = Sig_component_kind.Module) =
   in
   aux ns
 
-let for_persistent_unit s = { uid = None; desc = Comp_unit s }
+let for_persistent_unit s =
+  { uid = Some (Uid.of_compilation_unit_id (Ident.create_persistent s));
+    desc = Comp_unit s }
 
 let leaf_for_unpack = { uid = None; desc = Leaf }
 
