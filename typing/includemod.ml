@@ -794,6 +794,7 @@ and check_modtype_equiv ~in_eq ~loc env ~mark mty1 mty2 =
      *)
     if in_eq then None
     else
+      let mark = negate_mark mark in
       Some (
         modtypes ~in_eq:true ~loc env ~mark Subst.identity
           mty2 mty1 Shape.dummy_mod
