@@ -131,8 +131,14 @@ val of_path :
 val set_uid_if_none : t -> Uid.t -> t
 
 (** The [Make_reduce] functor is used to generate a reduction function for
-    shapes with a given fuel limit and custom environment / external units
-    loading functions.
+    shapes.
+
+    It is parametrized by:
+    - an environment and a function to find shapes by path in that environment
+    - a function to load the shape of an external compilation unit
+    - some fuel, which is used to bound recursion when dealing with recursive
+      modules. (FTR: merlin currently uses a fuel of 10, which seems to be
+      enough for most practical examples)
 *)
 module Make_reduce(Context : sig
     type env
