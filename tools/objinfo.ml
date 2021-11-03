@@ -114,22 +114,11 @@ let print_cmt_infos cmt =
   printf "cmt interface digest: %s\n"
     (match cmt.cmt_interface_digest with
      | None -> ""
-     | Some crc -> string_of_crc crc)
-
-let print_cms_infos cms =
-  let open Cms_format in
-  printf "Load path:";
-  List.iter print_spaced_string cms.cms_loadpath;
-  printf "\nSource file: %s\n"
-    (match cms.cms_sourcefile with None -> "(none)" | Some f -> f);
-  printf "Source digest: %s\n"
-    (match cms.cms_source_digest with
-    | None -> ""
-    | Some crc -> string_of_crc crc);
+     | Some crc -> string_of_crc crc);
   printf "Implementation shape: ";
-  (match cms.cms_impl_shape with
-  | None -> printf "(none)\n"
-  | Some shape -> Format.printf "\n%a" Shape.print shape)
+    (match cmt.cmt_impl_shape with
+    | None -> printf "(none)\n"
+    | Some shape -> Format.printf "\n%a" Shape.print shape)
 
 let print_general_infos name crc defines cmi cmx =
   printf "Name: %s\n" name;
@@ -311,10 +300,6 @@ let dump_obj_by_kind filename ic obj_kind =
          | None -> ()
          | Some cmt -> print_cmt_infos cmt
        end
-    | Cms ->
-        let li = (input_value ic : Cms_format.cms_infos) in
-        close_in ic;
-        print_cms_infos li
     | Cmx _config ->
        let ui = (input_value ic : unit_infos) in
        let crc = Digest.input ic in

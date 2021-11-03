@@ -3025,15 +3025,13 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
             Includemod.compunit initial_env ~mark:Mark_positive
               sourcefile sg intf_file dclsig shape
           in
-          Cms_format.save_shape (outputprefix ^ ".cms") (Some shape)
-            ~source_file:(Some sourcefile);
           Typecore.force_delayed_checks ();
           (* It is important to run these checks after the inclusion test above,
              so that value declarations which are not used internally but
              exported are not reported as being unused. *)
           let annots = Cmt_format.Implementation str in
           Cmt_format.save_cmt (outputprefix ^ ".cmt") modulename
-            annots (Some sourcefile) initial_env None;
+            annots (Some sourcefile) initial_env None (Some shape);
           gen_annot outputprefix sourcefile annots;
           { structure = str;
             coercion;
@@ -3060,11 +3058,9 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
               Env.save_signature ~alerts
                 simple_sg modulename (outputprefix ^ ".cmi")
             in
-            Cms_format.save_shape (outputprefix ^ ".cms") (Some shape)
-              ~source_file:(Some sourcefile);
             let annots = Cmt_format.Implementation str in
             Cmt_format.save_cmt  (outputprefix ^ ".cmt") modulename
-              annots (Some sourcefile) initial_env (Some cmi);
+              annots (Some sourcefile) initial_env (Some cmi) (Some shape);
             gen_annot outputprefix sourcefile annots
           end;
           { structure = str;
@@ -3081,15 +3077,13 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
             (Array.of_list (Cmt_format.get_saved_types ()))
         in
         Cmt_format.save_cmt  (outputprefix ^ ".cmt") modulename
-          annots (Some sourcefile) initial_env None;
+          annots (Some sourcefile) initial_env None None;
         gen_annot outputprefix sourcefile annots
       )
 
 let save_signature modname tsg outputprefix source_file initial_env cmi =
   Cmt_format.save_cmt  (outputprefix ^ ".cmti") modname
-    (Cmt_format.Interface tsg) (Some source_file) initial_env (Some cmi);
-  Cms_format.save_shape (outputprefix ^  ".cmsi")
-    ~source_file:(Some source_file) None
+    (Cmt_format.Interface tsg) (Some source_file) initial_env (Some cmi) None
 
 let type_interface env ast =
   transl_signature env ast
@@ -3162,13 +3156,12 @@ let package_units initial_env objfiles cmifile modulename =
                   Interface_not_compiled mlifile))
     end;
     let dclsig = Env.read_signature modulename cmifile in
-    Cmt_format.save_cmt  (prefix ^ ".cmt") modulename
-      (Cmt_format.Packed (sg, objfiles)) None initial_env  None ;
     let cc, shape =
       Includemod.compunit initial_env ~mark:Mark_both
         "(obtained by packing)" sg mlifile dclsig shape
     in
-    Cms_format.save_shape (prefix ^ ".cms") ~source_file:None (Some shape);
+    Cmt_format.save_cmt  (prefix ^ ".cmt") modulename
+      (Cmt_format.Packed (sg, objfiles)) None initial_env  None (Some shape);
     cc
   end else begin
     (* Determine imports *)
@@ -3186,8 +3179,7 @@ let package_units initial_env objfiles cmifile modulename =
       in
       Cmt_format.save_cmt (prefix ^ ".cmt")  modulename
         (Cmt_format.Packed (cmi.Cmi_format.cmi_sign, objfiles)) None initial_env
-        (Some cmi);
-      Cms_format.save_shape (prefix ^ ".cms") ~source_file:None (Some shape);
+        (Some cmi) (Some shape);
     end;
     Tcoerce_none
   end

@@ -36,10 +36,6 @@ let mk_annot f =
   "-annot", Arg.Unit f, " (deprecated) Save information in <filename>.annot"
 ;;
 
-let mk_annot_shapes f =
-  "-annot-shapes", Arg.Unit f, " Save shapes in <filename>.cms"
-;;
-
 let mk_binannot f =
   "-bin-annot", Arg.Unit f, " Save typedtree in <filename>.cmt"
 ;;
@@ -970,7 +966,6 @@ end
 module type Compiler_options = sig
   val _a : unit -> unit
   val _annot : unit -> unit
-  val _annot_shapes : unit -> unit
   val _binannot : unit -> unit
   val _c : unit -> unit
   val _cc : string -> unit
@@ -1165,7 +1160,6 @@ struct
     mk_alert F._alert;
     mk_absname F._absname;
     mk_annot F._annot;
-    mk_annot_shapes F._annot_shapes;
     mk_binannot F._binannot;
     mk_c F._c;
     mk_cc F._cc;
@@ -1348,7 +1342,6 @@ struct
     mk_afl_instrument F._afl_instrument;
     mk_afl_inst_ratio F._afl_inst_ratio;
     mk_annot F._annot;
-    mk_annot_shapes F._annot_shapes;
     mk_binannot F._binannot;
     mk_inline_branch_factor F._inline_branch_factor;
     mk_c F._c;
@@ -1462,7 +1455,6 @@ struct
     mk_dsource F._dsource;
     mk_dparsetree F._dparsetree;
     mk_dtypedtree F._dtypedtree;
-    mk_dshape F._dshape;
     mk_drawlambda F._drawlambda;
     mk_dlambda F._dlambda;
     mk_drawclambda F._drawclambda;
@@ -1573,7 +1565,6 @@ module Make_opttop_options (F : Opttop_options) = struct
     mk_dsource F._dsource;
     mk_dparsetree F._dparsetree;
     mk_dtypedtree F._dtypedtree;
-    mk_dshape F._dshape;
     mk_drawlambda F._drawlambda;
     mk_drawclambda F._drawclambda;
     mk_dclambda F._dclambda;
@@ -1860,7 +1851,6 @@ module Default = struct
   module Compiler = struct
     let _a = set make_archive
     let _annot = set annotations
-    let _annot_shapes = set shapes
     let _args = Arg.read_arg
     let _args0 = Arg.read_arg0
     let _binannot = set binary_annotations

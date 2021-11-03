@@ -208,20 +208,6 @@ Deprecated since 4.11. Please use
 .BR \-bin-annot
 instead.
 .TP
-.B \-annot\-shapes
-Dump information about the definitions of the current compilation unit in binary
-format. This information is represented as shapes, an abstraction of modules.
-The information for file
-.IR src .ml
-is put into file
-.IR src .cms.
-The files
-produced by
-.B \-annot\-shapes
-are more lightweight than the ones produced by
-.B \-bin\-annot
-but contain enough information for most external tooling needs.
-.TP
 .B \-bin\-annot
 Dump detailed information about the compilation (types, bindings,
 tail-calls, etc) in binary format. The information for file

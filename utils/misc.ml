@@ -888,7 +888,7 @@ module Magic_number = struct
     | Cmi | Cmo | Cma
     | Cmx of native_obj_config | Cmxa of native_obj_config
     | Cmxs
-    | Cmt | Cms
+    | Cmt
     | Ast_impl | Ast_intf
 
   (* please keep up-to-date, this is used for sanity checking *)
@@ -903,7 +903,7 @@ module Magic_number = struct
   @ List.map (fun conf -> Cmx conf) all_native_obj_configs
   @ List.map (fun conf -> Cmxa conf) all_native_obj_configs
   @ [
-    Cmt; Cms;
+    Cmt;
     Ast_impl; Ast_intf;
   ]
 
@@ -924,7 +924,6 @@ module Magic_number = struct
     | "Caml1999Y" -> Some (Cmx {flambda = false})
     | "Caml1999z" -> Some (Cmxa {flambda = true})
     | "Caml1999Z" -> Some (Cmxa {flambda = false})
-    | "Caml1999S" -> Some Cms
 
     (* Caml2007D and Caml2012T were used instead of the common Caml1999 prefix
        between the introduction of those magic numbers and October 2017
@@ -957,7 +956,6 @@ module Magic_number = struct
        else "Caml1999Z"
     | Cmxs -> "Caml1999D"
     | Cmt -> "Caml1999T"
-    | Cms -> "Caml1999S"
     | Ast_impl -> "Caml1999M"
     | Ast_intf -> "Caml1999N"
 
@@ -970,7 +968,6 @@ module Magic_number = struct
     | Cmxa _ -> "cmxa"
     | Cmxs -> "cmxs"
     | Cmt -> "cmt"
-    | Cms -> "cms"
     | Ast_impl -> "ast_impl"
     | Ast_intf -> "ast_intf"
 
@@ -991,7 +988,6 @@ module Magic_number = struct
          (human_description_of_native_obj_config config)
     | Cmxs -> "dynamic native library"
     | Cmt -> "compiled typedtree file"
-    | Cms -> "shapes and uid table file"
     | Ast_impl -> "serialized implementation AST"
     | Ast_intf -> "serialized interface AST"
 
@@ -1077,7 +1073,6 @@ module Magic_number = struct
            raw_kind ^ String.sub reference len (String.length reference - len)
       | Cmxs -> cmxs_magic_number
       | Cmt -> cmt_magic_number
-      | Cms -> cms_magic_number
       | Ast_intf -> ast_intf_magic_number
       | Ast_impl -> ast_impl_magic_number
 
