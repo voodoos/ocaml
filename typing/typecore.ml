@@ -397,18 +397,19 @@ let finalize_variant pat tag opat r =
       Tvariant row -> r := row; row
     | _ -> assert false
   in
-  begin match row_field tag row with
+  let f = get_row_field tag row in
+  begin match row_field_repr f with
   | Rabsent -> () (* assert false *)
-  | Reither (true, [], _, e) when not (row_closed row) ->
-      set_row_field e (Rpresent None)
-  | Reither (false, ty::tl, _, e) when not (row_closed row) ->
-      set_row_field e (Rpresent (Some ty));
+  | Reither (true, [], _) when not (row_closed row) ->
+      link_row_field_ext ~inside:f (rf_present None)
+  | Reither (false, ty::tl, _) when not (row_closed row) ->
+      link_row_field_ext ~inside:f (rf_present (Some ty));
       begin match opat with None -> assert false
       | Some pat ->
           let env = ref pat.pat_env in List.iter (unify_pat env pat) (ty::tl)
       end
-  | Reither (c, _l, true, e) when not (has_fixed_explanation row) ->
-      set_row_field e (Reither (c, [], false, ref None))
+  | Reither (c, _l, true) when not (has_fixed_explanation row) ->
+      link_row_field_ext ~inside:f (rf_either [] ~no_arg:c ~matched:false)
   | _ -> ()
   end
   (* Force check of well-formedness   WHY? *)
@@ -524,8 +525,8 @@ let enter_orpat_variables loc env  p1_vs p2_vs =
           raise (Error (loc, env, err)) in
   unify_vars p1_vs p2_vs
 
-let rec build_as_type env p =
-  let as_ty = build_as_type_aux env p in
+let rec build_as_type ~refine (env : Env.t ref) p =
+  let as_ty = build_as_type_aux ~refine env p in
   (* Cf. #1655 *)
   List.fold_left (fun as_ty (extra, _loc, _attrs) ->
     match extra with
@@ -541,11 +542,12 @@ let rec build_as_type env p =
       end_def ();
       generalize_structure ty;
       (* This call to unify can't fail since the pattern is well typed. *)
-      unify !env (instance as_ty) (instance ty);
+      unify_pat_types ~refine p.pat_loc env (instance as_ty) (instance ty);
       ty
   ) as_ty p.pat_extra
 
-and build_as_type_aux env p =
+and build_as_type_aux ~refine (env : Env.t ref) p =
+  let build_as_type = build_as_type ~refine in
   match p.pat_desc with
     Tpat_alias(p1,_, _) -> build_as_type env p1
   | Tpat_tuple pl ->
@@ -558,12 +560,13 @@ and build_as_type_aux env p =
       if keep then p.pat_type else
       let tyl = List.map (build_as_type env) pl in
       let ty_args, ty_res, _ = instance_constructor cstr in
-      List.iter2 (fun (p,ty) -> unify_pat env {p with pat_type = ty})
+      List.iter2 (fun (p,ty) -> unify_pat ~refine env {p with pat_type = ty})
         (List.combine pl tyl) ty_args;
       ty_res
   | Tpat_variant(l, p', _) ->
       let ty = Option.map (build_as_type env) p' in
-      newty (Tvariant (create_row ~fields:[l, Rpresent ty] ~more:(newvar())
+      let fields = [l, rf_present ty] in
+      newty (Tvariant (create_row ~fields ~more:(newvar())
                          ~name:None ~fixed:None ~closed:false))
   | Tpat_record (lpl,_) ->
       let lbl = snd3 (List.hd lpl) in
@@ -572,17 +575,18 @@ and build_as_type_aux env p =
       let ppl = List.map (fun (_, l, p) -> l.lbl_pos, p) lpl in
       let do_label lbl =
         let _, ty_arg, ty_res = instance_label false lbl in
-        unify_pat env {p with pat_type = ty} ty_res;
+        unify_pat ~refine env {p with pat_type = ty} ty_res;
         let refinable =
           lbl.lbl_mut = Immutable && List.mem_assoc lbl.lbl_pos ppl &&
           match get_desc lbl.lbl_arg with Tpoly _ -> false | _ -> true in
         if refinable then begin
           let arg = List.assoc lbl.lbl_pos ppl in
-          unify_pat env {arg with pat_type = build_as_type env arg} ty_arg
+          unify_pat ~refine env
+            {arg with pat_type = build_as_type env arg} ty_arg
         end else begin
           let _, ty_arg', ty_res' = instance_label false lbl in
-          unify !env ty_arg ty_arg';
-          unify_pat env p ty_res'
+          unify_pat_types ~refine p.pat_loc env ty_arg ty_arg';
+          unify_pat ~refine env p ty_res'
         end in
       Array.iter do_label lbl.lbl_all;
       ty
@@ -590,7 +594,7 @@ and build_as_type_aux env p =
       begin match row with
         None ->
           let ty1 = build_as_type env p1 and ty2 = build_as_type env p2 in
-          unify_pat env {p2 with pat_type = ty2} ty1;
+          unify_pat ~refine env {p2 with pat_type = ty2} ty1;
           ty1
       | Some row ->
           let Row {fields; fixed; name} = row_repr row in
@@ -615,9 +619,9 @@ let solve_Ppat_poly_constraint ~refine env loc sty expected_ty =
       (cty, ty, ty')
   | _ -> assert false
 
-let solve_Ppat_alias env pat =
+let solve_Ppat_alias ~refine env pat =
   begin_def ();
-  let ty_var = build_as_type env pat in
+  let ty_var = build_as_type ~refine env pat in
   end_def ();
   generalize ty_var;
   ty_var
@@ -776,15 +780,11 @@ let solve_Ppat_constraint ~refine loc env sty expected_ty =
   unify_pat_types ~refine loc env ty (instance expected_ty);
   (cty, ty, expected_ty')
 
-let solve_Ppat_variant ~refine loc env tag constant expected_ty =
-  let arg_type = if constant then [] else [newgenvar()] in
+let solve_Ppat_variant ~refine loc env tag no_arg expected_ty =
+  let arg_type = if no_arg then [] else [newgenvar()] in
+  let fields = [tag, rf_either ~no_arg arg_type ~matched:true] in
   let make_row more =
-    create_row
-      ~fields: [tag, Reither(constant, arg_type, true, ref None)]
-      ~closed: false
-      ~more
-      ~fixed:  None
-      ~name:   None
+    create_row ~fields ~closed:false ~more ~fixed:None ~name:None
   in
   let row = make_row (newgenvar ()) in
   let expected_ty = generic_instance expected_ty in
@@ -809,13 +809,15 @@ let build_or_pat env loc lid =
       (fun (pats,fields) (l,f) ->
         match row_field_repr f with
           Rpresent None ->
+            let f = rf_either [] ~no_arg:true ~matched:true in
             (l,None) :: pats,
-            (l, Reither(true,[], true, ref None)) :: fields
+            (l, f) :: fields
         | Rpresent (Some ty) ->
+            let f = rf_either [ty] ~no_arg:false ~matched:true in
             (l, Some {pat_desc=Tpat_any; pat_loc=Location.none; pat_env=env;
                       pat_type=ty; pat_extra=[]; pat_attributes=[]})
             :: pats,
-            (l, Reither(false, [ty], true, ref None)) :: fields
+            (l, f) :: fields
         | _ -> pats, fields)
       ([],[]) (row_fields row0) in
   let fields = List.rev fields in
@@ -1708,7 +1710,7 @@ and type_pat_aux
   | Ppat_alias(sq, name) ->
       assert construction_not_used_in_counterexamples;
       type_pat Value sq expected_ty (fun q ->
-        let ty_var = solve_Ppat_alias env q in
+        let ty_var = solve_Ppat_alias ~refine env q in
         let id =
           enter_variable ~is_as_variable:true loc name ty_var sp.ppat_attributes
         in
@@ -2715,8 +2717,9 @@ let check_absent_variant env =
       then () else
       let ty_arg =
         match arg with None -> [] | Some p -> [correct_levels p.pat_type] in
+      let fields = [s, rf_either ty_arg ~no_arg:(arg=None) ~matched:true] in
       let row' =
-        create_row ~fields:[s, Reither(arg=None,ty_arg,true,ref None)]
+        create_row ~fields
           ~more:(newvar ()) ~closed:false ~fixed:None ~name:None in
       (* Should fail *)
       unify_pat (ref env) {pat with pat_type = newty (Tvariant row')}
@@ -3091,7 +3094,10 @@ and type_expect_
         get_desc (expand_head env ty_expected0)
       with
       | Some sarg, Tvariant row, Tvariant row0 ->
-          begin match row_field l row, row_field l row0 with
+          begin match
+            row_field_repr (get_row_field l row),
+            row_field_repr (get_row_field l row0)
+          with
             Rpresent (Some ty), Rpresent (Some ty0) ->
               let arg = type_argument env sarg ty ty0 in
               re { exp_desc = Texp_variant(l, Some arg);
@@ -3107,7 +3113,7 @@ and type_expect_
         let arg_type = Option.map (fun arg -> arg.exp_type) arg in
         let row =
           create_row
-            ~fields: [l, Rpresent arg_type]
+            ~fields: [l, rf_present arg_type]
             ~more:   (newvar ())
             ~closed: false
             ~fixed:  None
