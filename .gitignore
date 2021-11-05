@@ -22,9 +22,9 @@
 *.lib
 *.dll
 *.la
-*.cm[ioxats]
+*.cm[ioxat]
 *.cmx[as]
-*.cm[ts]i
+*.cm[t]i
 *.annot
 *.exe
 *.exe.manifest

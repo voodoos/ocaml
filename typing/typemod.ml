@@ -2171,11 +2171,8 @@ and type_module_aux ~alias sttn funct_body anchor env smod =
       in
       let sg' = Signature_names.simplify _finalenv names sg in
       if List.length sg' = List.length sg then md, shape else
-      let md, shape =
-        wrap_constraint_with_shape env false md
-          (Mty_signature sg') shape Tmodtype_implicit
-      in
-      md, shape
+      wrap_constraint_with_shape env false md
+        (Mty_signature sg') shape Tmodtype_implicit
   | Pmod_functor(arg_opt, sbody) ->
       let t_arg, ty_arg, newenv, funct_shape_param, funct_body =
         match arg_opt with
