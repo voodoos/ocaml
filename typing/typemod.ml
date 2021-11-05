@@ -1388,10 +1388,9 @@ and transl_signature env sg =
               Typedecl.transl_type_decl env rec_flag sdecls
             in
             List.iter (fun td ->
-              if not (Btype.is_row_name (Ident.name td.typ_id)) then begin
-                Signature_names.check_type names td.typ_loc td.typ_id;
+              Signature_names.check_type names td.typ_loc td.typ_id;
+              if not (Btype.is_row_name (Ident.name td.typ_id)) then
                 Env.register_uid td.typ_type.type_uid td.typ_loc
-              end
             ) decls;
             let (trem, rem, final_env) = transl_sig newenv srem in
             let sg =
