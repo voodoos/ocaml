@@ -445,10 +445,10 @@ let expression sub exp =
         Pexp_function (params, constraint_, body)
     | Texp_apply (exp, list) ->
         Pexp_apply (sub.expr sub exp,
-          List.fold_right (fun (label, expo) list ->
-              match expo with
-                None -> list
-              | Some exp -> (label, sub.expr sub exp) :: list
+          List.fold_right (fun (label, arg) list ->
+              match arg with
+              | Omitted () -> list
+              | Arg exp -> (label, sub.expr sub exp) :: list
           ) list [])
     | Texp_match (exp, cases, eff_cases, _) ->
       let merged_cases = List.map (sub.case sub) cases
@@ -742,8 +742,8 @@ let class_expr sub cexpr =
         Pcl_apply (sub.class_expr sub cl,
           List.fold_right (fun (label, expo) list ->
               match expo with
-                None -> list
-              | Some exp -> (label, sub.expr sub exp) :: list
+              | Omitted () -> list
+              | Arg exp -> (label, sub.expr sub exp) :: list
           ) args [])
 
     | Tcl_let (rec_flat, bindings, _ivars, cl) ->
