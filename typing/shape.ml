@@ -209,9 +209,9 @@ let proj ?uid t item =
   | _ ->
       { uid; desc = Proj (t, item) }
 
-let rec app ?uid f ~arg =
+let rec app ~reduce ?uid f ~arg =
   match f.desc with
-  | Abs (var, body) ->
+  | Abs (var, body) when reduce ->
       let res = subst var ~arg body in
       overwrite_uid uid res
   | _ ->
@@ -223,7 +223,7 @@ and subst var ~arg t =
   | Abs (v, e) ->
       abs ?uid:t.uid v (subst var ~arg e)
   | App (f, e) ->
-      app ?uid:t.uid (subst var ~arg f) ~arg:(subst var ~arg e)
+      app ~reduce:true ?uid:t.uid (subst var ~arg f) ~arg:(subst var ~arg e)
   | Struct m ->
       { t with desc = Struct (Item.Map.map (fun s -> subst var ~arg s) m) }
   | Proj (t, item) ->
@@ -250,7 +250,7 @@ end) = struct
           | None -> t
           end
       | App(f, arg) ->
-          app ?uid:t.uid (reduce env f) ~arg:(reduce env arg)
+          app ~reduce:true ?uid:t.uid (reduce env f) ~arg:(reduce env arg)
       | Proj(str, item) ->
           let r = proj ?uid:t.uid (reduce env str) item in
           if r = t
@@ -275,6 +275,10 @@ end) = struct
     fuel := Params.fuel;
     reduce env t
 end
+
+(* We never reduce when building the shapes so we expose the constructor with
+  reduce:false *)
+let app = app ~reduce:false
 
 let dummy_mod = { uid = None; desc = Struct Item.Map.empty }
 
