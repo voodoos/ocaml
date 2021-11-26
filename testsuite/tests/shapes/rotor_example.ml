@@ -70,10 +70,31 @@ module String : sig type t = string val to_string : 'a -> 'a end
 module P = Pair(Int)(Pair(String)(Int))
 [%%expect{|
 {
- ("P", module) -> {<.18>
-                   ("t", type) -> <.5>;
-                   ("to_string", value) -> <.6>;
-                   };
+ ("P", module) ->
+     Abs<.9>
+        (X/279,
+         Abs(Y/280, {
+                     ("t", type) -> <.5>;
+                     ("to_string", value) -> <.6>;
+                     }))(
+     {<.13>
+      ("t", type) -> <.10>;
+      ("to_string", value) -> <.11>;
+      })(
+     Abs<.9>
+        (X/279,
+         Abs(Y/280, {
+                     ("t", type) -> <.5>;
+                     ("to_string", value) -> <.6>;
+                     }))(
+     {<.17>
+      ("t", type) -> <.14>;
+      ("to_string", value) -> <.15>;
+      })(
+     {<.13>
+      ("t", type) -> <.10>;
+      ("to_string", value) -> <.11>;
+      }))<.18>;
  }
 module P :
   sig
@@ -81,6 +102,13 @@ module P :
     val to_string : Int.t * Pair(String)(Int).t -> string
   end
 |}];;
+
+(* The previous shape would reduce to:
+  ("P", module) -> {<.18>
+                   ("t", type) -> <.5>;
+                   ("to_string", value) -> <.6>;
+  }
+*)
 
 P.to_string (0, ("!=", 1))
 [%%expect{|

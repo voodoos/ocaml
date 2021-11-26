@@ -85,82 +85,260 @@ module Arg : S
 include Falias(Arg)
 [%%expect{|
 {
- ("t", type) -> <.15>;
- ("x", value) -> <.17>;
+ ("t", type) ->
+     Abs<.4>(X/279, X/279<.3>)(
+     {<.18>
+      ("t", type) -> <.15>;
+      ("x", value) -> <.17>;
+      })
+     . "t"[type];
+ ("x", value) ->
+     Abs<.4>(X/279, X/279<.3>)(
+     {<.18>
+      ("t", type) -> <.15>;
+      ("x", value) -> <.17>;
+      })
+     . "x"[value];
  }
 type t = Arg.t
 val x : t = <abstr>
 |}]
+
+(* The previous shape reduces to:
+ ("t", type) -> <.15>;
+ ("x", value) -> <.17>;
+*)
 
 include Finclude(Arg)
 [%%expect{|
 {
- ("t", type) -> <.15>;
- ("x", value) -> <.17>;
+ ("t", type) ->
+     Abs<.6>
+        (X/283,
+         {
+          ("t", type) -> X/283<.5> . "t"[type];
+          ("x", value) -> X/283<.5> . "x"[value];
+          })(
+     {<.18>
+      ("t", type) -> <.15>;
+      ("x", value) -> <.17>;
+      })
+     . "t"[type];
+ ("x", value) ->
+     Abs<.6>
+        (X/283,
+         {
+          ("t", type) -> X/283<.5> . "t"[type];
+          ("x", value) -> X/283<.5> . "x"[value];
+          })(
+     {<.18>
+      ("t", type) -> <.15>;
+      ("x", value) -> <.17>;
+      })
+     . "x"[value];
  }
 type t = Arg.t
 val x : t = <abstr>
 |}]
 
+(* The previous shape reduces to:
+ ("t", type) -> <.15>;
+ ("x", value) -> <.17>;
+*)
+
 include Fredef(Arg)
 [%%expect{|
 {
- ("t", type) -> <.8>;
- ("x", value) -> <.9>;
+ ("t", type) ->
+     Abs<.10>(X/290, {
+                      ("t", type) -> <.8>;
+                      ("x", value) -> <.9>;
+                      })(
+     {<.18>
+      ("t", type) -> <.15>;
+      ("x", value) -> <.17>;
+      })
+     . "t"[type];
+ ("x", value) ->
+     Abs<.10>(X/290, {
+                      ("t", type) -> <.8>;
+                      ("x", value) -> <.9>;
+                      })(
+     {<.18>
+      ("t", type) -> <.15>;
+      ("x", value) -> <.17>;
+      })
+     . "x"[value];
  }
 type t = Arg.t
 val x : Arg.t = <abstr>
 |}]
 
+(* The previous shape reduces to:
+ ("t", type) -> <.8>;
+ ("x", value) -> <.9>;
+*)
+
 include Fignore(Arg)
 [%%expect{|
 {
- ("t", type) -> <.11>;
- ("x", value) -> <.13>;
+ ("t", type) ->
+     Abs<.14>(()/1, {
+                     ("t", type) -> <.11>;
+                     ("x", value) -> <.13>;
+                     })(
+     {<.18>
+      ("t", type) -> <.15>;
+      ("x", value) -> <.17>;
+      })
+     . "t"[type];
+ ("x", value) ->
+     Abs<.14>(()/1, {
+                     ("t", type) -> <.11>;
+                     ("x", value) -> <.13>;
+                     })(
+     {<.18>
+      ("t", type) -> <.15>;
+      ("x", value) -> <.17>;
+      })
+     . "x"[value];
  }
 type t = Fignore(Arg).t = Fresh
 val x : t = Fresh
 |}]
 
+(* The previous shape reduces to:
+ ("t", type) -> <.11>;
+ ("x", value) -> <.13>;
+*)
+
 include Falias(struct type t = int let x = 0 end)
 [%%expect{|
 {
- ("t", type) -> <.19>;
- ("x", value) -> <.20>;
+ ("t", type) ->
+     Abs<.4>(X/279, X/279<.3>)({
+                                ("t", type) -> <.19>;
+                                ("x", value) -> <.20>;
+                                })
+     . "t"[type];
+ ("x", value) ->
+     Abs<.4>(X/279, X/279<.3>)({
+                                ("t", type) -> <.19>;
+                                ("x", value) -> <.20>;
+                                })
+     . "x"[value];
  }
 type t = int
 val x : t = 0
 |}]
+
+(* The previous shape reduces to:
+ ("t", type) -> <.19>;
+ ("x", value) -> <.20>;
+*)
 
 include Finclude(struct type t = int let x = 0 end)
 [%%expect{|
 {
- ("t", type) -> <.21>;
- ("x", value) -> <.22>;
+ ("t", type) ->
+     Abs<.6>
+        (X/283,
+         {
+          ("t", type) -> X/283<.5> . "t"[type];
+          ("x", value) -> X/283<.5> . "x"[value];
+          })(
+     {
+      ("t", type) -> <.21>;
+      ("x", value) -> <.22>;
+      })
+     . "t"[type];
+ ("x", value) ->
+     Abs<.6>
+        (X/283,
+         {
+          ("t", type) -> X/283<.5> . "t"[type];
+          ("x", value) -> X/283<.5> . "x"[value];
+          })(
+     {
+      ("t", type) -> <.21>;
+      ("x", value) -> <.22>;
+      })
+     . "x"[value];
  }
 type t = int
 val x : t = 0
 |}]
 
+(* The previous shape reduces to:
+ ("t", type) -> <.21>;
+ ("x", value) -> <.22>;
+*)
+
 include Fredef(struct type t = int let x = 0 end)
 [%%expect{|
 {
- ("t", type) -> <.8>;
- ("x", value) -> <.9>;
+ ("t", type) ->
+     Abs<.10>(X/290, {
+                      ("t", type) -> <.8>;
+                      ("x", value) -> <.9>;
+                      })(
+     {
+      ("t", type) -> <.23>;
+      ("x", value) -> <.24>;
+      })
+     . "t"[type];
+ ("x", value) ->
+     Abs<.10>(X/290, {
+                      ("t", type) -> <.8>;
+                      ("x", value) -> <.9>;
+                      })(
+     {
+      ("t", type) -> <.23>;
+      ("x", value) -> <.24>;
+      })
+     . "x"[value];
  }
 type t = int
 val x : int = 0
 |}]
 
+(* The previous shape reduces to:
+ ("t", type) -> <.8>;
+ ("x", value) -> <.9>;
+*)
+
 include Fignore(struct type t = int let x = 0 end)
 [%%expect{|
 {
- ("t", type) -> <.11>;
- ("x", value) -> <.13>;
+ ("t", type) ->
+     Abs<.14>(()/1, {
+                     ("t", type) -> <.11>;
+                     ("x", value) -> <.13>;
+                     })(
+     {
+      ("t", type) -> <.25>;
+      ("x", value) -> <.26>;
+      })
+     . "t"[type];
+ ("x", value) ->
+     Abs<.14>(()/1, {
+                     ("t", type) -> <.11>;
+                     ("x", value) -> <.13>;
+                     })(
+     {
+      ("t", type) -> <.25>;
+      ("x", value) -> <.26>;
+      })
+     . "x"[value];
  }
 type t = Fresh
 val x : t = Fresh
 |}]
+
+(* The previous shape reduces to:
+ ("t", type) -> <.11>;
+ ("x", value) -> <.13>;
+*)
 
 module Fgen () = struct
   type t = Fresher
@@ -180,12 +358,29 @@ module Fgen : functor () -> sig type t = Fresher val x : t end
 include Fgen ()
 [%%expect{|
 {
- ("t", type) -> <.27>;
- ("x", value) -> <.29>;
+ ("t", type) ->
+     Abs<.30>(()/1, {
+                     ("t", type) -> <.27>;
+                     ("x", value) -> <.29>;
+                     })({
+                         })
+     . "t"[type];
+ ("x", value) ->
+     Abs<.30>(()/1, {
+                     ("t", type) -> <.27>;
+                     ("x", value) -> <.29>;
+                     })({
+                         })
+     . "x"[value];
  }
 type t = Fresher
 val x : t = Fresher
 |}]
+
+(* The previous shape reduces to:
+ ("t", type) -> <.27>;
+ ("x", value) -> <.29>;
+*)
 
 (***************************************************************************)
 (* Make sure we restrict shapes even when constraints imply [Tcoerce_none] *)
