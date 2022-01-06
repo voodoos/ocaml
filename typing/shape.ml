@@ -219,25 +219,12 @@ end) = struct
   (* We implement a strong call-by-need reduction, following an
      evaluator from Naëla Courant. *)
 
-  (* The call-by-need machinery uses lazy thunks, and in particular
-     the local environment stores lazy thunks. We want to be able to
-     hash local-environment values to do memoization; ('a Lazy.t) is
-     not hashable, so we wrap lazy thunks in an object type to get the
-     expected hashing behavior -- objects are hashed by identity, so
-     we get different hashes for any thunks that are not physically
-     equal, as expected. *)
-  type 'a thunk = < force : 'a >
-  let delay (f : unit -> 'a) : 'a thunk =
-    let thunk = Lazy.from_fun f in
-    object method force = Lazy.force thunk end
-  let force (obj : 'a thunk) : 'a = obj#force
-
   type nf = { uid: Uid.t option; desc: nf_desc }
   and nf_desc =
     | NVar of var
     | NApp of nf * nf
-    | NAbs of local_env * var * t * nf thunk
-    | NStruct of nf thunk Item.Map.t
+    | NAbs of local_env * var * t * delayed_nf
+    | NStruct of delayed_nf Item.Map.t
     | NProj of nf * Item.t
     | NLeaf
     | NComp_unit of string
@@ -246,11 +233,23 @@ end) = struct
      The normal form of an abstraction
        Abs(x, t)
      is a closure
-       NAbs(env, x, t, nft)
-     when [env] is the local environment, and [nft] is a thunk
-     that, when forced, gives the normal form of [t]. *)
+       NAbs(env, x, t, dnf)
+     when [env] is the local environment, and [dnf] is a delayed
+     normal form of [t].
 
-  and local_env = nf thunk option Ident.tbl
+     A "delayed normal form" is morally equivalent to (nf Lazy.t), but
+     we use a different representation that is compatible with
+     memoization (lazy values are not hashable/comparable by default
+     comparison functions): we represent a delayed normal form as
+     just a not-yet-computed pair [local_env * t] of a term in a
+     local environment -- we could also see this as a term under
+     an explicit substitution. This delayed thunked is "forced"
+     by calling the normalization function as usual, but duplicate
+     computations are precisely avoided by memoization.
+   *)
+  and delayed_nf = Thunk of local_env * t
+
+  and local_env = delayed_nf option Ident.tbl
   (* When reducing in the body of an abstraction [Abs(x, body)], we
      bind [x] to [None] in the environment. [Some v] is used for
      actual substitutions, for example in [App(Abs(x, body), t)], when
@@ -296,8 +295,9 @@ end) = struct
 
   and reduce__ ({fuel; global_env; local_env; _} as env) (t : t) =
     let reduce env t = reduce_ env t in
-    let delay_reduce env t =
-      delay (fun () -> reduce env t) in
+    let delay_reduce env t = Thunk (env.local_env, t) in
+    let force (Thunk (local_env, t)) =
+      reduce { env with local_env } t in
     let return desc : nf = { uid = t.uid; desc } in
     if !fuel < 0 then return (NoFuelLeft t.desc)
     else
@@ -362,19 +362,23 @@ end) = struct
           let mnf = Item.Map.map (delay_reduce env) m in
           return (NStruct mnf)
 
-  let rec read_back : nf -> t =
+  let rec read_back : (local_env -> env) -> nf -> t =
     let memo_table = Hashtbl.create 42 in
-    fun nf ->
-      in_memo_table memo_table nf read_back_ nf
+    fun mk_env nf ->
+      in_memo_table memo_table nf (read_back_ mk_env) nf
   (* The [nf] normal form we receive may contain a lot of internal
      sharing due to the use of memoization in the evaluator. We have
      to memoize here again, otherwise the sharing is lost by mapping
      over the term as a tree. *)
 
-  and read_back_ (nf : nf) : t =
-    { uid = nf.uid; desc = read_back_desc nf.desc }
+  and read_back_ mk_env (nf : nf) : t =
+    { uid = nf.uid; desc = read_back_desc mk_env nf.desc }
 
-  and read_back_desc = function
+  and read_back_desc mk_env desc =
+    let read_back nf = read_back mk_env nf in
+    let read_back_force (Thunk (local_env, t)) =
+      read_back (reduce_ (mk_env local_env) t) in
+    match desc with
     | NVar v ->
         Var v
     | NApp (nft, nfu) ->
@@ -388,14 +392,13 @@ end) = struct
     | NLeaf -> Leaf
     | NComp_unit s -> Comp_unit s
     | NoFuelLeft t -> t
-  and read_back_force nf = read_back (force nf)
 
   let reduce global_env t =
     let fuel = ref Params.fuel in
     let memo_table = Hashtbl.create 42 in
     let local_env = Ident.empty in
     let env = { fuel; global_env; memo_table; local_env} in
-    reduce_ env t |> read_back
+    reduce_ env t |> read_back (fun local_env -> { env with local_env })
 end
 
 module Local_reduce =
