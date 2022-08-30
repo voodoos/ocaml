@@ -469,9 +469,10 @@ let for_persistent_unit s =
 
 let leaf_for_unpack = { uid = None; desc = Leaf }
 
+let set_uid t uid = { t with uid = Some uid }
 let set_uid_if_none t uid =
   match t.uid with
-  | None -> { t with uid = Some uid }
+  | None -> set_uid t uid
   | _ -> t
 
 module Map = struct

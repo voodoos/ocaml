@@ -2563,7 +2563,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             md_uid;
           }
         in
-        let md_shape = Shape.set_uid_if_none md_shape md_uid in
+        let md_shape = Shape.set_uid md_shape md_uid in
         Env.register_uid md_uid pmb_loc;
         (*prerr_endline (Ident.unique_toplevel_name id);*)
         Mtype.lower_nongen outer_scope md.md_type;
