@@ -213,7 +213,7 @@ let str ?uid map =
   { uid; desc = Struct map; approximated = false }
 
 let alias ?uid t =
-  { uid; desc = Alias t}
+  { uid; desc = Alias t; approximated = false}
 
 let leaf uid =
   { uid = Some uid; desc = Leaf; approximated = false }
