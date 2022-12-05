@@ -2488,18 +2488,15 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           (fun rs info -> Sig_type(info.typ_id, info.typ_type, rs, Exported))
           decls []
         in
-        let shape_map = List.fold_left2
-          (fun shape_map type_decl  -> function
-            | Sig_type (id, td, _, _) ->
-              if not (Btype.is_row_name (Ident.name id)) then begin
-                Env.register_uid td.type_uid type_decl.typ_name.loc;
-                Shape.Map.add_type shape_map id td.type_uid
-              end else shape_map
-            | _ -> assert false
+        let shape_map = List.fold_left
+          (fun shape_map info ->
+            if not (Btype.is_row_name (Ident.name info.typ_id)) then begin
+              Env.register_uid info.typ_type.type_uid info.typ_name.loc;
+              Shape.Map.add_type shape_map info.typ_id info.typ_type.type_uid
+            end else shape_map
           )
           shape_map
           decls
-          items
         in
         Tstr_type (rec_flag, decls),
         items,
