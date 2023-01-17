@@ -45,7 +45,7 @@ and binary_part =
 | Partial_signature_item of signature_item
 | Partial_module_type of module_type
 
-type uid_fragments =
+type uid_fragment =
   | Class_declaration of class_declaration
   | Class_description of class_description
   | Class_type_declaration of class_type_declaration
@@ -73,7 +73,7 @@ type cmt_infos = {
   cmt_imports : (string * Digest.t option) list;
   cmt_interface_digest : Digest.t option;
   cmt_use_summaries : bool;
-  cmt_uid_to_loc : uid_fragments Shape.Uid.Tbl.t;
+  cmt_uid_to_loc : uid_fragment Shape.Uid.Tbl.t;
   cmt_impl_shape : Shape.t option; (* None for mli *)
 }
 
@@ -115,6 +115,21 @@ let clear_env binary_annots =
         Partial_interface (Array.map clear_part array)
 
   else binary_annots
+
+let clear_fragment = function
+| Class_declaration cd -> Class_declaration (cenv.class_declaration cenv cd)
+| Class_description cd -> Class_description (cenv.class_description cenv cd)
+| Class_type_declaration ctd ->
+    Class_type_declaration (cenv.class_type_declaration cenv ctd)
+| Extension_constructor ec ->
+    Extension_constructor (cenv.extension_constructor cenv ec)
+| Module_binding mb -> Module_binding (cenv.module_binding cenv mb)
+| Module_declaration md -> Module_declaration (cenv.module_declaration cenv md)
+| Module_type_declaration mtd ->
+    Module_type_declaration (cenv.module_type_declaration cenv mtd)
+| Type_declaration td -> Type_declaration (cenv.type_declaration cenv td)
+| Value_description vd -> Value_description (cenv.value_description cenv vd)
+| (Tmodule_declaration _ | Tvalue_description _) as t -> t
 
 exception Error of error
 
@@ -177,10 +192,11 @@ let record_value_dependency vd1 vd2 =
   if vd1.Types.val_loc <> vd2.Types.val_loc then
     value_deps := (vd1, vd2) :: !value_deps
 
-let uid_to_loc : uid_fragments Types.Uid.Tbl.t ref =
+let uid_to_loc : uid_fragment Types.Uid.Tbl.t ref =
   Local_store.s_table Types.Uid.Tbl.create 16
 
-let register_uid uid decl = Types.Uid.Tbl.add !uid_to_loc uid decl
+let register_uid uid fragment =
+  Types.Uid.Tbl.add !uid_to_loc uid @@ clear_fragment fragment
 
 let () = Env.clear_uid_tbl := fun () -> Types.Uid.Tbl.clear !uid_to_loc
 
