@@ -88,35 +88,57 @@ let keep_only_summary = Env.keep_only_summary
 
 open Tast_mapper
 
-let cenv =
-  {Tast_mapper.default with env = fun _sub env -> keep_only_summary env}
+let rec tast_map ~env () =
+  {Tast_mapper.default with
 
-let clear_part = function
-  | Partial_structure s -> Partial_structure (cenv.structure cenv s)
+  env =
+    if need_to_clear_env then (fun _sub env -> keep_only_summary env)
+    else Tast_mapper.default.env; }
+
+let clear_part =
+  function
+  | Partial_structure s ->
+      let tast_map = tast_map ~env:s.str_final_env () in
+      Partial_structure (tast_map.structure tast_map s)
   | Partial_structure_item s ->
-      Partial_structure_item (cenv.structure_item cenv s)
-  | Partial_expression e -> Partial_expression (cenv.expr cenv e)
-  | Partial_pattern (category, p) -> Partial_pattern (category, cenv.pat cenv p)
-  | Partial_class_expr ce -> Partial_class_expr (cenv.class_expr cenv ce)
-  | Partial_signature s -> Partial_signature (cenv.signature cenv s)
+        let tast_map = tast_map ~env:s.str_env () in
+        Partial_structure_item (tast_map.structure_item tast_map s)
+  | Partial_expression e ->
+      let tast_map = tast_map ~env:e.exp_env () in
+      Partial_expression (tast_map.expr tast_map e)
+  | Partial_pattern (category, p) ->
+      let tast_map = tast_map ~env:p.pat_env () in
+      Partial_pattern (category, tast_map.pat tast_map p)
+  | Partial_class_expr ce ->
+      let tast_map = tast_map ~env:ce.cl_env () in
+      Partial_class_expr (tast_map.class_expr tast_map ce)
+  | Partial_signature s ->
+      let tast_map = tast_map ~env:s.sig_final_env () in
+      Partial_signature (tast_map.signature tast_map s)
   | Partial_signature_item s ->
-      Partial_signature_item (cenv.signature_item cenv s)
-  | Partial_module_type s -> Partial_module_type (cenv.module_type cenv s)
+      let tast_map = tast_map ~env:s.sig_env () in
+      Partial_signature_item (tast_map.signature_item tast_map s)
+  | Partial_module_type s ->
+    let tast_map = tast_map ~env:s.mty_env () in
+    Partial_module_type (tast_map.module_type tast_map s)
 
 let clear_env binary_annots =
-  if need_to_clear_env then
-    match binary_annots with
-    | Implementation s -> Implementation (cenv.structure cenv s)
-    | Interface s -> Interface (cenv.signature cenv s)
-    | Packed _ -> binary_annots
-    | Partial_implementation array ->
-        Partial_implementation (Array.map clear_part array)
-    | Partial_interface array ->
-        Partial_interface (Array.map clear_part array)
+  match binary_annots with
+  | Implementation s ->
+      let tast_map = tast_map ~env:s.str_final_env () in
+      Implementation (tast_map.structure tast_map s)
+  | Interface s ->
+      let tast_map = tast_map ~env:s.sig_final_env () in
+      Interface (tast_map.signature tast_map s)
+  | Packed _ -> binary_annots
+  | Partial_implementation array ->
+      Partial_implementation (Array.map clear_part array)
+  | Partial_interface array ->
+      Partial_interface (Array.map clear_part array)
 
-  else binary_annots
-
-let clear_fragment = function
+let clear_fragment =
+  let cenv = tast_map ~env:Env.empty () in
+  function
 | Class_declaration cd -> Class_declaration (cenv.class_declaration cenv cd)
 | Class_description cd -> Class_description (cenv.class_description cenv cd)
 | Class_type_declaration ctd ->
