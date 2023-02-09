@@ -88,12 +88,15 @@ let keep_only_summary = Env.keep_only_summary
 
 open Tast_mapper
 
-let rec tast_map ~env () =
-  {Tast_mapper.default with
 
-  env =
+
+let rec tast_map =
+  let env_mapper =
     if need_to_clear_env then (fun _sub env -> keep_only_summary env)
-    else Tast_mapper.default.env; }
+    else Tast_mapper.default.env
+  in
+  fun ~env:_ () ->
+  {Tast_mapper.default with env = env_mapper }
 
 let clear_part =
   function
