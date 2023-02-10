@@ -52,11 +52,10 @@ type uid_fragment =
   | Extension_constructor of extension_constructor
   | Module_binding of module_binding
   | Module_declaration of module_declaration
-  | Tmodule_declaration of Types.module_declaration * string option Location.loc
   | Module_type_declaration of module_type_declaration
   | Type_declaration of type_declaration
+  | Value_binding of value_binding
   | Value_description of value_description
-  | Tvalue_description of Types.value_description * string option Location.loc
 
 type cmt_infos = {
   cmt_modname : string;
@@ -116,29 +115,31 @@ let rec tast_map =
       str_type;
     });
 
-  value_bindings = (fun sub  bindings ->
+  value_bindings = (fun sub bindings ->
+    let bindings = env_mapper.value_bindings sub bindings in
     let ((_, vbs) as bindings) =
       env_mapper.value_bindings sub bindings
     in
-    let bound_idents = let_bound_idents_full vbs in
-    List.iter (fun (id, {Location.txt; loc}, _typ) ->
+    let bound_idents = let_bound_idents_full_with_bindings vbs in
+    List.iter (fun (vb, (id, _loc, _typ)) ->
       try
         let vd = Env.find_value (Pident id) env in
         register_uid vd.val_uid
-          (Tvalue_description (vd, { txt = Some txt; loc}))
+          (Value_binding vb)
       with Not_found -> ())
       bound_idents;
-      bindings);
+    bindings);
 
-  module_binding = (fun sub ({mb_id; mb_name} as mb) ->
+  module_binding = (fun sub mb ->
+    let mb = env_mapper.module_binding sub mb in
     Option.iter
       (fun id ->
         (try
           let tmd = Env.find_module (Pident id) env in
-          register_uid tmd.md_uid (Tmodule_declaration (tmd, mb_name));
+          register_uid tmd.md_uid (Module_binding mb);
         with Not_found -> ()))
-      mb_id;
-    default.module_binding sub mb);
+      mb.mb_id;
+    mb);
 
   module_declaration = (fun sub md ->
     let md = env_mapper.module_declaration sub md in
