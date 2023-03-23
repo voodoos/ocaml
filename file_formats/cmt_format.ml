@@ -74,6 +74,7 @@ type cmt_infos = {
   cmt_use_summaries : bool;
   cmt_uid_to_decl : item_declaration Shape.Uid.Tbl.t;
   cmt_impl_shape : Shape.t option; (* None for mli *)
+  cmt_shape_index : (Shape.t, Longident.t Location.loc list) Hashtbl.t
 }
 
 type error =
@@ -88,11 +89,35 @@ let keep_only_summary = Env.keep_only_summary
 let cenv =
   {Tast_mapper.default with env = fun _sub env -> keep_only_summary env}
 
+let clear_decl = function
+  | Class_declaration cd -> Class_declaration (cenv.class_declaration cenv cd)
+  | Class_description cd -> Class_description (cenv.class_description cenv cd)
+  | Class_type_declaration ctd ->
+      Class_type_declaration (cenv.class_type_declaration cenv ctd)
+  | Extension_constructor ec ->
+      Extension_constructor (cenv.extension_constructor cenv ec)
+  | Module_binding mb -> Module_binding (cenv.module_binding cenv mb)
+  | Module_declaration md ->
+      Module_declaration (cenv.module_declaration cenv md)
+  | Module_type_declaration mtd ->
+      Module_type_declaration (cenv.module_type_declaration cenv mtd)
+  | Type_declaration td -> Type_declaration (cenv.type_declaration cenv td)
+  | Value_binding vb -> Value_binding (cenv.value_binding cenv vb)
+  | Value_description vd -> Value_description (cenv.value_description cenv vd)
+
 let uid_to_decl : item_declaration Types.Uid.Tbl.t ref =
   Local_store.s_table Types.Uid.Tbl.create 16
 
 let register_uid uid fragment =
-  Types.Uid.Tbl.add !uid_to_decl uid fragment
+  Types.Uid.Tbl.add !uid_to_decl uid (clear_decl fragment)
+
+let shape_index : (Shape.t, Longident.t Location.loc list) Hashtbl.t ref  =
+  Local_store.s_table Hashtbl.create 128
+
+let add_loc_to_index shape loc =
+  match Hashtbl.find_opt !shape_index shape with
+  | Some locs -> Hashtbl.replace !shape_index shape (loc::locs)
+  | None -> Hashtbl.add !shape_index shape [loc]
 
 let iter_decl =
   Tast_iterator.{ default_iterator with
@@ -142,7 +167,46 @@ let iter_decl =
 
   class_description =(fun sub cd ->
     register_uid cd.ci_decl.cty_uid (Class_description cd);
-    default_iterator.class_description sub cd); }
+    default_iterator.class_description sub cd);
+
+  expr = (fun sub ({ exp_desc; exp_env; _ } as e) ->
+      (match exp_desc with
+      | Texp_ident (path, ({ loc = { loc_ghost = false; _ }; _ } as lid), _)
+        -> (
+          try
+            let shape = Env.shape_of_path ~namespace:Value exp_env path in
+            let shape = Shape.local_weak_reduce shape in
+            add_loc_to_index shape lid
+          with Not_found -> ())
+            (* Log.warn "No shape for expr %a at %a" Path.print path
+              Location.print_loc lid.loc) *)
+      | _ -> ());
+      default_iterator.expr sub e);
+
+  typ =
+    (fun sub ({ ctyp_desc; ctyp_env; _ } as ct) ->
+      (match ctyp_desc with
+      | Ttyp_constr
+        (path, ({ loc = { loc_ghost = false; _ }; _ } as lid), _ctyps) -> (
+          try
+            let shape = Env.shape_of_path ~namespace:Type ctyp_env path in
+            let shape = Shape.local_weak_reduce shape in
+            add_loc_to_index shape lid
+          with Not_found -> ())
+      | _ -> ());
+      default_iterator.typ sub ct);
+
+  module_expr =
+    (fun sub ({ mod_desc; mod_env; _ } as me) ->
+      (match mod_desc with
+      | Tmod_ident (path, lid) -> (
+          try
+            let shape = Env.shape_of_path ~namespace:Module mod_env path in
+            add_loc_to_index shape lid
+          with Not_found -> ())
+      | _ -> ());
+      default_iterator.module_expr sub me);
+}
 
 let clear_part = function
   | Partial_structure s -> Partial_structure (cenv.structure cenv s)
@@ -258,8 +322,8 @@ let save_cmt filename modname binary_annots sourcefile initial_env cmi shape =
            | None -> None
            | Some cmi -> Some (output_cmi temp_file_name oc cmi)
          in
+         gather_declarations binary_annots;
          let cmt_annots = clear_env binary_annots in
-         gather_declarations cmt_annots;
          let source_digest = Option.map Digest.file sourcefile in
          let cmt = {
            cmt_modname = modname;
@@ -278,6 +342,7 @@ let save_cmt filename modname binary_annots sourcefile initial_env cmi shape =
            cmt_use_summaries = need_to_clear_env;
            cmt_uid_to_decl = !uid_to_decl;
            cmt_impl_shape = shape;
+           cmt_shape_index = !shape_index;
          } in
          output_cmt oc cmt)
   end;

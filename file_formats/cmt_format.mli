@@ -79,6 +79,7 @@ type cmt_infos = {
   cmt_use_summaries : bool;
   cmt_uid_to_decl : item_declaration Shape.Uid.Tbl.t;
   cmt_impl_shape : Shape.t option; (* None for mli *)
+  cmt_shape_index : (Shape.t, Longident.t Location.loc list) Hashtbl.t
 }
 
 type error =
