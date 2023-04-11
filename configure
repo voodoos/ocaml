@@ -12760,7 +12760,7 @@ case $ocaml_cv_cc_vendor in #(
   cc_warnings='-Wall -Wdeclaration-after-statement' ;;
 esac
 
-case $enable_warn_error,true in #(
+case $enable_warn_error,false in #(
   yes,*|,true) :
     cc_warnings="$cc_warnings $warn_error_flag" ;; #(
   *) :
