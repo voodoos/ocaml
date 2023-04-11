@@ -1863,14 +1863,14 @@ module Conv = struct
       match pat.pat_desc with
         Tpat_or (pa,pb,_) ->
           mkpat (Ppat_or (loop pa, loop pb))
-      | Tpat_var (_, ({txt="*extension*"} as nm)) -> (* PR#7330 *)
+      | Tpat_var (_, ({txt="*extension*"} as nm), _) -> (* PR#7330 *)
           mkpat (Ppat_var nm)
       | Tpat_any
       | Tpat_var _ ->
           mkpat Ppat_any
       | Tpat_constant c ->
           mkpat (Ppat_constant (Untypeast.constant c))
-      | Tpat_alias (p,_,_) -> loop p
+      | Tpat_alias (p,_,_,_) -> loop p
       | Tpat_tuple lst ->
           mkpat (Ppat_tuple (List.map loop lst))
       | Tpat_construct (cstr_lid, cstr, lst, _) ->
