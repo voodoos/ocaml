@@ -99,6 +99,9 @@ module Item = struct
     type t = string * Sig_component_kind.t
     let compare = compare
 
+    let name (name, _) = name
+    let kind (_, kind) = kind
+
     let make str ns = str, ns
 
     let value id = Ident.name id, Sig_component_kind.Value
@@ -186,6 +189,14 @@ let print fmt =
         Format.fprintf fmt "{@[<v>%a@,%a@]}" print_uid_opt uid print_map map
   in
   Format.fprintf fmt"@[%a@]@;" aux
+
+let rec is_closed (t : t) = match t.desc with
+  | Comp_unit _ -> false
+  | Leaf | Var _ -> true
+  | Abs (_ , t) -> is_closed t
+  | App (t, t') -> is_closed t && is_closed t'
+  | Struct map -> Item.Map.for_all (fun _ t -> is_closed t) map
+  | Proj (t, _) -> is_closed t
 
 let fresh_var ?(name="shape-var") uid =
   let var = Ident.create_local name in

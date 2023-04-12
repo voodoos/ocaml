@@ -49,7 +49,9 @@ module Sig_component_kind : sig
 end
 
 module Item : sig
-  type t
+  type t = string * Sig_component_kind.t
+  val name : t -> string
+  val kind : t -> Sig_component_kind.t
 
   val make : string -> Sig_component_kind.t -> t
 
@@ -60,6 +62,8 @@ module Item : sig
   val extension_constructor : Ident.t -> t
   val class_ : Ident.t -> t
   val class_type : Ident.t -> t
+
+  val print : Format.formatter -> t -> unit
 
   module Map : Map.S with type key = t
 end
@@ -76,6 +80,9 @@ and desc =
   | Comp_unit of string
 
 val print : Format.formatter -> t -> unit
+
+(** A Shape is closed if it does not refer to external compilation units *)
+val is_closed : t -> bool
 
 (* Smart constructors *)
 
