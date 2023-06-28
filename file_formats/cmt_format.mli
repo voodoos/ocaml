@@ -59,8 +59,14 @@ type item_declaration =
   | Module_declaration of module_declaration
   | Module_type_declaration of module_type_declaration
   | Type_declaration of type_declaration
+  | Constructor_declaration of constructor_declaration
+  | Label_declaration of label_declaration
   | Value_binding of value_binding
   | Value_description of value_description
+
+type index_item =
+| Resolved of Uid.t
+| Unresolved of Shape.t
 
 type cmt_infos = {
   cmt_modname : modname;
@@ -79,6 +85,7 @@ type cmt_infos = {
   cmt_use_summaries : bool;
   cmt_uid_to_decl : item_declaration Shape.Uid.Tbl.t;
   cmt_impl_shape : Shape.t option; (* None for mli *)
+  cmt_index : (index_item * Longident.t Location.loc) list
 }
 
 type error =
