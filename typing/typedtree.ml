@@ -18,6 +18,8 @@
 open Asttypes
 open Types
 
+module Uid = Shape.Uid
+
 (* Value expressions for the core language *)
 
 type partial = Partial | Total
@@ -312,6 +314,7 @@ and module_binding =
     {
      mb_id: Ident.t option;
      mb_name: string option loc;
+     mb_decl_uid: Uid.t;
      mb_presence: module_presence;
      mb_expr: module_expr;
      mb_attributes: attribute list;
@@ -391,6 +394,7 @@ and module_declaration =
     {
      md_id: Ident.t option;
      md_name: string option loc;
+     md_uid: Uid.t;
      md_presence: module_presence;
      md_type: module_type;
      md_attributes: attribute list;
@@ -411,6 +415,7 @@ and module_type_declaration =
     {
      mtd_id: Ident.t;
      mtd_name: string loc;
+     mtd_uid: Uid.t;
      mtd_type: module_type option;
      mtd_attributes: attribute list;
      mtd_loc: Location.t;
@@ -534,6 +539,7 @@ and label_declaration =
     {
      ld_id: Ident.t;
      ld_name: string loc;
+     ld_uid: Uid.t;
      ld_mutable: mutable_flag;
      ld_type: core_type;
      ld_loc: Location.t;
@@ -544,6 +550,7 @@ and constructor_declaration =
     {
      cd_id: Ident.t;
      cd_name: string loc;
+     cd_uid: Uid.t;
      cd_vars: string loc list;
      cd_args: constructor_arguments;
      cd_res: core_type option;
