@@ -18,6 +18,8 @@
 open Asttypes
 open Types
 
+module Uid = Shape.Uid
+
 (* Value expressions for the core language *)
 
 type partial = Partial | Total
@@ -53,9 +55,9 @@ and pat_extra =
 and 'k pattern_desc =
   (* value patterns *)
   | Tpat_any : value pattern_desc
-  | Tpat_var : Ident.t * string loc -> value pattern_desc
+  | Tpat_var : Ident.t * string loc * Uid.t -> value pattern_desc
   | Tpat_alias :
-      value general_pattern * Ident.t * string loc -> value pattern_desc
+      value general_pattern * Ident.t * string loc * Uid.t -> value pattern_desc
   | Tpat_constant : constant -> value pattern_desc
   | Tpat_tuple : value general_pattern list -> value pattern_desc
   | Tpat_construct :
@@ -289,6 +291,7 @@ and module_binding =
     {
      mb_id: Ident.t option;
      mb_name: string option loc;
+     mb_decl_uid: Uid.t;
      mb_presence: module_presence;
      mb_expr: module_expr;
      mb_attributes: attribute list;
@@ -368,6 +371,7 @@ and module_declaration =
     {
      md_id: Ident.t option;
      md_name: string option loc;
+     md_uid: Uid.t;
      md_presence: module_presence;
      md_type: module_type;
      md_attributes: attribute list;
@@ -378,6 +382,7 @@ and module_substitution =
     {
      ms_id: Ident.t;
      ms_name: string loc;
+     ms_uid: Uid.t;
      ms_manifest: Path.t;
      ms_txt: Longident.t loc;
      ms_attributes: attributes;
@@ -388,6 +393,7 @@ and module_type_declaration =
     {
      mtd_id: Ident.t;
      mtd_name: string loc;
+     mtd_uid: Uid.t;
      mtd_type: module_type option;
      mtd_attributes: attribute list;
      mtd_loc: Location.t;
@@ -510,6 +516,7 @@ and label_declaration =
     {
      ld_id: Ident.t;
      ld_name: string loc;
+     ld_uid: Uid.t;
      ld_mutable: mutable_flag;
      ld_type: core_type;
      ld_loc: Location.t;
@@ -520,6 +527,7 @@ and constructor_declaration =
     {
      cd_id: Ident.t;
      cd_name: string loc;
+     cd_uid: Uid.t;
      cd_vars: string loc list;
      cd_args: constructor_arguments;
      cd_res: core_type option;
@@ -672,7 +680,7 @@ type pattern_action =
 let shallow_iter_pattern_desc
   : type k . pattern_action -> k pattern_desc -> unit
   = fun f -> function
-  | Tpat_alias(p, _, _) -> f.f p
+  | Tpat_alias(p, _, _, _) -> f.f p
   | Tpat_tuple patl -> List.iter f.f patl
   | Tpat_construct(_, _, patl, _) -> List.iter f.f patl
   | Tpat_variant(_, pat, _) -> Option.iter f.f pat
@@ -692,8 +700,8 @@ type pattern_transformation =
 let shallow_map_pattern_desc
   : type k . pattern_transformation -> k pattern_desc -> k pattern_desc
   = fun f d -> match d with
-  | Tpat_alias (p1, id, s) ->
-      Tpat_alias (f.f p1, id, s)
+  | Tpat_alias (p1, id, s, uid) ->
+      Tpat_alias (f.f p1, id, s, uid)
   | Tpat_tuple pats ->
       Tpat_tuple (List.map f.f pats)
   | Tpat_record (lpats, closed) ->
@@ -754,11 +762,11 @@ let rec iter_bound_idents
   : type k . _ -> k general_pattern -> _
   = fun f pat ->
   match pat.pat_desc with
-  | Tpat_var (id,s) ->
-     f (id,s,pat.pat_type)
-  | Tpat_alias(p, id, s) ->
+  | Tpat_var (id, s, uid) ->
+     f (id,s,pat.pat_type, uid)
+  | Tpat_alias(p, id, s, uid) ->
       iter_bound_idents f p;
-      f (id,s,pat.pat_type)
+      f (id,s,pat.pat_type, uid)
   | Tpat_or(p1, _, _) ->
       (* Invariant : both arguments bind the same variables *)
       iter_bound_idents f p1
@@ -774,7 +782,7 @@ let rev_pat_bound_idents_full pat =
   !idents_full
 
 let rev_only_idents idents_full =
-  List.rev_map (fun (id,_,_) -> id) idents_full
+  List.rev_map (fun (id,_,_,_) -> id) idents_full
 
 let pat_bound_idents_full pat =
   List.rev (rev_pat_bound_idents_full pat)
@@ -797,14 +805,14 @@ let alpha_var env id = List.assoc id env
 let rec alpha_pat
   : type k . _ -> k general_pattern -> k general_pattern
   = fun env p -> match p.pat_desc with
-  | Tpat_var (id, s) -> (* note the ``Not_found'' case *)
+  | Tpat_var (id, s, uid) -> (* note the ``Not_found'' case *)
       {p with pat_desc =
-       try Tpat_var (alpha_var env id, s) with
+       try Tpat_var (alpha_var env id, s, uid) with
        | Not_found -> Tpat_any}
-  | Tpat_alias (p1, id, s) ->
+  | Tpat_alias (p1, id, s, uid) ->
       let new_p =  alpha_pat env p1 in
       begin try
-        {p with pat_desc = Tpat_alias (new_p, alpha_var env id, s)}
+        {p with pat_desc = Tpat_alias (new_p, alpha_var env id, s, uid)}
       with
       | Not_found -> new_p
       end
