@@ -58,6 +58,7 @@ let in_printing_env f = Env.without_cmis f !printing_env
  type namespace = Sig_component_kind.t =
     | Value
     | Type
+    | Label
     | Module
     | Module_type
     | Extension_constructor
@@ -68,7 +69,7 @@ let in_printing_env f = Env.without_cmis f !printing_env
 module Namespace = struct
 
   let id = function
-    | Type -> 0
+    | Type | Label -> 0
     | Module -> 1
     | Module_type -> 2
     | Class -> 3
@@ -88,7 +89,7 @@ module Namespace = struct
   let lookup =
     let to_lookup f lid = fst @@ in_printing_env (f (Lident lid)) in
     function
-    | Some Type -> to_lookup Env.find_type_by_name
+    | Some (Type | Label) -> to_lookup Env.find_type_by_name
     | Some Module -> to_lookup Env.find_module_by_name
     | Some Module_type -> to_lookup Env.find_modtype_by_name
     | Some Class -> to_lookup Env.find_class_by_name
@@ -99,7 +100,8 @@ module Namespace = struct
     let path = Path.Pident id in
     try Some (
         match namespace with
-        | Some Type -> (in_printing_env @@ Env.find_type path).type_loc
+        | Some (Type | Label) ->
+            (in_printing_env @@ Env.find_type path).type_loc
         | Some Module -> (in_printing_env @@ Env.find_module path).md_loc
         | Some Module_type -> (in_printing_env @@ Env.find_modtype path).mtd_loc
         | Some Class -> (in_printing_env @@ Env.find_class path).cty_loc
@@ -279,7 +281,7 @@ let human_id id index =
 
 let indexed_name namespace id =
   let find namespace id env = match namespace with
-    | Type -> Env.find_type_index id env
+    | Type | Label -> Env.find_type_index id env
     | Module -> Env.find_module_index id env
     | Module_type -> Env.find_modtype_index id env
     | Class -> Env.find_class_index id env
