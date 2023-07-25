@@ -1039,7 +1039,7 @@ end = struct
     let open Sig_component_kind in
     match component with
     | Value -> names.values
-    | Type -> names.types
+    | Type | Label -> names.types
     | Module -> names.modules
     | Module_type -> names.modtypes
     | Extension_constructor -> names.typexts
@@ -2554,13 +2554,23 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           decls []
         in
         let shape_map = List.fold_left
-          (fun shape_map -> function
-            | Sig_type (id, vd, _, _) ->
-              if not (Btype.is_row_name (Ident.name id)) then begin
-                Env.register_uid vd.type_uid vd.type_loc;
-                Shape.Map.add_type shape_map id vd.type_uid
-              end else shape_map
-            | _ -> assert false
+          (fun shape_map info ->
+            if not (Btype.is_row_name (Ident.name info.typ_id)) then begin
+              Env.register_uid info.typ_type.type_uid info.typ_type.type_loc;
+              let shape_map =
+                match info.typ_kind with
+                | Ttype_variant cstrs ->
+                    List.fold_left (fun shape_map { cd_id; cd_uid; _ } ->
+                      Shape.Map.add_type shape_map cd_id cd_uid)
+                      shape_map cstrs
+                | Ttype_record labels ->
+                    List.fold_left (fun shape_map { ld_id; ld_uid; _ } ->
+                      Shape.Map.add_label shape_map ld_id ld_uid)
+                      shape_map labels
+                | _ -> shape_map
+              in
+              Shape.Map.add_type shape_map info.typ_id info.typ_type.type_uid
+            end else shape_map
           )
           shape_map
           items
