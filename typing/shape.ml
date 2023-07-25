@@ -67,6 +67,7 @@ module Sig_component_kind = struct
   type t =
     | Value
     | Type
+    | Label
     | Module
     | Module_type
     | Extension_constructor
@@ -76,6 +77,7 @@ module Sig_component_kind = struct
   let to_string = function
     | Value -> "value"
     | Type -> "type"
+    | Label -> "label"
     | Module -> "module"
     | Module_type -> "module type"
     | Extension_constructor -> "extension constructor"
@@ -87,6 +89,7 @@ module Sig_component_kind = struct
     | Extension_constructor ->
         false
     | Type
+    | Label
     | Module
     | Module_type
     | Class
@@ -106,6 +109,7 @@ module Item = struct
 
     let value id = Ident.name id, Sig_component_kind.Value
     let type_ id = Ident.name id, Sig_component_kind.Type
+    let label id = Ident.name id, Sig_component_kind.Label
     let module_ id = Ident.name id, Sig_component_kind.Module
     let module_type id = Ident.name id, Sig_component_kind.Module_type
     let extension_constructor id =
@@ -206,7 +210,7 @@ let str ?uid map =
   { uid; desc = Struct map }
 
 let alias ?uid t =
-  { uid; desc = Alias t; approximated = false}
+  { uid; desc = Alias t}
 
 let leaf uid =
   { uid = Some uid; desc = Leaf }
@@ -567,6 +571,11 @@ module Map = struct
   let add_type t id uid = Item.Map.add (Item.type_ id) (leaf uid) t
   let add_type_proj t id shape =
     let item = Item.type_ id in
+    Item.Map.add item (proj shape item) t
+
+  let add_label t id uid = Item.Map.add (Item.label id) (leaf uid) t
+  let add_label_proj t id shape =
+    let item = Item.label id in
     Item.Map.add item (proj shape item) t
 
   let add_module t id shape = Item.Map.add (Item.module_ id) shape t
