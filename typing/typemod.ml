@@ -1562,7 +1562,9 @@ and transl_signature env sg =
               decls rem,
             final_env
         | Psig_modtype pmtd ->
-            let newenv, mtd, decl = transl_modtype_decl env pmtd in
+            let newenv, mtd, (decl : modtype_declaration) =
+              transl_modtype_decl env pmtd
+            in
             Signature_names.check_modtype names pmtd.pmtd_loc mtd.mtd_id;
             Env.register_uid decl.mtd_uid mtd.mtd_loc;
             let (trem, rem, final_env) = transl_sig newenv srem in
@@ -1570,7 +1572,9 @@ and transl_signature env sg =
             Sig_modtype (mtd.mtd_id, decl, Exported) :: rem,
             final_env
         | Psig_modtypesubst pmtd ->
-            let newenv, mtd, decl = transl_modtype_decl env pmtd in
+            let newenv, mtd, (decl : modtype_declaration) =
+              transl_modtype_decl env pmtd
+            in
             let info =
               let mty = match mtd.mtd_type with
                 | Some tmty -> tmty.mty_type
@@ -2518,7 +2522,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
            will be marked as being used during the signature inclusion test. *)
         let items, shape_map =
           List.fold_left
-            (fun (acc, shape_map) (id, { Asttypes.loc; _ }, _typ)->
+            (fun (acc, shape_map) (id, { Asttypes.loc; _ }, _typ, _uid)->
               Signature_names.check_value names loc id;
               let vd =  Env.find_value (Pident id) newenv in
               Env.register_uid vd.val_uid vd.val_loc;
