@@ -40,13 +40,6 @@ let value_declarations  : unit usage_tbl ref = s_table Types.Uid.Tbl.create 16
 let type_declarations   : unit usage_tbl ref = s_table Types.Uid.Tbl.create 16
 let module_declarations : unit usage_tbl ref = s_table Types.Uid.Tbl.create 16
 
-let uid_to_loc : Location.t Types.Uid.Tbl.t ref =
-  s_table Types.Uid.Tbl.create 16
-
-let register_uid uid loc = Types.Uid.Tbl.add !uid_to_loc uid loc
-
-let get_uid_to_loc_tbl () = !uid_to_loc
-
 type constructor_usage = Positive | Pattern | Exported_private | Exported
 type constructor_usages =
   {
@@ -952,13 +945,15 @@ let is_imported_opaque modname =
 let register_import_as_opaque modname =
   Persistent_env.register_import_as_opaque !persistent_env modname
 
+let clear_uid_tbl: (unit -> unit) ref = ref Fun.id
+
 let reset_declaration_caches () =
   Types.Uid.Tbl.clear !value_declarations;
   Types.Uid.Tbl.clear !type_declarations;
   Types.Uid.Tbl.clear !module_declarations;
   Types.Uid.Tbl.clear !used_constructors;
   Types.Uid.Tbl.clear !used_labels;
-  Types.Uid.Tbl.clear !uid_to_loc;
+  !clear_uid_tbl ();
   ()
 
 let reset_cache () =
@@ -1133,7 +1128,7 @@ let rec find_type_data path env =
   | decl ->
     {
       tda_declaration = decl;
-      tda_descriptions = Type_abstract;
+      tda_descriptions = Type_abstract Abstract_def;
       tda_shape = Shape.leaf decl.type_uid;
     }
   | exception Not_found -> begin
@@ -1158,7 +1153,7 @@ and find_cstr path name env =
   match tda.tda_descriptions with
   | Type_variant (cstrs, _) ->
       List.find (fun cstr -> cstr.cstr_name = name) cstrs
-  | Type_record _ | Type_abstract | Type_open -> raise Not_found
+  | Type_record _ | Type_abstract _ | Type_open -> raise Not_found
 
 
 
@@ -1265,6 +1260,8 @@ let find_shape env (ns : Shape.Sig_component_kind.t) id =
   match ns with
   | Type ->
       (IdTbl.find_same id env.types).tda_shape
+  | Label ->
+      Shape.leaf ((TycompTbl.find_same id env.labels).lbl_uid)
   | Extension_constructor ->
       (TycompTbl.find_same id env.constrs).cda_shape
   | Value ->
@@ -1385,7 +1382,7 @@ let find_type_expansion path env =
   let decl = find_type path env in
   match decl.type_manifest with
   | Some body when decl.type_private = Public
-              || decl.type_kind <> Type_abstract
+              || not (Btype.type_kind_is_abstract decl)
               || Btype.has_constr_row body ->
       (decl.type_params, body, decl.type_expansion_scope)
   (* The manifest type of Private abstract data types without
@@ -1759,7 +1756,7 @@ let rec components_of_module_maker
                         add_to_tbl descr.lbl_name descr c.comp_labels)
                     lbls;
                   Type_record (lbls, repr)
-              | Type_abstract -> Type_abstract
+              | Type_abstract r -> Type_abstract r
               | Type_open -> Type_open
             in
             let shape = Shape.proj cm_shape (Shape.Item.type_ id) in
@@ -2000,7 +1997,7 @@ and store_type ~check id info shape env =
           (fun env (lbl_id, lbl) ->
             store_label ~check info id lbl_id lbl env)
           env labels
-    | Type_abstract -> Type_abstract, env
+    | Type_abstract r -> Type_abstract r, env
     | Type_open -> Type_open, env
   in
   let tda =
@@ -2021,7 +2018,7 @@ and store_type_infos ~tda_shape id info env =
   let tda =
     {
       tda_declaration = info;
-      tda_descriptions = Type_abstract;
+      tda_descriptions = Type_abstract Abstract_def;
       tda_shape
     }
   in
@@ -3112,7 +3109,7 @@ let lookup_label ~errors ~use ~loc usage lid env =
 let lookup_all_labels_from_type ~use ~loc usage ty_path env =
   match find_type_descrs ty_path env with
   | exception Not_found -> []
-  | Type_variant _ | Type_abstract | Type_open -> []
+  | Type_variant _ | Type_abstract _ | Type_open -> []
   | Type_record (lbls, _) ->
       List.map
         (fun lbl ->
@@ -3134,7 +3131,7 @@ let lookup_constructor ~errors ~use ~loc usage lid env =
 let lookup_all_constructors_from_type ~use ~loc usage ty_path env =
   match find_type_descrs ty_path env with
   | exception Not_found -> []
-  | Type_record _ | Type_abstract | Type_open -> []
+  | Type_record _ | Type_abstract _ | Type_open -> []
   | Type_variant (cstrs, _) ->
       List.map
         (fun cstr ->

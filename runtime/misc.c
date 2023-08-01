@@ -51,7 +51,7 @@ void caml_failed_assert (char * expr, char_os * file_os, int line)
 {
   char* file = caml_stat_strdup_of_os(file_os);
   fprintf(stderr, "[%02d] file %s; line %d ### Assertion failed: %s\n",
-          (Caml_state_opt != NULL) ? Caml_state->id : -1, file, line, expr);
+          (Caml_state_opt != NULL) ? Caml_state_opt->id : -1, file, line, expr);
   fflush(stderr);
   caml_stat_free(file);
   abort();
@@ -86,7 +86,7 @@ void caml_gc_log (char *msg, ...)
     va_list args;
     va_start (args, msg);
     snprintf(fmtbuf, GC_LOG_LENGTH, "[%02d] %s\n",
-             (Caml_state_opt != NULL) ? Caml_state->id : -1, msg);
+             (Caml_state_opt != NULL) ? Caml_state_opt->id : -1, msg);
     vfprintf(stderr, fmtbuf, args);
     va_end (args);
     fflush(stderr);
@@ -273,3 +273,18 @@ void caml_bad_caml_state(void)
 {
   caml_fatal_error("no domain lock held");
 }
+
+#ifdef WITH_THREAD_SANITIZER
+/* This hardcodes a number of suppressions of TSan reports about runtime
+   functions (see #11040). Unlike the CAMLno_tsan qualifier which
+   un-instruments function, this simply silences reports when the call stack
+   contains a frame matching one of the lines starting with "race:". */
+const char * __tsan_default_suppressions(void) {
+  return "deadlock:caml_plat_lock\n" /* Avoids deadlock inversion messages */
+         "deadlock:pthread_mutex_lock\n" /* idem */
+         "race:create_domain\n"
+         "race:mark_slice_darken\n"
+         "race:caml_darken_cont\n"
+         "race:caml_shared_try_alloc\n";
+}
+#endif /* WITH_THREAD_SANITIZER */

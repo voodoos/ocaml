@@ -56,6 +56,7 @@ type pattern_variable =
     pv_loc: Location.t;
     pv_as_var: bool;
     pv_attributes: Typedtree.attributes;
+    pv_uid : Uid.t;
   }
 
 val mk_expected:
@@ -98,10 +99,6 @@ type existential_restriction =
   | In_class_def (** or in [class c = let ... in ...] *)
   | In_self_pattern (** or in self pattern *)
 
-type module_patterns_restriction =
-  | Modules_allowed of { scope : int }
-  | Modules_rejected
-
 val type_binding:
         Env.t -> rec_flag ->
           Parsetree.value_binding list ->
@@ -121,10 +118,9 @@ val type_self_pattern:
         Env.t -> Parsetree.pattern ->
         Typedtree.pattern * pattern_variable list
 val check_partial:
-        ?lev:int -> module_patterns_restriction -> Env.t -> type_expr ->
+        ?lev:int -> Env.t -> type_expr ->
         Location.t -> Typedtree.value Typedtree.case list -> Typedtree.partial
 val type_expect:
-        ?in_function:(Location.t * type_expr) ->
         Env.t -> Parsetree.expression -> type_expected -> Typedtree.expression
 val type_exp:
         Env.t -> Parsetree.expression -> Typedtree.expression
@@ -159,6 +155,11 @@ type error =
   | Expr_type_clash of
       Errortrace.unification_error * type_forcing_context option
       * Parsetree.expression_desc option
+  | Function_arity_type_clash of
+      { syntactic_arity :  int;
+        type_constraint : type_expr;
+        trace : Errortrace.unification_error;
+      }
   | Apply_non_function of {
       funct : Typedtree.expression;
       func_ty : type_expr;

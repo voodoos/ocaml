@@ -36,6 +36,7 @@ module Sig_component_kind : sig
   type t =
     | Value
     | Type
+    | Label
     | Module
     | Module_type
     | Extension_constructor
@@ -49,17 +50,22 @@ module Sig_component_kind : sig
 end
 
 module Item : sig
-  type t
+  type t = string * Sig_component_kind.t
+  val name : t -> string
+  val kind : t -> Sig_component_kind.t
 
   val make : string -> Sig_component_kind.t -> t
 
   val value : Ident.t -> t
   val type_ : Ident.t -> t
+  val label : Ident.t -> t
   val module_ : Ident.t -> t
   val module_type : Ident.t -> t
   val extension_constructor : Ident.t -> t
   val class_ : Ident.t -> t
   val class_type : Ident.t -> t
+
+  val print : Format.formatter -> t -> unit
 
   module Map : Map.S with type key = t
 end
@@ -71,11 +77,15 @@ and desc =
   | Abs of var * t
   | App of t * t
   | Struct of t Item.Map.t
+  | Alias of t
   | Leaf
   | Proj of t * Item.t
   | Comp_unit of string
 
 val print : Format.formatter -> t -> unit
+
+(** A Shape is closed if it does not refer to external compilation units *)
+val is_closed : t -> bool
 
 (* Smart constructors *)
 
@@ -107,6 +117,9 @@ module Map : sig
 
   val add_type : t -> Ident.t -> Uid.t -> t
   val add_type_proj : t -> Ident.t -> shape -> t
+
+  val add_label : t -> Ident.t -> Uid.t -> t
+  val add_label_proj : t -> Ident.t -> shape -> t
 
   val add_module : t -> Ident.t -> shape -> t
   val add_module_proj : t -> Ident.t -> shape -> t
@@ -152,6 +165,11 @@ module Make_reduce(Context : sig
     val find_shape : env -> Ident.t -> t
   end) : sig
   val reduce : Context.env -> t -> t
+
+  (** Week reduction does not reduce eagerly all module items *)
+  val weak_reduce : Context.env -> t -> t
 end
 
 val local_reduce : t -> t
+
+val local_weak_reduce : t -> t

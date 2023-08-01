@@ -22,6 +22,7 @@
 *)
 
 open Asttypes
+module Uid = Shape.Uid
 
 (* Value expressions for the core language *)
 
@@ -77,10 +78,10 @@ and 'k pattern_desc =
   (* value patterns *)
   | Tpat_any : value pattern_desc
         (** _ *)
-  | Tpat_var : Ident.t * string loc -> value pattern_desc
+  | Tpat_var : Ident.t * string loc * Uid.t -> value pattern_desc
         (** x *)
   | Tpat_alias :
-      value general_pattern * Ident.t * string loc -> value pattern_desc
+      value general_pattern * Ident.t * string loc * Uid.t -> value pattern_desc
         (** P as a *)
   | Tpat_constant : constant -> value pattern_desc
         (** 1, 'a', "true", 1.0, 1l, 1L, 1n *)
@@ -183,18 +184,17 @@ and expression_desc =
         (** let P1 = E1 and ... and Pn = EN in E       (flag = Nonrecursive)
             let rec P1 = E1 and ... and Pn = EN in E   (flag = Recursive)
          *)
-  | Texp_function of { arg_label : arg_label; param : Ident.t;
-      cases : value case list; partial : partial; }
-        (** [Pexp_fun] and [Pexp_function] both translate to [Texp_function].
-            See {!Parsetree} for more details.
+  | Texp_function of function_param list * function_body
+    (** fun P0 P1 -> function p1 -> e1 | p2 -> e2  (body = Tfunction_cases _)
+        fun P0 P1 -> E                             (body = Tfunction_body _)
 
-            [param] is the identifier that is to be used to name the
-            parameter of the function.
-
-            partial =
-              [Partial] if the pattern match is partial
-              [Total] otherwise.
-         *)
+        This construct has the same arity as the originating
+        {{!Parsetree.expression_desc.Pexp_function}[Pexp_function]}.
+        Arity determines when side-effects for effectful parameters are run
+        (e.g. optional argument defaults, matching against lazy patterns).
+        Parameters' effects are run left-to-right when an n-ary function is
+        saturated with n arguments.
+    *)
   | Texp_apply of expression * (arg_label * expression option) list
         (** E0 ~l1:E1 ... ~ln:En
 
@@ -293,6 +293,50 @@ and 'k case =
      c_guard: expression option;
      c_rhs: expression;
     }
+
+and function_param =
+  {
+    fp_arg_label: arg_label;
+    fp_param: Ident.t;
+    (** [fp_param] is the identifier that is to be used to name the
+        parameter of the function.
+    *)
+    fp_partial: partial;
+    (**
+       [fp_partial] =
+       [Partial] if the pattern match is partial
+       [Total] otherwise.
+    *)
+    fp_kind: function_param_kind;
+    fp_newtypes: string loc list;
+      (** [fp_newtypes] are the new type declarations that come *after* that
+          parameter. The newtypes that come before the first parameter are
+          placed as exp_extras on the Texp_function node. This is just used in
+          {!Untypeast}. *)
+  }
+
+and function_param_kind =
+  | Tparam_pat of pattern
+  (** [Tparam_pat p] is a non-optional argument with pattern [p]. *)
+  | Tparam_optional_default of pattern * expression
+  (** [Tparam_optional_default (p, e)] is an optional argument [p] with default
+      value [e], i.e. [?x:(p = e)]. If the parameter is of type [a option], the
+      pattern and expression are of type [a]. *)
+
+and function_body =
+  | Tfunction_body of expression
+  | Tfunction_cases of
+      { cases: value case list;
+        partial: partial;
+        param: Ident.t;
+        loc: Location.t;
+        exp_extra: exp_extra option;
+        attributes: attributes;
+        (** [attributes] is just used in untypeast. *)
+      }
+(** The function body binds a final argument in [Tfunction_cases],
+    and this argument is pattern-matched against the cases.
+*)
 
 and record_label_definition =
   | Kept of Types.type_expr * mutable_flag
@@ -432,6 +476,7 @@ and module_binding =
     {
      mb_id: Ident.t option;
      mb_name: string option loc;
+     mb_decl_uid: Uid.t;
      mb_presence: Types.module_presence;
      mb_expr: module_expr;
      mb_attributes: attributes;
@@ -510,6 +555,7 @@ and module_declaration =
     {
      md_id: Ident.t option;
      md_name: string option loc;
+     md_uid: Uid.t;
      md_presence: Types.module_presence;
      md_type: module_type;
      md_attributes: attributes;
@@ -530,6 +576,7 @@ and module_type_declaration =
     {
      mtd_id: Ident.t;
      mtd_name: string loc;
+     mtd_uid: Uid.t;
      mtd_type: module_type option;
      mtd_attributes: attributes;
      mtd_loc: Location.t;
@@ -655,6 +702,7 @@ and label_declaration =
     {
      ld_id: Ident.t;
      ld_name: string loc;
+     ld_uid: Uid.t;
      ld_mutable: mutable_flag;
      ld_type: core_type;
      ld_loc: Location.t;
@@ -665,6 +713,7 @@ and constructor_declaration =
     {
      cd_id: Ident.t;
      cd_name: string loc;
+     cd_uid: Uid.t;
      cd_vars: string loc list;
      cd_args: constructor_arguments;
      cd_res: core_type option;
@@ -811,7 +860,12 @@ val exists_pattern: (pattern -> bool) -> pattern -> bool
 
 val let_bound_idents: value_binding list -> Ident.t list
 val let_bound_idents_full:
-    value_binding list -> (Ident.t * string loc * Types.type_expr) list
+    value_binding list ->
+    (Ident.t * string loc * Types.type_expr * Types.Uid.t) list
+val let_bound_idents_full_with_bindings:
+    value_binding list ->
+    (value_binding * (Ident.t * string loc * Types.type_expr * Types.Uid.t))
+      list
 
 (** Alpha conversion of patterns *)
 val alpha_pat:
@@ -822,7 +876,8 @@ val mkloc: 'a -> Location.t -> 'a Asttypes.loc
 
 val pat_bound_idents: 'k general_pattern -> Ident.t list
 val pat_bound_idents_full:
-  'k general_pattern -> (Ident.t * string loc * Types.type_expr) list
+  'k general_pattern ->
+  (Ident.t * string loc * Types.type_expr * Types.Uid.t) list
 
 (** Splits an or pattern into its value (left) and exception (right) parts. *)
 val split_pattern:

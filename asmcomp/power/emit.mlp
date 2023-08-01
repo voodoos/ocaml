@@ -413,7 +413,12 @@ module BR = Branch_relaxation.Make (struct
       if memory_chunk = Byte_signed
       then load_store_size addressing_mode + 1
       else load_store_size addressing_mode
-    | Lop(Istore(_chunk, addr, _)) -> load_store_size addr
+    | Lop(Istore(chunk, addr, assignment)) ->
+        (match chunk with
+         | Single -> 1
+         | Word_int | Word_val when assignment -> 1
+         | _ -> 0)
+        + load_store_size addr
     | Lop(Ialloc _) -> 5
     | Lop(Ispecific(Ialloc_far _)) -> 6
     | Lop(Ipoll { return_label = Some(_) }) -> 5
@@ -432,6 +437,10 @@ module BR = Branch_relaxation.Make (struct
     | Lop(Iopaque) -> 0
     | Lop(Ispecific _) -> 1
     | Lop (Idls_get) -> 1
+    | Lop (Ireturn_addr) ->
+        invalid_arg (
+          "Support for Ireturn_addr is not implemented on architecture "
+          ^ Config.architecture)
     | Lreloadretaddr -> 2
     | Lreturn -> 2
     | Llabel _ -> 0
@@ -678,6 +687,10 @@ let emit_instr env i =
         end;
         if memory_chunk = Byte_signed then
           `	extsb	{emit_reg i.res.(0)}, {emit_reg i.res.(0)}\n`
+    | Lop(Istore(Single, addr, _assignment)) ->
+        let tmp = phys_reg 100 (* FPR 0 *) in
+        `	frsp	{emit_reg tmp}, {emit_reg i.arg.(0)}\n`;
+        emit_load_store "stfs" addr i.arg 1 tmp
     | Lop(Istore(chunk, addr, assignment)) ->
         let storeinstr =
           match chunk with
@@ -685,7 +698,7 @@ let emit_instr env i =
           | Sixteen_unsigned | Sixteen_signed -> "sth"
           | Thirtytwo_unsigned | Thirtytwo_signed -> "stw"
           | Word_int | Word_val -> "std"
-          | Single -> "stfs"
+          | Single -> assert false
           | Double -> "stfd" in
         (* Non-initializing stores need a memory barrier to follow the
            Multicore OCaml memory model.  Stores of size other than
@@ -769,6 +782,10 @@ let emit_instr env i =
     | Lop (Idls_get) ->
         let offset = Domainstate.(idx_of_field Domain_dls_root) * 8 in
         `	ld {emit_reg i.res.(0)}, {emit_int offset}(30)\n`
+    | Lop (Ireturn_addr) ->
+        invalid_arg (
+          "Support for Ireturn_addr is not implemented on architecture "
+          ^ Config.architecture)
     | Lreloadretaddr ->
         `	ld	11, {emit_int(retaddr_offset env)}(1)\n`;
         `	mtlr	11\n`

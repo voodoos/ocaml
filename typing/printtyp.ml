@@ -55,6 +55,7 @@ let in_printing_env f = Env.without_cmis f !printing_env
  type namespace = Sig_component_kind.t =
     | Value
     | Type
+    | Label
     | Module
     | Module_type
     | Extension_constructor
@@ -65,7 +66,7 @@ let in_printing_env f = Env.without_cmis f !printing_env
 module Namespace = struct
 
   let id = function
-    | Type -> 0
+    | Type | Label -> 0
     | Module -> 1
     | Module_type -> 2
     | Class -> 3
@@ -85,7 +86,7 @@ module Namespace = struct
   let lookup =
     let to_lookup f lid = fst @@ in_printing_env (f (Lident lid)) in
     function
-    | Some Type -> to_lookup Env.find_type_by_name
+    | Some (Type | Label) -> to_lookup Env.find_type_by_name
     | Some Module -> to_lookup Env.find_module_by_name
     | Some Module_type -> to_lookup Env.find_modtype_by_name
     | Some Class -> to_lookup Env.find_class_by_name
@@ -96,7 +97,8 @@ module Namespace = struct
     let path = Path.Pident id in
     try Some (
         match namespace with
-        | Some Type -> (in_printing_env @@ Env.find_type path).type_loc
+        | Some (Type | Label) ->
+            (in_printing_env @@ Env.find_type path).type_loc
         | Some Module -> (in_printing_env @@ Env.find_module path).md_loc
         | Some Module_type -> (in_printing_env @@ Env.find_modtype path).mtd_loc
         | Some Class -> (in_printing_env @@ Env.find_class path).cty_loc
@@ -279,7 +281,7 @@ let human_id id index =
 
 let indexed_name namespace id =
   let find namespace id env = match namespace with
-    | Type -> Env.find_type_index id env
+    | Type | Label -> Env.find_type_index id env
     | Module -> Env.find_module_index id env
     | Module_type -> Env.find_modtype_index id env
     | Class -> Env.find_class_index id env
@@ -1391,7 +1393,7 @@ let prepare_decl id decl =
         Some ty
   in
   begin match decl.type_kind with
-  | Type_abstract -> ()
+  | Type_abstract _ -> ()
   | Type_variant (cstrs, _rep) ->
       List.iter
         (fun c ->
@@ -1414,7 +1416,7 @@ let tree_of_type_decl id decl =
   let type_defined decl =
     let abstr =
       match decl.type_kind with
-        Type_abstract ->
+        Type_abstract _ ->
           decl.type_manifest = None || decl.type_private = Private
       | Type_record _ ->
           decl.type_private = Private
@@ -1430,7 +1432,7 @@ let tree_of_type_decl id decl =
           let is_var = is_Tvar ty in
           if abstr || not is_var then
             let inj =
-              decl.type_kind = Type_abstract && Variance.mem Inj v &&
+              type_kind_is_abstract decl && Variance.mem Inj v &&
               match decl.type_manifest with
               | None -> true
               | Some ty -> (* only abstract or private row types *)
@@ -1456,7 +1458,7 @@ let tree_of_type_decl id decl =
   let constraints = tree_of_constraints params in
   let ty, priv, unboxed =
     match decl.type_kind with
-    | Type_abstract ->
+    | Type_abstract _ ->
         begin match ty_manifest with
         | None -> (Otyp_abstract, Public, false)
         | Some ty ->
@@ -1867,7 +1869,7 @@ let dummy =
   {
     type_params = [];
     type_arity = 0;
-    type_kind = Type_abstract;
+    type_kind = Type_abstract Abstract_def;
     type_private = Public;
     type_manifest = None;
     type_variance = [];
@@ -2435,13 +2437,19 @@ let explain mis ppf =
 let warn_on_missing_def env ppf t =
   match get_desc t with
   | Tconstr (p,_,_) ->
-    begin
-      try
-        ignore(Env.find_type p env : Types.type_declaration)
-      with Not_found ->
+    begin match Env.find_type p env with
+    | { type_kind = Type_abstract Abstract_rec_check_regularity; _ } ->
         fprintf ppf
-          "@,@[%a is abstract because no corresponding cmi file was found \
-           in path.@]" (Style.as_inline_code path) p
+          "@,@[<hov>Type %a was considered abstract@ when checking\
+           @ constraints@ in this@ recursive type definition.@]"
+          (Style.as_inline_code path) p
+    | exception Not_found ->
+        fprintf ppf
+          "@,@[<hov>Type %a is abstract because@ no corresponding\
+           @ cmi file@ was found@ in path.@]" (Style.as_inline_code path) p
+    | {type_kind =
+       Type_abstract Abstract_def | Type_record _ | Type_variant _ | Type_open }
+      -> ()
     end
   | _ -> ()
 

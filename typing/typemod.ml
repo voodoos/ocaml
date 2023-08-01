@@ -499,7 +499,7 @@ let merge_constraint initial_env loc sg lid constr =
             type_params =
               List.map (fun _ -> Btype.newgenvar()) sdecl.ptype_params;
             type_arity = arity;
-            type_kind = Type_abstract;
+            type_kind = Type_abstract Abstract_def;
             type_private = Private;
             type_manifest = None;
             type_variance =
@@ -1039,7 +1039,7 @@ end = struct
     let open Sig_component_kind in
     match component with
     | Value -> names.values
-    | Type -> names.types
+    | Type | Label -> names.types
     | Module -> names.modules
     | Module_type -> names.modtypes
     | Extension_constructor -> names.typexts
@@ -1375,7 +1375,6 @@ and transl_signature env sg =
               Typedecl.transl_value_decl env item.psig_loc sdesc
             in
             Signature_names.check_value names tdesc.val_loc tdesc.val_id;
-            Env.register_uid tdesc.val_val.val_uid tdesc.val_loc;
             let (trem,rem, final_env) = transl_sig newenv srem in
             mksig (Tsig_value tdesc) env loc :: trem,
             Sig_value(tdesc.val_id, tdesc.val_val, Exported) :: rem,
@@ -1386,8 +1385,6 @@ and transl_signature env sg =
             in
             List.iter (fun td ->
               Signature_names.check_type names td.typ_loc td.typ_id;
-              if not (Btype.is_row_name (Ident.name td.typ_id)) then
-                Env.register_uid td.typ_type.type_uid td.typ_loc
             ) decls;
             let (trem, rem, final_env) = transl_sig newenv srem in
             let sg =
@@ -1419,8 +1416,7 @@ and transl_signature env sg =
                   in
                   Some (`Substituted_away subst)
               in
-              Signature_names.check_type ?info names td.typ_loc td.typ_id;
-              Env.register_uid td.typ_type.type_uid td.typ_loc
+              Signature_names.check_type ?info names td.typ_loc td.typ_id
             ) decls;
             let (trem, rem, final_env) = transl_sig newenv srem in
             let sg = rem
@@ -1434,8 +1430,7 @@ and transl_signature env sg =
             in
             let constructors = tyext.tyext_constructors in
             List.iter (fun ext ->
-              Signature_names.check_typext names ext.ext_loc ext.ext_id;
-              Env.register_uid ext.ext_type.ext_uid ext.ext_loc
+              Signature_names.check_typext names ext.ext_loc ext.ext_id
             ) constructors;
             let (trem, rem, final_env) = transl_sig newenv srem in
               mksig (Tsig_typext tyext) env loc :: trem,
@@ -1448,9 +1443,6 @@ and transl_signature env sg =
             let constructor = ext.tyexn_constructor in
             Signature_names.check_typext names constructor.ext_loc
               constructor.ext_id;
-            Env.register_uid
-              constructor.ext_type.ext_uid
-              constructor.ext_loc;
             let (trem, rem, final_env) = transl_sig newenv srem in
             mksig (Tsig_exception ext) env loc :: trem,
             Sig_typext(constructor.ext_id,
@@ -1486,11 +1478,10 @@ and transl_signature env sg =
                 Signature_names.check_module names pmd.pmd_name.loc id;
                 Some id, newenv
             in
-            Env.register_uid md.md_uid md.md_loc;
             let (trem, rem, final_env) = transl_sig newenv srem in
             mksig (Tsig_module {md_id=id; md_name=pmd.pmd_name;
-                                md_presence=pres; md_type=tmty;
-                                md_loc=pmd.pmd_loc;
+                                md_uid=md.md_uid; md_presence=pres;
+                                md_type=tmty; md_loc=pmd.pmd_loc;
                                 md_attributes=pmd.pmd_attributes})
               env loc :: trem,
             (match id with
@@ -1526,7 +1517,6 @@ and transl_signature env sg =
               `Substituted_away (Subst.add_module id path Subst.identity)
             in
             Signature_names.check_module ~info names pms.pms_name.loc id;
-            Env.register_uid md.md_uid md.md_loc;
             let (trem, rem, final_env) = transl_sig newenv srem in
             mksig (Tsig_modsubst {ms_id=id; ms_name=pms.pms_name;
                                   ms_manifest=path; ms_txt=pms.pms_manifest;
@@ -1545,9 +1535,8 @@ and transl_signature env sg =
                 | Some id -> Some (id, md, uid)
               ) tdecls
             in
-            List.iter (fun (id, md, uid) ->
+            List.iter (fun (id, md, _uid) ->
               Signature_names.check_module names md.md_loc id;
-              Env.register_uid uid md.md_loc
             ) decls;
             let (trem, rem, final_env) = transl_sig newenv srem in
             mksig (Tsig_recmodule (List.map (fun (md, _, _) -> md) tdecls))
@@ -1562,15 +1551,16 @@ and transl_signature env sg =
               decls rem,
             final_env
         | Psig_modtype pmtd ->
-            let newenv, mtd, decl = transl_modtype_decl env pmtd in
+            let newenv, mtd, (decl : modtype_declaration) =
+              transl_modtype_decl env pmtd
+            in
             Signature_names.check_modtype names pmtd.pmtd_loc mtd.mtd_id;
-            Env.register_uid decl.mtd_uid mtd.mtd_loc;
             let (trem, rem, final_env) = transl_sig newenv srem in
             mksig (Tsig_modtype mtd) env loc :: trem,
             Sig_modtype (mtd.mtd_id, decl, Exported) :: rem,
             final_env
         | Psig_modtypesubst pmtd ->
-            let newenv, mtd, decl = transl_modtype_decl env pmtd in
+            let newenv, mtd, _decl = transl_modtype_decl env pmtd in
             let info =
               let mty = match mtd.mtd_type with
                 | Some tmty -> tmty.mty_type
@@ -1584,7 +1574,6 @@ and transl_signature env sg =
               | _ -> `Unpackable_modtype_substituted_away (mtd.mtd_id,subst)
             in
             Signature_names.check_modtype ~info names pmtd.pmtd_loc mtd.mtd_id;
-            Env.register_uid decl.mtd_uid mtd.mtd_loc;
             let (trem, rem, final_env) = transl_sig newenv srem in
             mksig (Tsig_modtypesubst mtd) env loc :: trem,
             rem,
@@ -1626,7 +1615,6 @@ and transl_signature env sg =
               Signature_names.check_type names loc cls.cls_obj_id;
               Signature_names.check_class names loc cls.cls_id;
               Signature_names.check_class_type names loc cls.cls_ty_id;
-              Env.register_uid cls.cls_decl.cty_uid cls.cls_decl.cty_loc;
             ) classes;
             let (trem, rem, final_env) = transl_sig newenv srem in
             let sg =
@@ -1653,9 +1641,6 @@ and transl_signature env sg =
               let loc = decl.clsty_id_loc.Location.loc in
               Signature_names.check_class_type names loc decl.clsty_ty_id;
               Signature_names.check_type names loc decl.clsty_obj_id;
-              Env.register_uid
-                decl.clsty_ty_decl.clty_uid
-                decl.clsty_ty_decl.clty_loc;
             ) classes;
             let (trem,rem, final_env) = transl_sig newenv srem in
             let sg =
@@ -1719,6 +1704,7 @@ and transl_modtype_decl_aux env
     {
      mtd_id=id;
      mtd_name=pmtd_name;
+     mtd_uid=decl.mtd_uid;
      mtd_type=tmty;
      mtd_attributes=pmtd_attributes;
      mtd_loc=pmtd_loc;
@@ -1801,11 +1787,11 @@ and transl_recmodule_modtypes env sdecls =
     List.map2 (fun pmd (id_shape, id_loc, md, mty) ->
       let tmd =
         {md_id=Option.map fst id_shape; md_name=id_loc; md_type=mty;
-         md_presence=Mp_present;
+         md_uid=md.Types.md_uid; md_presence=Mp_present;
          md_loc=pmd.pmd_loc;
          md_attributes=pmd.pmd_attributes}
       in
-      tmd, md.md_uid, Option.map snd id_shape
+      tmd, md.Types.md_uid, Option.map snd id_shape
     ) sdecls dcl2
   in
   (dcl2, env2)
@@ -2011,6 +1997,7 @@ let check_recmodule_inclusion env bindings =
           {
             mb_id = id;
             mb_name = name;
+            mb_decl_uid = uid;
             mb_presence = Mp_present;
             mb_expr = modl';
             mb_attributes = attrs;
@@ -2322,10 +2309,11 @@ and type_application loc strengthen funct_body env smod =
     let strengthen = strengthen && List.for_all has_path args in
     type_module strengthen funct_body None env sfunct
   in
-  List.fold_left (type_one_application ~ctx:(loc, funct, args) funct_body env)
+  List.fold_left
+    (type_one_application ~ctx:(loc, sfunct, funct, args) funct_body env)
     (funct, funct_shape) args
 
-and type_one_application ~ctx:(apply_loc,md_f,args)
+and type_one_application ~ctx:(apply_loc,sfunct,md_f,args)
     funct_body env (funct, funct_shape) app_view =
   match Env.scrape_alias env funct.mod_type with
   | Mty_functor (Unit, mty_res) ->
@@ -2355,8 +2343,11 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
       let apply_error () =
         let args = List.map simplify_app_summary args in
         let mty_f = md_f.mod_type in
-        let lid_app = None in
-        raise(Includemod.Apply_error {loc=apply_loc;env;lid_app;mty_f;args})
+        let app_name = match sfunct.pmod_desc with
+          | Pmod_ident l -> Includemod.Named_leftmost_functor l.txt
+          | _ -> Includemod.Anonymous_functor
+        in
+        raise(Includemod.Apply_error {loc=apply_loc;env;app_name;mty_f;args})
       in
       begin match app_view with
       | { arg = None; _ } -> apply_error ()
@@ -2418,11 +2409,14 @@ and type_one_application ~ctx:(apply_loc,md_f,args)
     end
   | Mty_alias path ->
       raise(Error(app_view.f_loc, env, Cannot_scrape_alias path))
-  | _ ->
+  | Mty_ident _ | Mty_signature _  ->
       let args = List.map simplify_app_summary args in
       let mty_f = md_f.mod_type in
-      let lid_app = None in
-      raise(Includemod.Apply_error {loc=apply_loc;env;lid_app;mty_f;args})
+      let app_name = match sfunct.pmod_desc with
+        | Pmod_ident l -> Includemod.Named_leftmost_functor l.txt
+        | _ -> Includemod.Anonymous_functor
+      in
+      raise(Includemod.Apply_error {loc=apply_loc;env;app_name;mty_f;args})
 
 and type_open_decl ?used_slot ?toplevel funct_body names env sod =
   Builtin_attributes.warning_scope sod.popen_attributes
@@ -2509,10 +2503,9 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
            will be marked as being used during the signature inclusion test. *)
         let items, shape_map =
           List.fold_left
-            (fun (acc, shape_map) (id, { Asttypes.loc; _ }, _typ)->
+            (fun (acc, shape_map) (id, { Asttypes.loc; _ }, _typ, _uid)->
               Signature_names.check_value names loc id;
               let vd =  Env.find_value (Pident id) newenv in
-              Env.register_uid vd.val_uid vd.val_loc;
               Sig_value(id, vd, Exported) :: acc,
               Shape.Map.add_value shape_map id vd.val_uid
             )
@@ -2526,7 +2519,6 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
     | Pstr_primitive sdesc ->
         let (desc, newenv) = Typedecl.transl_value_decl env loc sdesc in
         Signature_names.check_value names desc.val_loc desc.val_id;
-        Env.register_uid desc.val_val.val_uid desc.val_val.val_loc;
         Tstr_primitive desc,
         [Sig_value(desc.val_id, desc.val_val, Exported)],
         Shape.Map.add_value shape_map desc.val_id desc.val_val.val_uid,
@@ -2541,16 +2533,25 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           decls []
         in
         let shape_map = List.fold_left
-          (fun shape_map -> function
-            | Sig_type (id, vd, _, _) ->
-              if not (Btype.is_row_name (Ident.name id)) then begin
-                Env.register_uid vd.type_uid vd.type_loc;
-                Shape.Map.add_type shape_map id vd.type_uid
-              end else shape_map
-            | _ -> assert false
+          (fun shape_map info ->
+            if not (Btype.is_row_name (Ident.name info.typ_id)) then begin
+              let shape_map =
+                match info.typ_kind with
+                | Ttype_variant cstrs ->
+                    List.fold_left (fun shape_map { cd_id; cd_uid; _ } ->
+                      Shape.Map.add_type shape_map cd_id cd_uid)
+                      shape_map cstrs
+                | Ttype_record labels ->
+                    List.fold_left (fun shape_map { ld_id; ld_uid; _ } ->
+                      Shape.Map.add_label shape_map ld_id ld_uid)
+                      shape_map labels
+                | _ -> shape_map
+              in
+              Shape.Map.add_type shape_map info.typ_id info.typ_type.type_uid
+            end else shape_map
           )
           shape_map
-          items
+          decls
         in
         Tstr_type (rec_flag, decls),
         items,
@@ -2563,7 +2564,6 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         let constructors = tyext.tyext_constructors in
         let shape_map = List.fold_left (fun shape_map ext ->
             Signature_names.check_typext names ext.ext_loc ext.ext_id;
-            Env.register_uid ext.ext_type.ext_uid ext.ext_loc;
             Shape.Map.add_extcons shape_map ext.ext_id ext.ext_type.ext_uid
           ) shape_map constructors
         in
@@ -2578,9 +2578,6 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         let constructor = ext.tyexn_constructor in
         Signature_names.check_typext names constructor.ext_loc
           constructor.ext_id;
-        Env.register_uid
-          constructor.ext_type.ext_uid
-          constructor.ext_loc;
         Tstr_exception ext,
         [Sig_typext(constructor.ext_id,
                     constructor.ext_type,
@@ -2615,8 +2612,12 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             md_uid;
           }
         in
-        let md_shape = Shape.set_uid_if_none md_shape md_uid in
-        Env.register_uid md_uid pmb_loc;
+        let md_shape =
+          match modl.mod_type with
+          | Mty_alias _path ->
+            Shape.{ uid = Some md_uid; desc = Alias md_shape }
+          | _ -> Shape.set_uid_if_none md_shape md_uid
+        in
         (*prerr_endline (Ident.unique_toplevel_name id);*)
         Mtype.lower_nongen outer_scope md.md_type;
         let id, newenv, sg =
@@ -2639,8 +2640,9 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           | Some id -> Shape.Map.add_module shape_map id md_shape
           | None -> shape_map
         in
-        Tstr_module {mb_id=id; mb_name=name; mb_expr=modl;
-                     mb_presence=pres; mb_attributes=attrs;  mb_loc=pmb_loc; },
+        Tstr_module {mb_id=id; mb_name=name; mb_decl_uid = md.md_uid;
+                     mb_expr=modl; mb_presence=pres; mb_attributes=attrs;
+                     mb_loc=pmb_loc; },
         sg,
         shape_map,
         newenv
@@ -2713,8 +2715,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           ) bindings2
         in
         let shape_map =
-          List.fold_left (fun map (id, mb, uid, shape) ->
-            Env.register_uid uid mb.mb_loc;
+          List.fold_left (fun map (id, _mb, _uid, shape) ->
             Shape.Map.add_module map id shape
           ) shape_map mbs
         in
@@ -2733,7 +2734,6 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         (* check that it is non-abstract *)
         let newenv, mtd, decl = transl_modtype_decl env pmtd in
         Signature_names.check_modtype names pmtd.pmtd_loc mtd.mtd_id;
-        Env.register_uid decl.mtd_uid decl.mtd_loc;
         let id = mtd.mtd_id in
         let map = Shape.Map.add_module_type shape_map id decl.mtd_uid in
         Tstr_modtype mtd, [Sig_modtype (id, decl, Exported)], map, newenv
@@ -2750,7 +2750,6 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             Signature_names.check_class names loc cls.cls_id;
             Signature_names.check_class_type names loc cls.cls_ty_id;
             Signature_names.check_type names loc cls.cls_obj_id;
-            Env.register_uid cls.cls_decl.cty_uid loc;
             let map f id acc = f acc id cls.cls_decl.cty_uid in
             map Shape.Map.add_class cls.cls_id acc
             |> map Shape.Map.add_class_type cls.cls_ty_id
@@ -2779,7 +2778,6 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             let loc = decl.clsty_id_loc.Location.loc in
             Signature_names.check_class_type names loc decl.clsty_ty_id;
             Signature_names.check_type names loc decl.clsty_obj_id;
-            Env.register_uid decl.clsty_ty_decl.clty_uid loc;
             let map f id acc = f acc id decl.clsty_ty_decl.clty_uid in
             map Shape.Map.add_class_type decl.clsty_ty_id acc
             |> map Shape.Map.add_type decl.clsty_obj_id

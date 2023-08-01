@@ -49,7 +49,7 @@ typedef struct pool {
   sizeclass sz;
 } pool;
 CAML_STATIC_ASSERT(sizeof(pool) == Bsize_wsize(POOL_HEADER_WSIZE));
-#define POOL_HEADER_SZ sizeof(pool)
+#define POOL_SLAB_WOFFSET(sz) (POOL_HEADER_WSIZE + wastage_sizeclass[sz])
 
 typedef struct large_alloc {
   caml_domain_state* owner;
@@ -209,10 +209,10 @@ static void pool_release(struct caml_heap_state* local,
 }
 
 static void calc_pool_stats(pool* a, sizeclass sz, struct heap_stats* s) {
-  value* p = (value*)((char*)a + POOL_HEADER_SZ);
+  value* p = (value*)((char*)a + Bsize_wsize(POOL_SLAB_WOFFSET(sz)));
   value* end = (value*)a + POOL_WSIZE;
   mlsize_t wh = wsize_sizeclass[sz];
-  s->pool_frag_words += Wsize_bsize(POOL_HEADER_SZ);
+  s->pool_frag_words += POOL_SLAB_WOFFSET(sz);
 
   while (p + wh <= end) {
     header_t hd = (header_t)atomic_load_relaxed((atomic_uintnat*)p);
@@ -224,8 +224,7 @@ static void calc_pool_stats(pool* a, sizeclass sz, struct heap_stats* s) {
 
     p += wh;
   }
-  CAMLassert(end - p == wastage_sizeclass[sz]);
-  s->pool_frag_words += end - p;
+  CAMLassert(end == p);
   s->pool_words += POOL_WSIZE;
 }
 
@@ -235,7 +234,7 @@ Caml_inline void pool_initialize(pool* r,
                                  caml_domain_state* owner)
 {
   mlsize_t wh = wsize_sizeclass[sz];
-  value* p = (value*)((char*)r + POOL_HEADER_SZ);
+  value* p = (value*)((char*)r + Bsize_wsize(POOL_SLAB_WOFFSET(sz)));
   value* end = (value*)((char*)r + Bsize_wsize(POOL_WSIZE));
 
   r->next = 0;
@@ -252,10 +251,13 @@ Caml_inline void pool_initialize(pool* r,
     p[1] = (value)(p - wh);
     p += wh;
   }
+  CAMLassert(p == end);
+  CAMLassert((uintptr_t)end % Cache_line_bsize == 0);
   r->next_obj = p - wh;
 }
 
 /* Allocating an object from a pool */
+CAMLno_tsan /* Disable TSan instrumentation for performance. */
 static intnat pool_sweep(struct caml_heap_state* local,
                          pool**,
                          sizeclass sz ,
@@ -263,6 +265,7 @@ static intnat pool_sweep(struct caml_heap_state* local,
 
 /* Adopt pool from the pool_freelist avail and full pools
    to satisfy an allocation */
+CAMLno_tsan /* Disable TSan reports from this function (see #11040) */
 static pool* pool_global_adopt(struct caml_heap_state* local, sizeclass sz)
 {
   pool* r = NULL;
@@ -455,7 +458,7 @@ static intnat pool_sweep(struct caml_heap_state* local, pool** plist,
   *plist = a->next;
 
   {
-    value* p = (value*)((char*)a + POOL_HEADER_SZ);
+    value* p = (value*)((char*)a + Bsize_wsize(POOL_SLAB_WOFFSET(sz)));
     value* end = (value*)a + POOL_WSIZE;
     mlsize_t wh = wsize_sizeclass[sz];
     int all_used = 1;
@@ -512,6 +515,7 @@ static intnat pool_sweep(struct caml_heap_state* local, pool** plist,
   return work;
 }
 
+CAMLno_tsan /* Disable TSan reports from this function (see #11040) */
 static intnat large_alloc_sweep(struct caml_heap_state* local) {
   value* p;
   header_t hd;
@@ -594,7 +598,7 @@ uintnat caml_heap_blocks(struct caml_heap_state* local) {
 
 void caml_redarken_pool(struct pool* r, scanning_action f, void* fdata) {
   mlsize_t wh = wsize_sizeclass[r->sz];
-  value* p = (value*)((char*)r + POOL_HEADER_SZ);
+  value* p = (value*)((char*)r + Bsize_wsize(POOL_SLAB_WOFFSET(r->sz)));
   value* end = (value*)((char*)r + Bsize_wsize(POOL_WSIZE));
 
   while (p + wh <= end) {
@@ -803,10 +807,10 @@ static void verify_pool(pool* a, sizeclass sz, struct mem_stats* s) {
   }
 
   {
-    value* p = (value*)((char*)a + POOL_HEADER_SZ);
+    value* p = (value*)((char*)a + Bsize_wsize(POOL_SLAB_WOFFSET(sz)));
     value* end = (value*)a + POOL_WSIZE;
     mlsize_t wh = wsize_sizeclass[sz];
-    s->overhead += Wsize_bsize(POOL_HEADER_SZ);
+    s->overhead += POOL_SLAB_WOFFSET(sz);
 
     while (p + wh <= end) {
       header_t hd = (header_t)*p;
@@ -820,8 +824,7 @@ static void verify_pool(pool* a, sizeclass sz, struct mem_stats* s) {
       }
       p += wh;
     }
-    CAMLassert(end - p == wastage_sizeclass[sz]);
-    s->overhead += end - p;
+    CAMLassert(end == p);
     s->alloced += POOL_WSIZE;
   }
 }

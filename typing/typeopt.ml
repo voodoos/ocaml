@@ -101,7 +101,7 @@ let classify env ty =
       else begin
         try
           match (Env.find_type p env).type_kind with
-          | Type_abstract ->
+          | Type_abstract _ ->
               Any
           | Type_record _ | Type_variant _ | Type_open ->
               Addr
@@ -187,11 +187,6 @@ let value_kind env ty =
     | _ ->
         Pgenval
   end
-
-let function_return_value_kind env ty =
-  match is_function_type env ty with
-  | Some (_lhs, rhs) -> value_kind env rhs
-  | None -> Pgenval
 
 (** Whether a forward block is needed for a lazy thunk on a value, i.e.
     if the value can be represented as a float/forward/lazy *)

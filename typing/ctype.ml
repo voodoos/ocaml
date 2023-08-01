@@ -263,6 +263,32 @@ let newconstr path tyl = newty (Tconstr (path, tyl, ref Mnil))
 
 let none = newty (Ttuple [])                (* Clearly ill-formed type *)
 
+(**** information for [Typecore.unify_pat_*] ****)
+
+module Pattern_env : sig
+  type t = private
+    { mutable env : Env.t;
+      equations_scope : int;
+      allow_recursive_equations : bool; }
+  val make: Env.t -> equations_scope:int -> allow_recursive_equations:bool -> t
+  val copy: ?equations_scope:int -> t -> t
+  val set_env: t -> Env.t -> unit
+end = struct
+  type t =
+    { mutable env : Env.t;
+      equations_scope : int;
+      allow_recursive_equations : bool; }
+  let make env ~equations_scope ~allow_recursive_equations =
+    { env;
+      equations_scope;
+      allow_recursive_equations; }
+  let copy ?equations_scope penv =
+    let equations_scope =
+      match equations_scope with None -> penv.equations_scope | Some s -> s in
+    { penv with equations_scope }
+  let set_env penv env = penv.env <- env
+end
+
 (**** unification mode ****)
 
 type equations_generation =
@@ -275,11 +301,9 @@ type unification_environment =
         in_subst : bool; }
     (* normal unification mode *)
   | Pattern of
-      { env : Env.t ref;
+      { penv : Pattern_env.t;
         equations_generation : equations_generation;
         assume_injective : bool;
-        allow_recursive_equations : bool;
-        gadt_equations_level : int;
         unify_eq_set : TypePairs.t; }
     (* GADT constraint unification mode:
        only used for type indices of GADT constructors
@@ -288,20 +312,20 @@ type unification_environment =
 
 let get_env = function
   | Expression {env} -> env
-  | Pattern {env} -> !env
+  | Pattern {penv} -> penv.env
 
-let set_env uenv env' =
+let set_env uenv env =
   match uenv with
   | Expression _ -> invalid_arg "Ctype.set_env"
-  | Pattern {env} -> env := env'
+  | Pattern {penv} -> Pattern_env.set_env penv env
 
 let in_pattern_mode = function
   | Expression _ -> false
   | Pattern _ -> true
 
-let get_gadt_equations_level = function
-  | Expression _ -> invalid_arg "Ctype.get_gadt_equations_level"
-  | Pattern r -> r.gadt_equations_level
+let get_equations_scope = function
+  | Expression _ -> invalid_arg "Ctype.get_equations_scope"
+  | Pattern r -> r.penv.equations_scope
 
 let order_type_pair t1 t2 =
   if get_id t1 <= get_id t2 then (t1, t2) else (t2, t1)
@@ -344,7 +368,7 @@ let can_assume_injective = function
 let in_counterexample uenv =
   match uenv with
   | Expression _ -> false
-  | Pattern { allow_recursive_equations } -> allow_recursive_equations
+  | Pattern { penv } -> penv.allow_recursive_equations
 
 let allow_recursive_equations uenv =
   !Clflags.recursive_types || in_counterexample uenv
@@ -376,7 +400,7 @@ let in_pervasives p =
 let is_datatype decl=
   match decl.type_kind with
     Type_record _ | Type_variant _ | Type_open -> true
-  | Type_abstract -> false
+  | Type_abstract _ -> false
 
 
                   (**********************************************)
@@ -578,7 +602,7 @@ let closed_type_decl decl =
   try
     List.iter mark_type decl.type_params;
     begin match decl.type_kind with
-      Type_abstract ->
+      Type_abstract _ ->
         ()
     | Type_variant (v, _rep) ->
         List.iter
@@ -908,7 +932,7 @@ let rec lower_contravariant env var_level visited contra ty =
          try
            let typ = Env.find_type path env in
            typ.type_variance,
-           typ.type_kind = Type_abstract
+           type_kind_is_abstract typ
           with Not_found ->
             (* See testsuite/tests/typing-missing-cmi-2 for an example *)
             List.map (fun _ -> Variance.unknown) tyl,
@@ -1257,7 +1281,7 @@ let new_local_type ?(loc = Location.none) ?manifest_and_scope () =
   {
     type_params = [];
     type_arity = 0;
-    type_kind = Type_abstract;
+    type_kind = Type_abstract Abstract_def;
     type_private = Public;
     type_manifest = manifest;
     type_variance = [];
@@ -1278,21 +1302,23 @@ let existential_name cstr ty =
 
 type existential_treatment =
   | Keep_existentials_flexible
-  | Make_existentials_abstract of { env: Env.t ref; scope: int }
+  | Make_existentials_abstract of Pattern_env.t
 
 let instance_constructor existential_treatment cstr =
   For_copy.with_scope (fun copy_scope ->
     let copy_existential =
       match existential_treatment with
       | Keep_existentials_flexible -> copy copy_scope
-      | Make_existentials_abstract {env; scope = fresh_constr_scope} ->
+      | Make_existentials_abstract penv ->
           fun existential ->
+            let env = penv.env in
+            let fresh_constr_scope = penv.equations_scope in
             let decl = new_local_type () in
             let name = existential_name cstr existential in
             let (id, new_env) =
-              Env.enter_type (get_new_abstract_name !env name) decl !env
+              Env.enter_type (get_new_abstract_name env name) decl env
                 ~scope:fresh_constr_scope in
-            env := new_env;
+            Pattern_env.set_env penv new_env;
             let to_unify = newty (Tconstr (Path.Pident id,[],ref Mnil)) in
             let tv = copy copy_scope existential in
             assert (is_Tvar tv);
@@ -1313,7 +1339,7 @@ let instance_parameterized_type ?keep_names sch_args sch =
   )
 
 let map_kind f = function
-  | Type_abstract -> Type_abstract
+  | Type_abstract r -> Type_abstract r
   | Type_open -> Type_open
   | Type_variant (cl, rep) ->
       Type_variant (
@@ -1521,13 +1547,12 @@ let subst env level priv abbrev oty params args body =
    care about efficiency here.
 *)
 let apply ?(use_current_level = false) env params body args =
+  simple_abbrevs := Mnil;
   let level = if use_current_level then !current_level else generic_level in
   try
     subst env level Public (ref Mnil) None params args body
   with
     Cannot_subst -> raise Cannot_apply
-
-let () = Subst.ctype_apply_env_empty := apply Env.empty
 
                               (****************************)
                               (*  Abbreviation expansion  *)
@@ -1698,7 +1723,7 @@ let rec extract_concrete_typedecl env ty =
       begin match Env.find_type p env with
       | exception Not_found -> May_have_typedecl
       | decl ->
-          if decl.type_kind <> Type_abstract then Typedecl(p, p, decl)
+          if not (type_kind_is_abstract decl) then Typedecl(p, p, decl)
           else begin
             match try_expand_safe env ty with
             | exception Cannot_expand -> May_have_typedecl
@@ -1786,7 +1811,7 @@ let generic_abbrev env path =
 let generic_private_abbrev env path =
   try
     match Env.find_type path env with
-      {type_kind = Type_abstract;
+      {type_kind = Type_abstract _;
        type_private = Private;
        type_manifest = Some body} ->
          get_level body = generic_level
@@ -2174,7 +2199,7 @@ let deep_occur t0 ty =
    They need to be removed using this function.
    This function is called only in [Pattern] mode. *)
 let reify uenv t =
-  let fresh_constr_scope = get_gadt_equations_level uenv in
+  let fresh_constr_scope = get_equations_scope uenv in
   let create_fresh_constr lev name =
     let name = match name with Some s -> "$'"^s | _ -> "$" in
     let decl = new_local_type () in
@@ -2237,7 +2262,7 @@ let non_aliasable p decl =
 let is_instantiable env p =
   try
     let decl = Env.find_type p env in
-    decl.type_kind = Type_abstract &&
+    type_kind_is_abstract decl &&
     decl.type_private = Public &&
     decl.type_arity = 0 &&
     decl.type_manifest = None &&
@@ -2420,9 +2445,9 @@ and mcomp_type_decl type_pairs env p1 p2 tl1 tl2 =
           mcomp_variant_description type_pairs env v1 v2
       | Type_open, Type_open ->
           mcomp_list type_pairs env tl1 tl2
-      | Type_abstract, Type_abstract -> ()
-      | Type_abstract, _ when not (non_aliasable p1 decl)-> ()
-      | _, Type_abstract when not (non_aliasable p2 decl') -> ()
+      | Type_abstract _, Type_abstract _ -> ()
+      | Type_abstract _, _ when not (non_aliasable p1 decl)-> ()
+      | _, Type_abstract _ when not (non_aliasable p2 decl') -> ()
       | _ -> raise Incompatible
   with Not_found -> ()
 
@@ -2496,7 +2521,7 @@ let add_gadt_equation uenv source destination =
   else if local_non_recursive_abbrev uenv source destination then begin
     let destination = duplicate_type destination in
     let expansion_scope =
-      Int.max (Path.scope source) (get_gadt_equations_level uenv)
+      Int.max (Path.scope source) (get_equations_scope uenv)
     in
     let decl =
       new_local_type ~manifest_and_scope:(destination, expansion_scope) () in
@@ -2552,7 +2577,7 @@ let complete_type_list ?(allow_absent=false) env fl1 lv2 mty2 fl2 =
     | (n, _) :: nl, _ ->
         let lid = concat_longident (Longident.Lident "Pkg") n in
         match Env.find_type_by_name lid env' with
-        | (_, {type_arity = 0; type_kind = Type_abstract;
+        | (_, {type_arity = 0; type_kind = Type_abstract _;
                type_private = Public; type_manifest = Some t2}) ->
             begin match nondep_instance env' lv2 id2 t2 with
             | t -> (n, t) :: complete nl fl2
@@ -2562,7 +2587,7 @@ let complete_type_list ?(allow_absent=false) env fl1 lv2 mty2 fl2 =
                 else
                   raise Exit
             end
-        | (_, {type_arity = 0; type_kind = Type_abstract;
+        | (_, {type_arity = 0; type_kind = Type_abstract _;
                type_private = Public; type_manifest = None})
           when allow_absent ->
             complete nl fl2
@@ -3176,7 +3201,20 @@ and unify_row_field uenv fixed1 fixed2 rm1 rm2 l f1 f2 =
       if_not_fixed first (fun () -> link_row_field_ext ~inside:f1 f2)
   | Rpresent None, Reither(true, [], _) ->
       if_not_fixed second (fun () -> link_row_field_ext ~inside:f2 f1)
-  | _ -> raise_unexplained_for Unify
+  | Rabsent, (Rpresent _ | Reither(_,_,true)) ->
+      raise_trace_for Unify [Variant(No_tags(First, [l,f1]))]
+  | (Rpresent _ | Reither (_,_,true)), Rabsent ->
+      raise_trace_for Unify [Variant(No_tags(Second, [l,f2]))]
+  | (Rpresent (Some _) | Reither(false,_,_)),
+    (Rpresent None | Reither(true,_,_))
+  | (Rpresent None | Reither(true,_,_)),
+    (Rpresent (Some _) | Reither(false,_,_)) ->
+      (* constructor arity mismatch: 0 <> 1 *)
+      raise_unexplained_for Unify
+  | Reither(true, _ :: _, _ ), Rpresent _
+  | Rpresent _ , Reither(true, _ :: _, _ ) ->
+      (* inconsistent conjunction on a non-absent field *)
+      raise_unexplained_for Unify
 
 let unify uenv ty1 ty2 =
   let snap = Btype.snapshot () in
@@ -3187,17 +3225,14 @@ let unify uenv ty1 ty2 =
       undo_compress snap;
       raise (Unify (expand_to_unification_error (get_env uenv) trace))
 
-let unify_gadt ~equations_level:lev ~allow_recursive_equations
-      (env:Env.t ref) ty1 ty2 =
+let unify_gadt (penv : Pattern_env.t) ty1 ty2 =
   univar_pairs := [];
   let equated_types = TypePairs.create 0 in
   let equations_generation = Allowed { equated_types } in
   let uenv = Pattern
-      { env;
+      { penv;
         equations_generation;
         assume_injective = true;
-        allow_recursive_equations;
-        gadt_equations_level = lev;
         unify_eq_set = TypePairs.create 11; }
   in
   unify uenv ty1 ty2;
@@ -5352,7 +5387,7 @@ let nondep_type_decl env mid is_covariant decl =
     let params = List.map (nondep_type_rec env mid) decl.type_params in
     let tk =
       try map_kind (nondep_type_rec env mid) decl.type_kind
-      with Nondep_cannot_erase _ when is_covariant -> Type_abstract
+      with Nondep_cannot_erase _ when is_covariant -> Type_abstract Abstract_def
     and tm, priv =
       match decl.type_manifest with
       | None -> None, decl.type_private

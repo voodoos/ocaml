@@ -269,9 +269,11 @@ let type_constraint val_env sty sty' loc =
 let make_method loc cl_num expr =
   let open Ast_helper in
   let mkid s = mkloc s loc in
-  Exp.fun_ ~loc:expr.pexp_loc Nolabel None
-    (Pat.alias ~loc (Pat.var ~loc (mkid "self-*")) (mkid ("self-" ^ cl_num)))
-    expr
+  let pat =
+    Pat.alias ~loc (Pat.var ~loc (mkid "self-*")) (mkid ("self-" ^ cl_num))
+  in
+  Exp.function_ ~loc:expr.pexp_loc
+    [ Pparam_val (Nolabel, None, pat) ] None (Pfunction_body expr)
 
 (*******************************)
 
@@ -1176,7 +1178,7 @@ and class_expr_aux cl_num val_env met_env virt self_scope scl =
       in
       let partial =
         let dummy = type_exp val_env (Ast_helper.Exp.unreachable ()) in
-        Typecore.check_partial Modules_rejected val_env pat.pat_type pat.pat_loc
+        Typecore.check_partial val_env pat.pat_type pat.pat_loc
           [{c_lhs = pat; c_guard = None; c_rhs = dummy}]
       in
       let cl =
@@ -1303,7 +1305,7 @@ and class_expr_aux cl_num val_env met_env virt self_scope scl =
         Typecore.type_let In_class_def val_env rec_flag sdefs in
       let (vals, met_env) =
         List.fold_right
-          (fun (id, _id_loc, _typ) (vals, met_env) ->
+          (fun (id, _id_loc, _typ, _uid) (vals, met_env) ->
              let path = Pident id in
              (* do not mark the value as used *)
              let vd = Env.find_value path val_env in
@@ -1441,7 +1443,7 @@ let temp_abbrev loc arity uid =
   let ty_td =
       {type_params = !params;
        type_arity = arity;
-       type_kind = Type_abstract;
+       type_kind = Type_abstract Abstract_def;
        type_private = Public;
        type_manifest = Some ty;
        type_variance = Variance.unknown_signature ~injective:false ~arity;
@@ -1665,7 +1667,7 @@ let class_infos define_class kind
     {
      type_params = obj_params;
      type_arity = arity;
-     type_kind = Type_abstract;
+     type_kind = Type_abstract Abstract_def;
      type_private = Public;
      type_manifest = Some obj_ty;
      type_variance = Variance.unknown_signature ~injective:false ~arity;

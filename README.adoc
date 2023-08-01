@@ -16,7 +16,10 @@ MinGW-w64 port is supported in OCaml 5.0 and the Cygwin port is restored in 5.1.
 On Linux, native code support for RISC-V and s390x/IBM Z will be available in
 OCaml 5.1 and on Power in 5.2.
 
-On 32-bit systems, only the bytecode compiler will be supported.
+❗ From OCaml 5.0 onwards, native compilation is available only on 64-bit
+systems.  Native compilation on 32-bit systems is no longer available, nor
+are there plans to bring it back. The bytecode compiler will continue to work on
+all architectures.
 
 |=====
 | Branch `trunk` | Branch `5.1` | Branch `5.0` | Branch `4.14`
@@ -36,7 +39,7 @@ On 32-bit systems, only the bytecode compiler will be supported.
   image:https://ci.appveyor.com/api/projects/status/github/ocaml/ocaml?branch=5.0&svg=true["AppVeyor Build Status (5.0 branch)",
      link="https://ci.appveyor.com/project/avsm/ocaml"]
 | image:https://github.com/ocaml/ocaml/workflows/Build/badge.svg?branch=4.14["Github CI Build Status (4.14 branch)",
-     link="https://github.com/ocaml/ocaml/actions?query=workflow%3Amain"]
+     link="https://github.com/ocaml/ocaml/actions?query=workflow%3ABuild"]
   image:https://ci.appveyor.com/api/projects/status/github/ocaml/ocaml?branch=4.14&svg=true["AppVeyor Build Status (4.14 branch)",
      link="https://ci.appveyor.com/project/avsm/ocaml"]
 |=====
@@ -66,8 +69,8 @@ compiler currently runs on the following platforms:
 |====
 |                |  Tier 1 (actively maintained)   | Tier 2 (maintained when possible)
 
-| x86 64 bits    | Linux, macOS, Windows, FreeBSD  |  NetBSD, OpenBSD
-| ARM 64 bits    | Linux, macOS                    |  FreeBSD
+| x86 64 bits    | Linux, macOS, Windows, FreeBSD  |  NetBSD, OpenBSD, OmniOS (Solaris)
+| ARM 64 bits    | Linux, macOS                    |  FreeBSD, OpenBSD
 | Power 64 bits  | Linux                           |
 | RISC-V 64 bits | Linux                           |
 | IBM Z (s390x)  | Linux                           |
@@ -80,7 +83,7 @@ the compiler may work under other operating systems with little work.
 == Copyright
 
 All files marked "Copyright INRIA" in this distribution are
-Copyright (C) 1996-2022 Institut National de Recherche en Informatique et
+Copyright (C) 1996-2023 Institut National de Recherche en Informatique et
 en Automatique (INRIA) and distributed under the conditions stated in
 file LICENSE.
 
@@ -118,10 +121,6 @@ You can subscribe and access list archives via the Web interface at
 
 https://sympa.inria.fr/sympa/subscribe/caml-list
 
-An alternative archive of the mailing list is also available at
-
-https://inbox.ocaml.org/
-
 There also exist other mailing lists, chat channels, and various other forums
 around the internet for getting in touch with the OCaml and ML family language
 community. These can be accessed at
@@ -146,14 +145,18 @@ link:CONTRIBUTING.md[].
 == Separately maintained components
 
 Some libraries and tools which used to be part of the OCaml distribution are
-now maintained separately. Please use the issue trackers at their respective
-new homes:
+now maintained separately and distributed as OPAM packages.
+Please use the issue trackers at their respective new homes:
 
-- https://github.com/ocaml/camlp-streams/issues[The Stream and Genlex standard library modules] (removed in OCaml 5.0)
-- https://github.com/ocaml/graphics/issues[The Graphics library] (removed in OCaml 4.09)
-- https://github.com/ocaml/num/issues[The Num library] (removed in OCaml 4.06)
-- https://github.com/ocaml/ocamlbuild/issues[The OCamlbuild tool] (removed in OCaml 4.03)
-- https://github.com/camlp4/camlp4/issues[The camlp4 tool] (removed in OCaml 4.02)
-- https://github.com/garrigue/labltk/issues[The LablTk library] (removed in OCaml 4.02)
-- https://github.com/ocaml/dbm/issues[The CamlDBM library] (removed in OCaml 4.00)
-- https://github.com/xavierleroy/ocamltopwin/issues[The OCamlWinTop Windows toplevel] (removed in OCaml 4.00)
+|====
+| Library           |  Removed since    |  OPAM package
+
+| https://github.com/ocaml/camlp-streams/issues[The Stream and Genlex standard library modules] | OCaml 5.0 | `camlp-streams`
+| https://github.com/ocaml/graphics/issues[The Graphics library] | OCaml 4.09 | `graphics`
+| https://github.com/ocaml/num/issues[The Num library] | OCaml 4.06 | `num`
+| https://github.com/ocaml/ocamlbuild/issues[The OCamlbuild tool] | OCaml 4.03 | `ocamlbuild`
+| https://github.com/camlp4/camlp4/issues[The camlp4 tool] | OCaml 4.02 | `camlp4`
+| https://github.com/garrigue/labltk/issues[The LablTk library] | OCaml 4.02 | `labltk`
+| https://github.com/ocaml/dbm/issues[The CamlDBM library] | OCaml 4.00 | `dbm`
+| https://github.com/xavierleroy/ocamltopwin/issues[The OCamlWinTop Windows toplevel] | OCaml 4.00 | none
+|=====
