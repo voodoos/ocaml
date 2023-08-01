@@ -27,9 +27,11 @@ type t = M.t = A
 module N = M
 [%%expect{|
 {
- "N"[module] -> {<.2>
-                 "t"[type] -> <.0>;
-                 };
+ "N"[module] -> Alias(<.3>
+                      {<.2>
+                       "A"[type] -> <.1>;
+                       "t"[type] -> <.0>;
+                       });
  }
 module N = M
 |}]
@@ -46,6 +48,7 @@ end
 [%%expect{|
 {
  "M'"[module] -> {<.6>
+                  "A"[type] -> <.5>;
                   "t"[type] -> <.4>;
                   };
  }
@@ -55,9 +58,11 @@ module M' : sig type t = A end
 module N' = M'
 [%%expect{|
 {
- "N'"[module] -> {<.6>
-                  "t"[type] -> <.4>;
-                  };
+ "N'"[module] -> Alias(<.7>
+                       {<.6>
+                        "A"[type] -> <.5>;
+                        "t"[type] -> <.4>;
+                        });
  }
 module N' = M'
 |}]
@@ -69,11 +74,13 @@ module Test = struct
 end
 [%%expect{|
 {
- "Test"[module] -> {<.11>
-                    "M"[module] -> {<.10>
-                                    "t"[type] -> <.8>;
-                                    };
+ "Test"[module] ->
+   {<.11>
+    "M"[module] -> {<.10>
+                    "A"[type] -> <.9>;
+                    "t"[type] -> <.8>;
                     };
+    };
  }
 module Test : sig module M : sig type t = A end end
 |}]
@@ -82,6 +89,7 @@ include Test
 [%%expect{|
 {
  "M"[module] -> {<.10>
+                 "A"[type] -> <.9>;
                  "t"[type] -> <.8>;
                  };
  }
@@ -91,9 +99,11 @@ module M = Test.M
 module N = M
 [%%expect{|
 {
- "N"[module] -> {<.10>
-                 "t"[type] -> <.8>;
-                 };
+ "N"[module] -> Alias(<.12>
+                      {<.10>
+                       "A"[type] -> <.9>;
+                       "t"[type] -> <.8>;
+                       });
  }
 module N = M
 |}]
