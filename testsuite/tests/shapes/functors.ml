@@ -60,10 +60,12 @@ end
 [%%expect{|
 {
  "Fignore"[module] ->
-     Abs<.14>(()/1, {
-                     "t"[type] -> <.11>;
-                     "x"[value] -> <.13>;
-                     });
+   Abs<.14>
+      (()/1, {
+              "Fresh"[type] -> <.12>;
+              "t"[type] -> <.11>;
+              "x"[value] -> <.13>;
+              });
  }
 module Fignore : S -> sig type t = Fresh val x : t end
 |}]
@@ -74,10 +76,12 @@ module Arg : S = struct
 end
 [%%expect{|
 {
- "Arg"[module] -> {<.18>
-                   "t"[type] -> <.15>;
-                   "x"[value] -> <.17>;
-                   };
+ "Arg"[module] ->
+   {<.18>
+    "T"[type] -> <.16>;
+    "t"[type] -> <.15>;
+    "x"[value] -> <.17>;
+    };
  }
 module Arg : S
 |}]
@@ -168,10 +172,14 @@ module Fgen () = struct
 end
 [%%expect{|
 {
- "Fgen"[module] -> Abs<.30>(()/1, {
-                                   "t"[type] -> <.27>;
-                                   "x"[value] -> <.29>;
-                                   });
+ "Fgen"[module] ->
+   Abs<.30>
+      (()/1,
+       {
+        "Fresher"[type] -> <.28>;
+        "t"[type] -> <.27>;
+        "x"[value] -> <.29>;
+        });
  }
 module Fgen : functor () -> sig type t = Fresher val x : t end
 |}]

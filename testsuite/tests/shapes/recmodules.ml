@@ -18,6 +18,7 @@ module rec A : sig
 [%%expect{|
 {
  "A"[module] -> {
+                 "Leaf"[type] -> <.9>;
                  "t"[type] -> <.8>;
                  };
  "B"[module] -> {
@@ -75,10 +76,13 @@ and ASet : sig
 end = Set.Make(A)
 [%%expect{|
 {
- "A"[module] -> {
-                 "compare"[value] -> <.38>;
-                 "t"[type] -> <.35>;
-                 };
+ "A"[module] ->
+   {
+    "Leaf"[type] -> <.36>;
+    "Node"[type] -> <.37>;
+    "compare"[value] -> <.38>;
+    "t"[type] -> <.35>;
+    };
  "ASet"[module] ->
      {
       "compare"[value] ->
