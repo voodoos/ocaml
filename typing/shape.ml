@@ -131,7 +131,7 @@ module Item = struct
 end
 
 type var = Ident.t
-type t = { uid: Uid.t option; desc: desc }
+type t = { uid: Uid.t option; desc: desc; approximated: bool }
 and desc =
   | Var of var
   | Abs of var * t
@@ -142,7 +142,7 @@ and desc =
   | Proj of t * Item.t
   | Comp_unit of string
 
-let print fmt =
+let print fmt t =
   let print_uid_opt =
     Format.pp_print_option (fun fmt -> Format.fprintf fmt "<%a>" Uid.print)
   in
@@ -195,7 +195,10 @@ let print fmt =
     | Alias t ->
         Format.fprintf fmt "Alias@[(@[<v>%a@,%a@])@]" print_uid_opt uid aux t
   in
-  Format.fprintf fmt"@[%a@]@;" aux
+  if t.approximated then
+    Format.fprintf fmt "@[(approx)@ %a@]@;" aux t
+  else
+    Format.fprintf fmt "@[%a@]@;" aux t
 
 let rec is_closed (t : t) = match t.desc with
   | Comp_unit _ -> false
@@ -208,40 +211,42 @@ let rec is_closed (t : t) = match t.desc with
 
 let fresh_var ?(name="shape-var") uid =
   let var = Ident.create_local name in
-  var, { uid = Some uid; desc = Var var }
+  var, { uid = Some uid; desc = Var var; approximated = false }
 
 let for_unnamed_functor_param = Ident.create_local "()"
 
 let var uid id =
-  { uid = Some uid; desc = Var id }
+  { uid = Some uid; desc = Var id; approximated = false }
 
 let abs ?uid var body =
-  { uid; desc = Abs (var, body) }
+  { uid; desc = Abs (var, body); approximated = false }
 
 let str ?uid map =
-  { uid; desc = Struct map }
+  { uid; desc = Struct map; approximated = false }
 
 let alias ?uid t =
   { uid; desc = Alias t; approximated = false}
 
 let leaf uid =
-  { uid = Some uid; desc = Leaf }
+  { uid = Some uid; desc = Leaf; approximated = false }
+
+let approx t = { t with approximated = true}
 
 let proj ?uid t item =
   match t.desc with
   | Leaf ->
       (* When stuck projecting in a leaf we propagate the leaf
         as a best effort *)
-      t
+      approx t
   | Struct map ->
       begin try Item.Map.find item map
-      with Not_found -> t (* ill-typed program *)
+      with Not_found -> approx t (* ill-typed program *)
       end
   | _ ->
-      { uid; desc = Proj (t, item) }
+     { uid; desc = Proj (t, item); approximated = true }
 
 let app ?uid f ~arg =
-      { uid; desc = App (f, arg) }
+  { uid; desc = App (f, arg); approximated = false }
 
 let decompose_abs t =
   match t.desc with
@@ -257,7 +262,7 @@ end) = struct
   (* We implement a strong call-by-need reduction, following an
      evaluator from Nathanaelle Courant. *)
 
-  type nf = { uid: Uid.t option; desc: nf_desc }
+  type nf = { uid: Uid.t option; desc: nf_desc; approximated: bool }
   and nf_desc =
     | NVar of var
     | NApp of nf * nf
@@ -377,8 +382,10 @@ end) = struct
     in
     let force (Thunk { local_env; shape = t }) =
       reduce { env with local_env } t in
-    let return desc : nf = { uid = t.uid; desc } in
-    if !fuel < 0 then return (NoFuelLeft t.desc)
+    let return ?(approximated = t.approximated) desc : nf =
+      { uid = t.uid; desc; approximated }
+    in
+    if !fuel < 0 then return ~approximated:true (NoFuelLeft t.desc)
     else
       match t.desc with
       | Comp_unit unit_name ->
@@ -449,7 +456,9 @@ end) = struct
      over the term as a tree. *)
 
   and read_back_ env (nf : nf) : t =
-    { uid = nf.uid; desc = read_back_desc env nf.desc }
+    { uid = nf.uid;
+      desc = read_back_desc env nf.desc;
+      approximated = nf.approximated}
 
   and read_back_desc env desc =
     let read_back nf = read_back env nf in
@@ -494,7 +503,9 @@ end) = struct
       let memo_key = (env.local_env, nf) in
       in_memo_table cache memo_key (weak_read_back_ env) nf
     and weak_read_back_ env nf : t =
-      { uid = nf.uid; desc = weak_read_back_desc env nf.desc }
+      { uid = nf.uid;
+        desc = weak_read_back_desc env nf.desc;
+        approximated = nf.approximated }
     and weak_read_back_desc env desc : desc =
       let weak_read_back_no_force (Thunk { shape = t; _ }) = t in
       match desc with
@@ -546,7 +557,8 @@ let local_reduce shape =
 let local_weak_reduce shape =
   Local_reduce.weak_reduce () shape
 
-let dummy_mod = { uid = None; desc = Struct Item.Map.empty }
+let dummy_mod =
+  { uid = None; desc = Struct Item.Map.empty; approximated = false }
 
 let of_path ~find_shape ~namespace =
   let rec aux : Sig_component_kind.t -> Path.t -> t = fun ns -> function
@@ -563,9 +575,9 @@ let of_path ~find_shape ~namespace =
 
 let for_persistent_unit s =
   { uid = Some (Uid.of_compilation_unit_id (Ident.create_persistent s));
-    desc = Comp_unit s }
+    desc = Comp_unit s; approximated = false }
 
-let leaf_for_unpack = { uid = None; desc = Leaf }
+let leaf_for_unpack = { uid = None; desc = Leaf; approximated = false }
 
 let set_uid_if_none t uid =
   match t.uid with
