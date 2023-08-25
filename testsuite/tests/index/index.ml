@@ -6,7 +6,7 @@ setup-ocamlc.byte-build-env;
 all_modules = "aux.ml index.ml";
 ocamlc.byte;
 check-ocamlc.byte-output;
-program = "-index index.cmt";
+program = "-index -decls index.cmt";
 output = "out_objinfo";
 ocamlobjinfo;
 program = "awk '/Indexed/,0' out_objinfo";
