@@ -9,3 +9,11 @@ Index_labels.2: b (File "index_labels.ml", line 20, characters 18-19)
 Index_labels.1: a (File "index_labels.ml", line 20, characters 10-11)
 <predef:string>: string (File "index_labels.ml", line 18, characters 30-36)
 <predef:int>: int (File "index_labels.ml", line 18, characters 22-25)
+
+Uid of decls:
+Index_labels.5: f (File "index_labels.ml", line 25, characters 4-5)
+Index_labels.2: b (File "index_labels.ml", line 18, characters 27-28)
+Index_labels.3: x (File "index_labels.ml", line 20, characters 4-5)
+Index_labels.1: a (File "index_labels.ml", line 18, characters 19-20)
+Index_labels.4: _y (File "index_labels.ml", line 21, characters 4-6)
+Index_labels.0: t (File "index_labels.ml", line 18, characters 5-6)
