@@ -231,9 +231,7 @@ let iter_on_usages ~index =
     function
     | { Types.cstr_tag = Cstr_extension (path, _); _ } ->
         f ~namespace:Extension_constructor env path lid
-    | { Types.cstr_uid = Predef "()"; _ } ->
-        (* We do not index occurrences of `()` *)
-        ()
+    | { Types.cstr_uid = Predef _; _ } -> ()
     | { Types.cstr_uid; _ } ->
         index := (Resolved cstr_uid, lid) :: !index
   in
