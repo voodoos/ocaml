@@ -1,18 +1,18 @@
 (* TEST
-flags = "-bin-annot -store-usage-index";
-compile_only = "true";
-readonly_files = "index_objects.ml";
-setup-ocamlc.byte-build-env;
-all_modules = "index_objects.ml";
-ocamlc.byte;
-check-ocamlc.byte-output;
-program = "-index -decls index_objects.cmt";
-output = "out_objinfo";
-ocamlobjinfo;
-program = "awk '/Indexed/,0' out_objinfo";
-output = "out_awk";
-run;
-check-program-output;
+flags = "-bin-annot -store-usage-index"
+compile_only = "true"
+readonly_files = "index_objects.ml"
+* setup-ocamlc.byte-build-env
+** ocamlc.byte
+all_modules = "index_objects.ml"
+*** check-ocamlc.byte-output
+**** ocamlobjinfo
+program = "-index -decls index_objects.cmt"
+output = "out_objinfo"
+***** run
+program = "awk '/Indexed/,0' out_objinfo"
+output = "out_awk"
+****** check-program-output
 *)
 
 let o = object
