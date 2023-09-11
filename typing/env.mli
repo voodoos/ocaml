@@ -518,6 +518,3 @@ val scrape_alias: t -> module_type -> module_type
 val check_value_name: string -> Location.t -> unit
 
 val print_address : Format.formatter -> address -> unit
-
-(* Forward decl filled in by Cmt_format *)
-val clear_uid_tbl : (unit -> unit) ref
