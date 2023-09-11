@@ -41,7 +41,7 @@ let y = A.x + Aux.z
 
 let () = print_int y
 
-let a = (module A : AS) (* FIXME: AS is missing*)
+let a = (module A : AS)
 module _ = (val a)
 
 module F (P : AS) = struct include P end
