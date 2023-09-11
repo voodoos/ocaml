@@ -126,7 +126,7 @@ let iter_on_declarations ~(f: Shape.Uid.t -> item_declaration -> unit) =
       default_iterator.value_bindings sub bindings);
 
   module_binding = (fun sub mb ->
-    f mb.mb_decl_uid (Module_binding mb);
+    f mb.mb_uid (Module_binding mb);
     default_iterator.module_binding sub mb);
 
   module_declaration = (fun sub md ->
