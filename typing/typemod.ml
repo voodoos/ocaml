@@ -1997,7 +1997,7 @@ let check_recmodule_inclusion env bindings =
           {
             mb_id = id;
             mb_name = name;
-            mb_decl_uid = uid;
+            mb_uid = uid;
             mb_presence = Mp_present;
             mb_expr = modl';
             mb_attributes = attrs;
@@ -2639,7 +2639,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           | Some id -> Shape.Map.add_module shape_map id md_shape
           | None -> shape_map
         in
-        Tstr_module {mb_id=id; mb_name=name; mb_decl_uid = md.md_uid;
+        Tstr_module {mb_id=id; mb_name=name; mb_uid = md.md_uid;
                      mb_expr=modl; mb_presence=pres; mb_attributes=attrs;
                      mb_loc=pmb_loc; },
         sg,
