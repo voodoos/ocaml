@@ -1037,7 +1037,7 @@ end = struct
     let open Sig_component_kind in
     match component with
     | Value -> names.values
-    | Type | Label -> names.types
+    | Type | Label | Constructor -> names.types
     | Module -> names.modules
     | Module_type -> names.modtypes
     | Extension_constructor -> names.typexts

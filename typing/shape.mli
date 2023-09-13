@@ -69,6 +69,7 @@ module Sig_component_kind : sig
   type t =
     | Value
     | Type
+    | Constructor
     | Label
     | Module
     | Module_type
