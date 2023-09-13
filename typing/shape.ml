@@ -67,6 +67,7 @@ module Sig_component_kind = struct
   type t =
     | Value
     | Type
+    | Constructor
     | Label
     | Module
     | Module_type
@@ -77,6 +78,7 @@ module Sig_component_kind = struct
   let to_string = function
     | Value -> "value"
     | Type -> "type"
+    | Constructor -> "constructor"
     | Label -> "label"
     | Module -> "module"
     | Module_type -> "module type"
@@ -89,6 +91,7 @@ module Sig_component_kind = struct
     | Extension_constructor ->
         false
     | Type
+    | Constructor
     | Label
     | Module
     | Module_type
