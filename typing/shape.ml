@@ -545,9 +545,6 @@ module Local_reduce =
 let local_reduce shape =
   Local_reduce.reduce () shape
 
-let local_weak_reduce shape =
-  Local_reduce.weak_reduce () shape
-
 let dummy_mod =
   { uid = None; desc = Struct Item.Map.empty; approximated = false }
 

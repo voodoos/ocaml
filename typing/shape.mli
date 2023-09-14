@@ -214,5 +214,3 @@ module Make_reduce(Context : sig
 end
 
 val local_reduce : t -> t
-
-val local_weak_reduce : t -> t
