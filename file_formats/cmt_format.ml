@@ -219,8 +219,9 @@ let iter_on_usages ~index =
   let f ~namespace env path lid =
     let not_ghost { Location.loc = { loc_ghost; _ }; _ } = not loc_ghost in
     if not_ghost lid then
-      try
-        let path_shape = Env.shape_of_path ~namespace env path in
+      match Env.shape_of_path ~namespace env path with
+      | exception Not_found -> ()
+      | path_shape ->
         let shape = Local_reduce.weak_reduce env path_shape in
         if not (Shape.is_closed shape) then
           index := (Unresolved shape, lid) :: !index
@@ -235,7 +236,6 @@ let iter_on_usages ~index =
             reported will allow Merlin (or another tool working with the index)
             to ask users to report the issue if it does happen. *)
           index := (Missing_uid shape, lid) :: !index
-      with Not_found -> ()
   in
   let add_constructor_description env lid =
     function
