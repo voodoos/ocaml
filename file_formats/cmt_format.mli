@@ -68,6 +68,8 @@ type item_declaration =
 type index_item =
 | Resolved of Uid.t
 | Unresolved of Shape.t
+| Approximated of Shape.t
+| Missing_uid of Shape.t
 
 type cmt_infos = {
   cmt_modname : modname;

@@ -63,6 +63,8 @@ type item_declaration =
 type index_item =
   | Resolved of Uid.t
   | Unresolved of Shape.t
+  | Approximated of Shape.t
+  | Missing_uid of Shape.t
 
 type cmt_infos = {
   cmt_modname : string;
@@ -218,13 +220,21 @@ let iter_on_usages ~index =
     let not_ghost { Location.loc = { loc_ghost; _ }; _ } = not loc_ghost in
     if not_ghost lid then
       try
-        let shape = Env.shape_of_path ~namespace env path in
-        let shape = Local_reduce.weak_reduce env shape in
+        let path_shape = Env.shape_of_path ~namespace env path in
+        let shape = Local_reduce.weak_reduce env path_shape in
         if not (Shape.is_closed shape) then
           index := (Unresolved shape, lid) :: !index
-        else Option.iter
-          (fun uid -> index := (Resolved uid, lid) :: !index)
-          shape.Shape.uid
+        else match shape with
+        | { uid = Some uid; approximated = false; _ } ->
+            index := (Resolved uid, lid) :: !index
+        | { uid = _; approximated = true; _ } ->
+          index := (Missing_uid shape, lid) :: !index
+        | { uid = None; approximated = false; _ } ->
+          (* A missing Uid after a complete reduction means the Uid was first
+            missing in the shape which is a code error. Having the [Missing_uid]
+            reported will allow Merlin (or another tool working with the index)
+            to ask users to report the issue if it does happen. *)
+          index := (Missing_uid shape, lid) :: !index
       with Not_found -> ()
   in
   let add_constructor_description env lid =
