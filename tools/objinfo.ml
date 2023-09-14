@@ -136,11 +136,10 @@ let print_cmt_infos cmt =
           Format.printf "@[<hov 2>%a:@ %a@]@;"
             Shape.Uid.print uid
             pp_loc loc
-      | Unresolved shape ->
-        Format.printf "@[<hov 2>%a:@ %a@]@;"
-          Shape.print shape
-          pp_loc loc
-      | Approximated _ | Missing_uid _ -> ())
+      | Unresolved shape | Approximated shape | Missing_uid shape ->
+          Format.printf "@[<hov 2>%a:@ %a@]@;"
+            Shape.print shape
+            pp_loc loc)
       cmt.cmt_usages_index;
     Format.print_flush ()
   end;
