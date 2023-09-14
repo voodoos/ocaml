@@ -34,7 +34,7 @@
       [let shape = My_reduce.(weak_)reduce env shape]
 
     - The [Uid.t] stored in the reduced shape should be the one of the
-      definition. Warnign: if the [approximate] field of the reduced shape is
+      definition. However, if the [approximate] field of the reduced shape is
       [true] then the [Uid.t] will not correspond to the definition, but to the
       closest parent module's uid. This happens when Shape reduction gets stuck,
       for example when hitting first-class modules.
