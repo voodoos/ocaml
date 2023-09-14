@@ -213,4 +213,7 @@ module Make_reduce(Context : sig
   val weak_reduce : Context.env -> t -> t
 end
 
-val local_reduce : t -> t
+(** [toplevel_local_reduce] is only suitable to reduce toplevel shapes (shapes
+  of compilation units). Use the [Make_reduce] functor for other cases that
+  require access to the environment.*)
+val toplevel_local_reduce : t -> t
