@@ -227,9 +227,9 @@ let iter_on_usages ~index =
           index := (Unresolved shape, lid) :: !index
         else match shape with
         | { uid = Some uid; approximated = false; _ } ->
-            index := (Resolved uid, lid) :: !index
+          index := (Resolved uid, lid) :: !index
         | { uid = _; approximated = true; _ } ->
-          index := (Missing_uid shape, lid) :: !index
+          index := (Approximated shape, lid) :: !index
         | { uid = None; approximated = false; _ } ->
           (* A missing Uid after a complete reduction means the Uid was first
             missing in the shape which is a code error. Having the [Missing_uid]
