@@ -102,8 +102,7 @@ module Namespace = struct
     let path = Path.Pident id in
     try Some (
         match namespace with
-        | Some Type ->
-            (in_printing_env @@ Env.find_type path).type_loc
+        | Some Type -> (in_printing_env @@ Env.find_type path).type_loc
         | Some Module -> (in_printing_env @@ Env.find_module path).md_loc
         | Some Module_type -> (in_printing_env @@ Env.find_modtype path).mtd_loc
         | Some Class -> (in_printing_env @@ Env.find_class path).cty_loc
