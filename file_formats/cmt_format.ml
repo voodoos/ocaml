@@ -455,7 +455,12 @@ let save_cmt filename modname binary_annots sourcefile initial_env cmi shape =
            | None -> None
            | Some cmi -> Some (output_cmi temp_file_name oc cmi)
          in
-         let cmt_usages_index = index_usages binary_annots in
+         let cmt_usages_index =
+          if !Clflags.store_usage_index then
+            index_usages binary_annots
+          else
+            []
+         in
          let cmt_annots = clear_env binary_annots in
          let cmt_uid_to_decl = index_declarations cmt_annots in
          let source_digest = Option.map Digest.file sourcefile in
