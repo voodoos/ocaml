@@ -1,5 +1,5 @@
 (* TEST
-flags = "-bin-annot";
+flags = "-bin-annot -store-usage-index";
 compile_only = "true";
 readonly_files = "aux.ml";
 setup-ocamlc.byte-build-env;
