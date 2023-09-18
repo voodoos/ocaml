@@ -1,5 +1,5 @@
 (* TEST
-flags = "-bin-annot";
+flags = "-bin-annot -store-usage-index";
 compile_only = "true";
 setup-ocamlc.byte-build-env;
 all_modules = "index_aliases.ml";
