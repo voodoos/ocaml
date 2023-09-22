@@ -77,12 +77,12 @@ end = Set.Make(A)
 [%%expect{|
 {
  "A"[module] ->
-   {
-    "Leaf"[type] -> <.36>;
-    "Node"[type] -> <.37>;
-    "compare"[value] -> <.38>;
-    "t"[type] -> <.35>;
-    };
+     {
+      "Leaf"[type] -> <.36>;
+      "Node"[type] -> <.37>;
+      "compare"[value] -> <.38>;
+      "t"[type] -> <.35>;
+      };
  "ASet"[module] ->
      {
       "compare"[value] ->

@@ -107,11 +107,11 @@ end
                   "t"[type] -> <.27>;
                   };
  "M2"[module] ->
-   {
-    "T"[type] -> <.30>;
-    "t"[type] -> <.29>;
-    "x"[value] -> <.31>;
-    };
+     {
+      "T"[type] -> <.30>;
+      "t"[type] -> <.29>;
+      "x"[value] -> <.31>;
+      };
  }
 module rec M1 : sig type t = C of M2.t end
 and M2 : sig type t val x : t end

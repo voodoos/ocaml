@@ -75,12 +75,12 @@ end
 [%%expect{|
 {
  "Test"[module] ->
-   {<.11>
-    "M"[module] -> {<.10>
-                    "A"[type] -> <.9>;
-                    "t"[type] -> <.8>;
-                    };
-    };
+     {<.11>
+      "M"[module] -> {<.10>
+                      "A"[type] -> <.9>;
+                      "t"[type] -> <.8>;
+                      };
+      };
  }
 module Test : sig module M : sig type t = A end end
 |}]
