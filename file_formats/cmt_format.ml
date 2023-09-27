@@ -222,7 +222,7 @@ let iter_on_usages ~index =
       match Env.shape_of_path ~namespace env path with
       | exception Not_found -> ()
       | path_shape ->
-        let shape = Local_reduce.weak_reduce env path_shape in
+        let shape = Local_reduce.reduce env path_shape in
         if not (Shape.is_closed shape) then
           index := (Unresolved shape, lid) :: !index
         else match shape with
