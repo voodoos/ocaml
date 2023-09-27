@@ -316,8 +316,8 @@ let with_constraint sub = function
   | Twith_typesubst decl -> sub.type_declaration sub decl
   | Twith_module    _    -> ()
   | Twith_modsubst  _    -> ()
-  | Twith_modtype   _    -> ()
-  | Twith_modtypesubst _ -> ()
+  | Twith_modtype  decl  -> sub.module_type sub decl
+  | Twith_modtypesubst decl -> sub.module_type sub decl
 
 
 let open_description sub {open_env; _} = sub.env sub open_env
