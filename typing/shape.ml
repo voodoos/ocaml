@@ -234,7 +234,7 @@ let proj ?uid t item =
       with Not_found -> approx t (* ill-typed program *)
       end
   | _ ->
-     { uid; desc = Proj (t, item); approximated = true }
+     { uid; desc = Proj (t, item); approximated = false }
 
 let app ?uid f ~arg =
   { uid; desc = App (f, arg); approximated = false }

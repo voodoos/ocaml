@@ -8,9 +8,9 @@ Index_bindingops.11:
 Index_bindingops.10:
   bar (File "index_bindingops.ml", line 27, characters 8-11)
 Index_bindingops.9: foo (File "index_bindingops.ml", line 27, characters 2-5)
-(approx) CU Stdlib . "+"[value] :
+CU Stdlib . "+"[value] :
   (+) (File "index_bindingops.ml", line 27, characters 6-7)
-(approx) CU Stdlib . "-"[value] :
+CU Stdlib . "-"[value] :
   (-) (File "index_bindingops.ml", line 27, characters 12-13)
 Index_bindingops.3:
   (and+) (File "index_bindingops.ml", line 26, characters 2-6)
@@ -21,14 +21,14 @@ Index_bindingops.0:
 Index_bindingops.5: y (File "index_bindingops.ml", line 21, characters 31-32)
 Index_bindingops.7: y (File "index_bindingops.ml", line 21, characters 27-28)
 Index_bindingops.6: x (File "index_bindingops.ml", line 21, characters 24-25)
-(approx) CU Stdlib . "Option"[module] . "map"[value] :
+CU Stdlib . "Option"[module] . "map"[value] :
   Option.map (File "index_bindingops.ml", line 21, characters 2-12)
 Index_bindingops.4: x (File "index_bindingops.ml", line 20, characters 14-15)
-(approx) CU Stdlib . "Option"[module] . "bind"[value] :
+CU Stdlib . "Option"[module] . "bind"[value] :
   Option.bind (File "index_bindingops.ml", line 20, characters 2-13)
 Index_bindingops.1: x (File "index_bindingops.ml", line 17, characters 30-31)
 Index_bindingops.2: f (File "index_bindingops.ml", line 17, characters 28-29)
-(approx) CU Stdlib . "Option"[module] . "map"[value] :
+CU Stdlib . "Option"[module] . "map"[value] :
   Option.map (File "index_bindingops.ml", line 17, characters 17-27)
 
 Uid of decls:
