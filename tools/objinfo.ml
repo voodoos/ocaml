@@ -131,19 +131,19 @@ let print_cmt_infos cmt =
         Format.fprintf fmt "%a (%a)"
           Pprintast.longident txt Location.print_loc loc
       in
-      match item with
+      match (item : Shape.reduction_result) with
       | Resolved uid ->
           Format.printf "@[<hov 2>%a:@ %a@]@;"
             Shape.Uid.print uid
             pp_loc loc
-      | Unresolved shape | Approximated shape ->
+      | Unresolved shape ->
           Format.printf "@[<hov 2>%a:@ %a@]@;"
             Shape.print shape
             pp_loc loc
-      | Missing_uid shape ->
-          Format.printf "@[<hov 2>[NOUID]@ %a:@ %a@]@;"
-            Shape.print shape
-            pp_loc loc)
+      | Approximated uid->
+          Format.printf "[Approximated] %a"
+            (Format.pp_print_option Shape.Uid.print) uid
+      | Missing_uid -> Format.printf "[Missing_uid]")
       cmt.cmt_ident_occurrences;
     Format.print_flush ()
   end;
