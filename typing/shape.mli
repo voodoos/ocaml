@@ -2,7 +2,7 @@
 (*                                                                        *)
 (*                                 OCaml                                  *)
 (*                                                                        *)
-(*                Ulysse Gérard, Thomas Refis, Tarides                    *)
+(*                Ulysse Gérard, Thomas Refis, N G Tarides                    *)
 (*                                                                        *)
 (*   Copyright 2021 Institut National de Recherche en Informatique et     *)
 (*     en Automatique.                                                    *)
@@ -13,9 +13,9 @@
 (*                                                                        *)
 (**************************************************************************)
 
-(** Shapes are an abstract representation of modules which allow the tracking
-    definitions through functor applications and other module-level
-    operations.
+(** Shapes are an abstract representation of modules' implementations which
+    allow the tracking of definitions through functor applications and other
+    module-level operations.
 
     The Shape of a compilation unit is elaborated during typing, partially
     reduced (without loading external shapes) and written to the [cmt] file.
