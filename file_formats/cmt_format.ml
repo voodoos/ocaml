@@ -83,7 +83,7 @@ type cmt_infos = {
   cmt_use_summaries : bool;
   cmt_uid_to_decl : item_declaration Shape.Uid.Tbl.t;
   cmt_impl_shape : Shape.t option; (* None for mli *)
-  cmt_usages_index : (index_item * Longident.t Location.loc) list
+  cmt_ident_occurrences : (Longident.t Location.loc * index_item) list
 }
 
 type error =
@@ -224,18 +224,18 @@ let iter_on_usages ~index =
       | path_shape ->
         let shape = Local_reduce.weak_reduce env path_shape in
         if not (Shape.is_closed shape) then
-          index := (Unresolved shape, lid) :: !index
+          index := (lid, Unresolved shape) :: !index
         else match shape with
         | { uid = Some uid; approximated = false; _ } ->
-          index := (Resolved uid, lid) :: !index
+          index := (lid, Resolved uid) :: !index
         | { uid = _; approximated = true; _ } ->
-          index := (Approximated shape, lid) :: !index
+          index := (lid, Approximated shape) :: !index
         | { uid = None; approximated = false; _ } ->
           (* A missing Uid after a complete reduction means the Uid was first
             missing in the shape which is a code error. Having the [Missing_uid]
             reported will allow Merlin (or another tool working with the index)
             to ask users to report the issue if it does happen. *)
-          index := (Missing_uid shape, lid) :: !index
+          index := (lid, Missing_uid shape) :: !index
   in
   let add_constructor_description env lid =
     function
@@ -243,10 +243,10 @@ let iter_on_usages ~index =
         f ~namespace:Extension_constructor env path lid
     | { Types.cstr_uid = Predef _; _ } -> ()
     | { Types.cstr_uid; _ } ->
-        index := (Resolved cstr_uid, lid) :: !index
+        index := (lid, Resolved cstr_uid) :: !index
   in
   let add_label lid { Types.lbl_uid; _ } =
-      index := (Resolved lbl_uid, lid) :: !index
+      index := (lid, Resolved lbl_uid) :: !index
   in
   let with_constraint ~env (_path, _lid, with_constraint) =
     match with_constraint with
@@ -380,7 +380,7 @@ let index_declarations binary_annots =
   index
 
 let index_usages binary_annots =
-  let index : (index_item * Longident.t Location.loc) list ref = ref [] in
+  let index : (Longident.t Location.loc * index_item) list ref = ref [] in
   iter_on_annots (iter_on_usages ~index) binary_annots;
   !index
 
@@ -455,7 +455,7 @@ let save_cmt filename modname binary_annots sourcefile initial_env cmi shape =
            | None -> None
            | Some cmi -> Some (output_cmi temp_file_name oc cmi)
          in
-         let cmt_usages_index =
+         let cmt_ident_occurrences =
           if !Clflags.store_usage_index then
             index_usages binary_annots
           else
@@ -481,7 +481,7 @@ let save_cmt filename modname binary_annots sourcefile initial_env cmi shape =
            cmt_use_summaries = need_to_clear_env;
            cmt_uid_to_decl;
            cmt_impl_shape = shape;
-           cmt_usages_index;
+           cmt_ident_occurrences;
          } in
          output_cmt oc cmt)
   end;

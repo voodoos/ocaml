@@ -126,7 +126,7 @@ let print_cmt_infos cmt =
   end;
   if !index then begin
     printf "Indexed shapes:\n";
-    List.iter (fun (item, loc) ->
+    List.iter (fun (loc, item) ->
       let pp_loc fmt { Location.txt; loc } =
         Format.fprintf fmt "%a (%a)"
           Pprintast.longident txt Location.print_loc loc
@@ -144,7 +144,7 @@ let print_cmt_infos cmt =
           Format.printf "@[<hov 2>[NOUID]@ %a:@ %a@]@;"
             Shape.print shape
             pp_loc loc)
-      cmt.cmt_usages_index;
+      cmt.cmt_ident_occurrences;
     Format.print_flush ()
   end;
   if !decls then begin

@@ -88,7 +88,7 @@ type cmt_infos = {
   cmt_use_summaries : bool;
   cmt_uid_to_decl : item_declaration Shape.Uid.Tbl.t;
   cmt_impl_shape : Shape.t option; (* None for mli *)
-  cmt_usages_index : (index_item * Longident.t Location.loc) list
+  cmt_ident_occurrences : (Longident.t Location.loc * index_item) list
 }
 
 type error =
