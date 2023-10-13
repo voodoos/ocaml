@@ -244,6 +244,19 @@ type reduction_result =
   | Approximated of Uid.t option
   | Missing_uid
 
+let print_reduction_result fmt result =
+  match result with
+  | Resolved uid ->
+      Format.fprintf fmt "@[Resolved: %a@]@;" Uid.print uid
+  | Unresolved shape ->
+      Format.fprintf fmt "@[Unresolved: %a@]@;" print shape
+  | Approximated (Some uid) ->
+      Format.fprintf fmt "@[Approximated: %a@]@;" Uid.print uid
+  | Approximated None ->
+      Format.fprintf fmt "@[Approximated: No uid@]@;"
+  | Missing_uid ->
+      Format.fprintf fmt "@[Missing uid@]@;"
+
 module Make_reduce(Params : sig
   type env
   val fuel : int

@@ -127,6 +127,8 @@ type reduction_result =
   | Approximated of Uid.t option
   | Missing_uid
 
+val print_reduction_result : Format.formatter -> reduction_result -> unit
+
 val print : Format.formatter -> t -> unit
 
 (* Smart constructors *)
