@@ -225,16 +225,24 @@ let iter_on_usages ~index =
         let result = Local_reduce.reduce_for_uid env path_shape in
         index := (lid, result) :: !index
   in
+  let path_in_type typ name =
+    match Types.get_desc typ with
+    | Tconstr (type_path, _, _) ->
+      Some (Path.Pdot (type_path,  name))
+    | _ -> None
+  in
   let add_constructor_description env lid =
     function
     | { Types.cstr_tag = Cstr_extension (path, _); _ } ->
         f ~namespace:Extension_constructor env path lid
     | { Types.cstr_uid = Predef _; _ } -> ()
-    | { Types.cstr_uid; _ } ->
-        index := (lid, Shape.Resolved cstr_uid) :: !index
+    | { Types.cstr_res; cstr_name; _ } ->
+        let path = path_in_type cstr_res cstr_name in
+        Option.iter (fun path -> f ~namespace:Constructor env path lid) path
   in
-  let add_label lid { Types.lbl_uid; _ } =
-      index := (lid, Shape.Resolved lbl_uid) :: !index
+  let add_label env lid { Types.lbl_name; lbl_res; _ } =
+    let path = path_in_type lbl_res lbl_name in
+    Option.iter (fun path -> f ~namespace:Label env path lid) path
   in
   let with_constraint ~env (_path, _lid, with_constraint) =
     match with_constraint with
@@ -252,13 +260,23 @@ let iter_on_usages ~index =
           add_constructor_description exp_env lid constr_desc
       | Texp_field (_, lid, label_desc)
       | Texp_setfield (_, lid, label_desc, _) ->
-        add_label lid label_desc
+          add_label exp_env lid label_desc
       | Texp_new (path, lid, _) ->
           f ~namespace:Class exp_env path lid
       | Texp_record { fields; _ } ->
         Array.iter (fun (label_descr, record_label_definition) ->
           match record_label_definition with
-          | Overridden (lid, _) -> add_label lid label_descr
+          | Overridden (
+              { Location.txt; loc},
+              {exp_loc; _})
+              when not exp_loc.loc_ghost
+                && loc.loc_start = exp_loc.loc_start
+                && loc.loc_end = exp_loc.loc_end ->
+            (* In the presence of punning we want to index the label
+                even if it is ghosted *)
+            let lid = { Location.txt; loc = {loc with loc_ghost = false} } in
+            add_label exp_env lid label_descr
+          | Overridden (lid, _) -> add_label exp_env lid label_descr
           | Kept _ -> ()) fields
       | _ -> ());
       default_iterator.expr sub e);
@@ -280,8 +298,19 @@ let iter_on_usages ~index =
       | Tpat_construct (lid, constr_desc, _, _) ->
           add_constructor_description pat_env lid constr_desc
       | Tpat_record (fields, _) ->
-          List.iter (fun (lid, label_descr, _) -> add_label lid label_descr)
-          fields
+        List.iter (fun (lid, label_descr, pat) ->
+          let lid =
+            let open Location in
+            (* In the presence of punning we want to index the label
+               even if it is ghosted *)
+            if (not pat.pat_loc.loc_ghost
+              && lid.loc.loc_start = pat.pat_loc.loc_start
+              && lid.loc.loc_end = pat.pat_loc.loc_end)
+            then {lid with loc = {lid.loc with loc_ghost = false}}
+            else lid
+          in
+          add_label pat_env lid label_descr)
+        fields
       | _ -> ());
       List.iter  (fun (pat_extra, _, _) ->
         match pat_extra with
