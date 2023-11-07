@@ -23,10 +23,14 @@ type t = A of foo
 and foo = Bar
 [%%expect{|
 {
- "A"[type] -> <.4>;
- "Bar"[type] -> <.5>;
- "foo"[type] -> <.3>;
- "t"[type] -> <.2>;
+ "foo"[type] -> {<.3>
+                 "Bar"[constructor] -> {<.5>
+                                        };
+                 };
+ "t"[type] -> {<.2>
+               "A"[constructor] -> {<.4>
+                                    };
+               };
  }
 type t = A of foo
 and foo = Bar
@@ -53,7 +57,8 @@ exception E
 type ext = ..
 [%%expect{|
 {
- "ext"[type] -> <.9>;
+ "ext"[type] -> {<.9>
+                 };
  }
 type ext = ..
 |}]
@@ -103,13 +108,17 @@ end
 [%%expect{|
 {
  "M1"[module] -> {
-                  "C"[type] -> <.28>;
-                  "t"[type] -> <.27>;
+                  "t"[type] -> {<.27>
+                                "C"[constructor] -> {<.28>
+                                                     };
+                                };
                   };
  "M2"[module] ->
      {
-      "T"[type] -> <.30>;
-      "t"[type] -> <.29>;
+      "t"[type] -> {<.29>
+                    "T"[constructor] -> {<.30>
+                                         };
+                    };
       "x"[value] -> <.31>;
       };
  }
@@ -120,8 +129,10 @@ and M2 : sig type t val x : t end
 class c = object end
 [%%expect{|
 {
- "#c"[type] -> <.32>;
- "c"[type] -> <.32>;
+ "#c"[type] -> {<.32>
+                };
+ "c"[type] -> {<.32>
+               };
  "c"[class] -> <.32>;
  "c"[class type] -> <.32>;
  }
@@ -131,8 +142,10 @@ class c : object  end
 class type c = object end
 [%%expect{|
 {
- "#c"[type] -> <.35>;
- "c"[type] -> <.35>;
+ "#c"[type] -> {<.35>
+                };
+ "c"[type] -> {<.35>
+               };
  "c"[class type] -> <.35>;
  }
 class type c = object  end
