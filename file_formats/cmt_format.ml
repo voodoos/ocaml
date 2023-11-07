@@ -150,6 +150,10 @@ let iter_on_declarations ~(f: Shape.Uid.t -> item_declaration -> unit) =
     if not (Btype.is_row_name (Ident.name td.typ_id)) then begin
       f td.typ_type.type_uid (Type_declaration td);
       (* We also register records labels and constructors *)
+      let f_lbl_decls ldecls =
+        List.iter (fun ({ ld_uid; _ } as ld) ->
+          f ld_uid (Label_declaration ld)) ldecls
+      in
       match td.typ_kind with
       | Ttype_variant constrs ->
           List.iter (fun ({ cd_uid; cd_args; _ } as cd) ->
