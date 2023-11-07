@@ -1,0 +1,35 @@
+Indexed shapes:
+Resolved: Index_constrs_decl_def.1 :
+  la (File "index_constrs_decl_def.ml", line 29, characters 12-14)
+Resolved: Index_constrs_decl_def.2 :
+  A (File "index_constrs_decl_def.ml", line 29, characters 8-9)
+Resolved: Index_constrs_decl_def.17 :
+  M (File "index_constrs_decl_def.ml", line 27, characters 5-6)
+Resolved: Index_constrs_decl_def.1 :
+  la (File "index_constrs_decl_def.ml", line 25, characters 14-16)
+Resolved: Index_constrs_decl_def.2 :
+  M.A (File "index_constrs_decl_def.ml", line 25, characters 8-11)
+Resolved: <predef:int> :
+  int (File "index_constrs_decl_def.ml", line 19, characters 23-26)
+Resolved: Index_constrs_decl_def.1 :
+  la (File "index_constrs_decl_def.ml", line 22, characters 14-16)
+Resolved: Index_constrs_decl_def.2 :
+  A (File "index_constrs_decl_def.ml", line 22, characters 10-11)
+Resolved: <predef:int> :
+  int (File "index_constrs_decl_def.ml", line 21, characters 23-26)
+
+Uid of decls:
+Index_constrs_decl_def.9:
+  la (File "index_constrs_decl_def.ml", line 19, characters 18-20)
+Index_constrs_decl_def.0:
+  t (File "index_constrs_decl_def.ml", line 21, characters 7-8)
+Index_constrs_decl_def.17:
+  M (File "index_constrs_decl_def.ml", line 18, characters 7-8)
+Index_constrs_decl_def.2:
+  A (File "index_constrs_decl_def.ml", line 21, characters 11-12)
+Index_constrs_decl_def.10:
+  A (File "index_constrs_decl_def.ml", line 19, characters 11-12)
+Index_constrs_decl_def.8:
+  t (File "index_constrs_decl_def.ml", line 19, characters 7-8)
+Index_constrs_decl_def.1:
+  la (File "index_constrs_decl_def.ml", line 21, characters 18-20)
