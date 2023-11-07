@@ -112,6 +112,7 @@ module Item = struct
 
     let value id = Ident.name id, Sig_component_kind.Value
     let type_ id = Ident.name id, Sig_component_kind.Type
+    let constr id = Ident.name id, Sig_component_kind.Constructor
     let label id = Ident.name id, Sig_component_kind.Label
     let module_ id = Ident.name id, Sig_component_kind.Module
     let module_type id = Ident.name id, Sig_component_kind.Module_type
@@ -560,7 +561,27 @@ let dummy_mod =
 let of_path ~find_shape ~namespace =
   let rec aux : Sig_component_kind.t -> Path.t -> t = fun ns -> function
     | Pident id -> find_shape ns id
-    | Pdot (path, name) -> proj (aux Module path) (name, ns)
+    | Pdot (path, name) ->
+        (* We need to handle the following cases:
+          Path of constructor:
+            M.t.C
+          Path of label:
+            M.t.lbl
+          Path on label of inline record:
+            M.t.C.lbl *)
+        let is_capitalized name = String.capitalize_ascii name = name in
+        let is_label namespace = namespace = Sig_component_kind.Label in
+        let namespace : Sig_component_kind.t =
+          match path with
+          | Pident id when is_capitalized (Ident.name id) ->
+              if is_label ns then Constructor else Module
+          | Pident _ -> Type
+          | Pdot (_, name)  when is_capitalized name ->
+              if is_label ns then Constructor else Module
+          | Pdot _ -> Type
+          | Papply _ -> Module
+        in
+        proj (aux namespace path) (name, ns)
     | Papply (p1, p2) -> app (aux Module p1) ~arg:(aux Module p2)
   in
   aux namespace
@@ -589,9 +610,14 @@ module Map = struct
     let item = Item.value id in
     Item.Map.add item (proj shape item) t
 
-  let add_type t id uid = Item.Map.add (Item.type_ id) (leaf uid) t
+  let add_type t id shape = Item.Map.add (Item.type_ id) shape t
   let add_type_proj t id shape =
     let item = Item.type_ id in
+    Item.Map.add item (proj shape item) t
+
+  let add_constr t id shape = Item.Map.add (Item.constr id) shape t
+  let add_constr_proj t id shape =
+    let item = Item.constr id in
     Item.Map.add item (proj shape item) t
 
   let add_label t id uid = Item.Map.add (Item.label id) (leaf uid) t

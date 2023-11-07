@@ -1383,7 +1383,7 @@ and transl_signature env sg =
             Sig_value(tdesc.val_id, tdesc.val_val, Exported) :: rem,
               final_env
         | Psig_type (rec_flag, sdecls) ->
-            let (decls, newenv) =
+            let (decls, newenv, _) =
               Typedecl.transl_type_decl env rec_flag sdecls
             in
             List.iter (fun td ->
@@ -1399,7 +1399,7 @@ and transl_signature env sg =
             sg,
             final_env
         | Psig_typesubst sdecls ->
-            let (decls, newenv) =
+            let (decls, newenv, _) =
               Typedecl.transl_type_decl env Nonrecursive sdecls
             in
             List.iter (fun td ->
@@ -2472,7 +2472,9 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         Shape.Map.add_value shape_map desc.val_id desc.val_val.val_uid,
         newenv
     | Pstr_type (rec_flag, sdecls) ->
-        let (decls, newenv) = Typedecl.transl_type_decl env rec_flag sdecls in
+        let (decls, newenv, shapes) =
+          Typedecl.transl_type_decl env rec_flag sdecls
+        in
         List.iter
           Signature_names.(fun td -> check_type names td.typ_loc td.typ_id)
           decls;
@@ -2480,26 +2482,11 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           (fun rs info -> Sig_type(info.typ_id, info.typ_type, rs, Exported))
           decls []
         in
-        let shape_map = List.fold_left
-          (fun shape_map info ->
-            if not (Btype.is_row_name (Ident.name info.typ_id)) then begin
-              let shape_map =
-                match info.typ_kind with
-                | Ttype_variant cstrs ->
-                    List.fold_left (fun shape_map { cd_id; cd_uid; _ } ->
-                      Shape.Map.add_type shape_map cd_id cd_uid)
-                      shape_map cstrs
-                | Ttype_record labels ->
-                    List.fold_left (fun shape_map { ld_id; ld_uid; _ } ->
-                      Shape.Map.add_label shape_map ld_id ld_uid)
-                      shape_map labels
-                | _ -> shape_map
-              in
-              Shape.Map.add_type shape_map info.typ_id info.typ_type.type_uid
-            end else shape_map
-          )
+        let shape_map = List.fold_left2
+          (fun map { typ_id; _} shape -> Shape.Map.add_type map typ_id shape)
           shape_map
           decls
+          shapes
         in
         Tstr_type (rec_flag, decls),
         items,
@@ -2698,11 +2685,13 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             Signature_names.check_class_type names loc cls.cls_ty_id;
             Signature_names.check_type names loc cls.cls_obj_id;
             Signature_names.check_type names loc cls.cls_typesharp_id;
-            let map f id acc = f acc id cls.cls_decl.cty_uid in
+            let uid = cls.cls_decl.cty_uid in
+            let map f id acc = f acc id uid in
+            let map_t f id acc = f acc id (Shape.str ~uid Shape.Map.empty) in
             map Shape.Map.add_class cls.cls_id acc
             |> map Shape.Map.add_class_type cls.cls_ty_id
-            |> map Shape.Map.add_type cls.cls_obj_id
-            |> map Shape.Map.add_type cls.cls_typesharp_id
+            |> map_t Shape.Map.add_type cls.cls_obj_id
+            |> map_t Shape.Map.add_type cls.cls_typesharp_id
           ) shape_map classes
         in
         Tstr_class
@@ -2728,10 +2717,11 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             Signature_names.check_class_type names loc decl.clsty_ty_id;
             Signature_names.check_type names loc decl.clsty_obj_id;
             Signature_names.check_type names loc decl.clsty_typesharp_id;
-            let map f id acc = f acc id decl.clsty_ty_decl.clty_uid in
-            map Shape.Map.add_class_type decl.clsty_ty_id acc
-            |> map Shape.Map.add_type decl.clsty_obj_id
-            |> map Shape.Map.add_type decl.clsty_typesharp_id
+            let uid = decl.clsty_ty_decl.clty_uid in
+            let map_t f id acc = f acc id (Shape.str ~uid Shape.Map.empty) in
+            Shape.Map.add_class_type acc decl.clsty_ty_id uid
+            |> map_t Shape.Map.add_type decl.clsty_obj_id
+            |> map_t Shape.Map.add_type decl.clsty_typesharp_id
           ) shape_map classes
         in
         Tstr_class_type

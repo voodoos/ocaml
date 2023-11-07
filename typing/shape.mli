@@ -96,6 +96,7 @@ module Item : sig
 
   val value : Ident.t -> t
   val type_ : Ident.t -> t
+  val constr : Ident.t -> t
   val label : Ident.t -> t
   val module_ : Ident.t -> t
   val module_type : Ident.t -> t
@@ -160,8 +161,11 @@ module Map : sig
   val add_value : t -> Ident.t -> Uid.t -> t
   val add_value_proj : t -> Ident.t -> shape -> t
 
-  val add_type : t -> Ident.t -> Uid.t -> t
+  val add_type : t -> Ident.t -> shape -> t
   val add_type_proj : t -> Ident.t -> shape -> t
+
+  val add_constr : t -> Ident.t -> shape -> t
+  val add_constr_proj : t -> Ident.t -> shape -> t
 
   val add_label : t -> Ident.t -> Uid.t -> t
   val add_label_proj : t -> Ident.t -> shape -> t

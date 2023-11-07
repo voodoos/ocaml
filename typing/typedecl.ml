@@ -82,9 +82,9 @@ let get_unboxed_from_attributes sdecl =
 
 (* Enter all declared types in the environment as abstract types *)
 
-let add_type ~check id decl env =
+let add_type ~check ?shape id decl env =
   Builtin_attributes.warning_scope ~ppwarning:false decl.type_attributes
-    (fun () -> Env.add_type ~check id decl env)
+    (fun () -> Env.add_type ~check ?shape id decl env)
 
 let enter_type rec_flag env sdecl (id, uid) =
   let needed =
@@ -473,18 +473,47 @@ let transl_declaration env sdecl (id, uid) =
       in
       set_private_row env sdecl.ptype_loc p decl
     end;
-    {
-      typ_id = id;
-      typ_name = sdecl.ptype_name;
-      typ_params = tparams;
-      typ_type = decl;
-      typ_cstrs = cstrs;
-      typ_loc = sdecl.ptype_loc;
-      typ_manifest = tman;
-      typ_kind = tkind;
-      typ_private = sdecl.ptype_private;
-      typ_attributes = sdecl.ptype_attributes;
-    }
+    let decl =
+      {
+        typ_id = id;
+        typ_name = sdecl.ptype_name;
+        typ_params = tparams;
+        typ_type = decl;
+        typ_cstrs = cstrs;
+        typ_loc = sdecl.ptype_loc;
+        typ_manifest = tman;
+        typ_kind = tkind;
+        typ_private = sdecl.ptype_private;
+        typ_attributes = sdecl.ptype_attributes;
+      }
+    in
+    let typ_shape =
+      let map = match decl.typ_kind with
+        | Ttype_variant cstrs ->
+            List.fold_left (fun map { cd_id; cd_uid; cd_args; _ } ->
+              let cstr_shape_map =
+                let label_decls =
+                  match cd_args with
+                  | Cstr_tuple _ -> []
+                  | Cstr_record ldecls -> ldecls
+                in
+                List.fold_left (fun map { ld_id; ld_uid; _} ->
+                  Shape.Map.add_label map ld_id ld_uid)
+                  Shape.Map.empty
+                  label_decls
+              in
+              Shape.Map.add_constr map cd_id
+                @@ Shape.str ~uid:cd_uid cstr_shape_map)
+              (Shape.Map.empty) cstrs
+        | Ttype_record labels ->
+            List.fold_left (fun map { ld_id; ld_uid; _ } ->
+              Shape.Map.add_label map ld_id ld_uid)
+              (Shape.Map.empty) labels
+        | _ -> Shape.Map.empty
+      in
+      Shape.str ~uid:decl.typ_type.type_uid map
+    in
+    decl, typ_shape
 
 (* Generalize a type declaration *)
 
@@ -844,10 +873,11 @@ let check_redefined_unit (td: Parsetree.type_declaration) =
   | _ ->
       ()
 
-let add_types_to_env decls env =
-  List.fold_right
-    (fun (id, decl) env -> add_type ~check:true id decl env)
-    decls env
+let add_types_to_env decls shapes env =
+  List.fold_right2
+    (fun (id, decl) shape env ->
+      add_type ~check:true ~shape id decl env)
+    decls shapes env
 
 (* Translate a set of type declarations, mutually recursive or not *)
 let transl_type_decl env rec_flag sdecl_list =
@@ -913,13 +943,17 @@ let transl_type_decl env rec_flag sdecl_list =
   in
   let tdecls =
     List.map2 transl_declaration sdecl_list (List.map ids_slots ids_list) in
-  let decls =
-    List.map (fun tdecl -> (tdecl.typ_id, tdecl.typ_type)) tdecls in
+  let decls, shapes =
+    List.map (fun (tdecl, tshape) -> (tdecl.typ_id, tdecl.typ_type), tshape)
+      tdecls
+    |> List.split
+  in
+
   current_slot := None;
   (* Check for duplicates *)
   check_duplicates sdecl_list;
   (* Build the final env. *)
-  let new_env = add_types_to_env decls env in
+  let new_env = add_types_to_env decls shapes env in
   (* Update stubs *)
   begin match rec_flag with
     | Asttypes.Nonrecursive -> ()
@@ -946,11 +980,12 @@ let transl_type_decl env rec_flag sdecl_list =
     check_well_founded_decl new_env (List.assoc id id_loc_list) (Path.Pident id)
       decl to_check)
     decls;
-  List.iter
-    (check_abbrev_recursion ~orig_env:env new_env id_loc_list to_check) tdecls;
+  List.iter (fun (decl, _shape) ->
+    check_abbrev_recursion ~orig_env:env new_env id_loc_list to_check decl)
+    tdecls;
   (* Check that all type variables are closed *)
   List.iter2
-    (fun sdecl tdecl ->
+    (fun sdecl (tdecl, _shape) ->
       let decl = tdecl.typ_type in
        match Ctype.closed_type_decl decl with
          Some ty -> raise(Error(sdecl.ptype_loc, Unbound_type_var(ty,decl)))
@@ -975,18 +1010,18 @@ let transl_type_decl env rec_flag sdecl_list =
         raise (Error (loc, Separability err))
   in
   (* Compute the final environment with variance and immediacy *)
-  let final_env = add_types_to_env decls env in
+  let final_env = add_types_to_env decls shapes env in
   (* Check re-exportation *)
   List.iter2 (check_abbrev final_env) sdecl_list decls;
   (* Keep original declaration *)
   let final_decls =
     List.map2
-      (fun tdecl (_id2, decl) ->
+      (fun (tdecl, _shape) (_id2, decl) ->
         { tdecl with typ_type = decl }
       ) tdecls decls
   in
   (* Done *)
-  (final_decls, final_env)
+  (final_decls, final_env, shapes)
 
 (* Translating type extensions *)
 
