@@ -1042,7 +1042,7 @@ end = struct
     let open Sig_component_kind in
     match component with
     | Value -> names.values
-    | Type -> names.types
+    | Type | Label | Constructor -> names.types
     | Module -> names.modules
     | Module_type -> names.modtypes
     | Extension_constructor -> names.typexts
@@ -1384,7 +1384,7 @@ and transl_signature env sg =
             Sig_value(tdesc.val_id, tdesc.val_val, Exported) :: rem,
               final_env
         | Psig_type (rec_flag, sdecls) ->
-            let (decls, newenv) =
+            let (decls, newenv, _) =
               Typedecl.transl_type_decl env rec_flag sdecls
             in
             List.iter (fun td ->
@@ -1402,7 +1402,7 @@ and transl_signature env sg =
             sg,
             final_env
         | Psig_typesubst sdecls ->
-            let (decls, newenv) =
+            let (decls, newenv, _) =
               Typedecl.transl_type_decl env Nonrecursive sdecls
             in
             List.iter (fun td ->
@@ -1432,7 +1432,7 @@ and transl_signature env sg =
             sg,
             final_env
         | Psig_typext styext ->
-            let (tyext, newenv) =
+            let (tyext, newenv, _shapes) =
               Typedecl.transl_type_extension false env item.psig_loc styext
             in
             let constructors = tyext.tyext_constructors in
@@ -1447,7 +1447,7 @@ and transl_signature env sg =
               ) constructors rem,
               final_env
         | Psig_exception sext ->
-            let (ext, newenv) = Typedecl.transl_type_exception env sext in
+            let (ext, newenv, _s) = Typedecl.transl_type_exception env sext in
             let constructor = ext.tyexn_constructor in
             Signature_names.check_typext names constructor.ext_loc
               constructor.ext_id;
@@ -2493,7 +2493,9 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         Shape.Map.add_value shape_map desc.val_id desc.val_val.val_uid,
         newenv
     | Pstr_type (rec_flag, sdecls) ->
-        let (decls, newenv) = Typedecl.transl_type_decl env rec_flag sdecls in
+        let (decls, newenv, shapes) =
+          Typedecl.transl_type_decl env rec_flag sdecls
+        in
         List.iter
           Signature_names.(fun td -> check_type names td.typ_loc td.typ_id)
           decls;
@@ -2501,32 +2503,28 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
           (fun rs info -> Sig_type(info.typ_id, info.typ_type, rs, Exported))
           decls []
         in
-        let shape_map = List.fold_left
-          (fun shape_map -> function
-            | Sig_type (id, vd, _, _) ->
-              if not (Btype.is_row_name (Ident.name id)) then begin
-                Env.register_uid vd.type_uid vd.type_loc;
-                Shape.Map.add_type shape_map id vd.type_uid
-              end else shape_map
-            | _ -> assert false
-          )
+        let shape_map = List.fold_left2
+          (fun map ({ typ_id; _} as info) shape ->
+            Env.register_uid info.typ_type.type_uid info.typ_type.type_loc;
+            Shape.Map.add_type map typ_id shape)
           shape_map
-          items
+          decls
+          shapes
         in
         Tstr_type (rec_flag, decls),
         items,
         shape_map,
         enrich_type_decls anchor decls env newenv
     | Pstr_typext styext ->
-        let (tyext, newenv) =
+        let (tyext, newenv, shapes) =
           Typedecl.transl_type_extension true env loc styext
         in
         let constructors = tyext.tyext_constructors in
-        let shape_map = List.fold_left (fun shape_map ext ->
+        let shape_map = List.fold_left2 (fun shape_map ext shape ->
             Signature_names.check_typext names ext.ext_loc ext.ext_id;
             Env.register_uid ext.ext_type.ext_uid ext.ext_loc;
-            Shape.Map.add_extcons shape_map ext.ext_id ext.ext_type.ext_uid
-          ) shape_map constructors
+            Shape.Map.add_extcons shape_map ext.ext_id shape
+          ) shape_map constructors shapes
         in
         (Tstr_typext tyext,
          map_ext
@@ -2535,7 +2533,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
         shape_map,
          newenv)
     | Pstr_exception sext ->
-        let (ext, newenv) = Typedecl.transl_type_exception env sext in
+        let (ext, newenv, shape) = Typedecl.transl_type_exception env sext in
         let constructor = ext.tyexn_constructor in
         Signature_names.check_typext names constructor.ext_loc
           constructor.ext_id;
@@ -2549,7 +2547,7 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
                     Exported)],
         Shape.Map.add_extcons shape_map
           constructor.ext_id
-          constructor.ext_type.ext_uid,
+          shape,
         newenv
     | Pstr_module {pmb_name = name; pmb_expr = smodl; pmb_attributes = attrs;
                    pmb_loc;
@@ -2718,11 +2716,13 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             Signature_names.check_type names loc cls.cls_obj_id;
             Signature_names.check_type names loc cls.cls_typesharp_id;
             Env.register_uid cls.cls_decl.cty_uid loc;
-            let map f id acc = f acc id cls.cls_decl.cty_uid in
+            let uid = cls.cls_decl.cty_uid in
+            let map f id acc = f acc id uid in
+            let map_t f id acc = f acc id (Shape.str ~uid Shape.Map.empty) in
             map Shape.Map.add_class cls.cls_id acc
             |> map Shape.Map.add_class_type cls.cls_ty_id
-            |> map Shape.Map.add_type cls.cls_obj_id
-            |> map Shape.Map.add_type cls.cls_typesharp_id
+            |> map_t Shape.Map.add_type cls.cls_obj_id
+            |> map_t Shape.Map.add_type cls.cls_typesharp_id
           ) shape_map classes
         in
         Tstr_class
@@ -2749,10 +2749,12 @@ and type_structure ?(toplevel = false) funct_body anchor env sstr =
             Signature_names.check_type names loc decl.clsty_obj_id;
             Signature_names.check_type names loc decl.clsty_typesharp_id;
             Env.register_uid decl.clsty_ty_decl.clty_uid loc;
-            let map f id acc = f acc id decl.clsty_ty_decl.clty_uid in
+            let uid = decl.clsty_ty_decl.clty_uid in
+            let map_t f id acc = f acc id (Shape.str ~uid Shape.Map.empty) in
+            let map f id acc = f acc id uid in
             map Shape.Map.add_class_type decl.clsty_ty_id acc
-            |> map Shape.Map.add_type decl.clsty_obj_id
-            |> map Shape.Map.add_type decl.clsty_typesharp_id
+            |> map_t Shape.Map.add_type decl.clsty_obj_id
+            |> map_t Shape.Map.add_type decl.clsty_typesharp_id
           ) shape_map classes
         in
         Tstr_class_type
