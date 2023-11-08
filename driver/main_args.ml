@@ -40,6 +40,12 @@ let mk_binannot f =
   "-bin-annot", Arg.Unit f, " Save typedtree in <filename>.cmt"
 ;;
 
+let mk_storeusageindex f =
+  "-store-usage-index", Arg.Unit f,
+  " Save a list of every occurrences of values, types and modules\n\
+    in the <filename>.cmt file. This information can be used by external\n\
+    tools to provide features such as project-wide occurrences."
+
 let mk_c f =
   "-c", Arg.Unit f, " Compile only (do not link)"
 ;;
@@ -967,6 +973,7 @@ module type Compiler_options = sig
   val _a : unit -> unit
   val _annot : unit -> unit
   val _binannot : unit -> unit
+  val _storeusageindex : unit -> unit
   val _c : unit -> unit
   val _cc : string -> unit
   val _cclib : string -> unit
@@ -1162,6 +1169,7 @@ struct
     mk_absname F._absname;
     mk_annot F._annot;
     mk_binannot F._binannot;
+    mk_storeusageindex F._storeusageindex;
     mk_c F._c;
     mk_cc F._cc;
     mk_cclib F._cclib;
@@ -1344,6 +1352,7 @@ struct
     mk_afl_inst_ratio F._afl_inst_ratio;
     mk_annot F._annot;
     mk_binannot F._binannot;
+    mk_storeusageindex F._storeusageindex;
     mk_inline_branch_factor F._inline_branch_factor;
     mk_c F._c;
     mk_cc F._cc;
@@ -1857,6 +1866,7 @@ module Default = struct
     let _args = Arg.read_arg
     let _args0 = Arg.read_arg0
     let _binannot = set binary_annotations
+    let _storeusageindex = set store_usage_index
     let _c = set compile_only
     let _cc s = c_compiler := (Some s)
     let _cclib s = Compenv.defer (ProcessObjects (Misc.rev_split_words s))
