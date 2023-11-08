@@ -1,9 +1,9 @@
 (* TEST
 flags = "-bin-annot -store-usage-index";
 compile_only = "true";
-readonly_files = "aux.ml";
+readonly_files = "auxiliaire.ml";
 setup-ocamlc.byte-build-env;
-all_modules = "aux.ml index.ml";
+all_modules = "auxiliaire.ml index.ml";
 ocamlc.byte;
 check-ocamlc.byte-output;
 program = "-index -decls index.cmt";
@@ -37,7 +37,7 @@ end
 
 open A
 
-let y = A.x + Aux.z
+let y = A.x + Auxiliaire.z
 
 let () = print_int y
 

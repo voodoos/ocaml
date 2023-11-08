@@ -20,8 +20,8 @@ Resolved: Index.2 : AS (File "index.ml", line 44, characters 20-22)
 Resolved: Index.10 : y (File "index.ml", line 42, characters 19-20)
 Unresolved: CU Stdlib . "print_int"[value]  :
   print_int (File "index.ml", line 42, characters 9-18)
-Unresolved: CU Aux . "z"[value]  :
-  Aux.z (File "index.ml", line 40, characters 14-19)
+Unresolved: CU Auxiliaire . "z"[value]  :
+  Auxiliaire.z (File "index.ml", line 40, characters 14-26)
 Resolved: Index.4 : A.x (File "index.ml", line 40, characters 8-11)
 Unresolved: CU Stdlib . "+"[value]  :
   (+) (File "index.ml", line 40, characters 12-13)
