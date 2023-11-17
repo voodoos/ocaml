@@ -226,6 +226,7 @@ let iter_on_usages ~index =
     if not_ghost lid then
       match Env.shape_of_path ~namespace env path with
       | exception Not_found -> ()
+      | { uid = Some (Predef _); _ } -> ()
       | path_shape ->
         let result = Local_reduce.reduce_for_uid env path_shape in
         index := (lid, result) :: !index
@@ -240,7 +241,6 @@ let iter_on_usages ~index =
     function
     | { Types.cstr_tag = Cstr_extension (path, _); _ } ->
         f ~namespace:Extension_constructor env path lid
-    | { Types.cstr_uid = Predef _; _ } -> ()
     | { Types.cstr_res; cstr_name; _ } ->
         let path = path_in_type cstr_res cstr_name in
         Option.iter (fun path -> f ~namespace:Constructor env path lid) path
