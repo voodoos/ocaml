@@ -11,8 +11,6 @@ Resolved: Index_constrs_records.32 :
   l_exn (File "index_constrs_records.ml", line 41, characters 14-19)
 Resolved: Index_constrs_records.33 :
   Exn (File "index_constrs_records.ml", line 41, characters 8-11)
-Resolved: <predef:int> :
-  int (File "index_constrs_records.ml", line 39, characters 26-29)
 Resolved: Index_constrs_records.31 :
   l_ext (File "index_constrs_records.ml", line 36, characters 21-26)
 Resolved: Index_constrs_records.26 :
@@ -23,8 +21,6 @@ Resolved: Index_constrs_records.30 :
   x (File "index_constrs_records.ml", line 35, characters 22-23)
 Resolved: Index_constrs_records.25 :
   u (File "index_constrs_records.ml", line 35, characters 11-12)
-Resolved: <predef:int> :
-  int (File "index_constrs_records.ml", line 33, characters 27-30)
 Resolved: Index_constrs_records.25 :
   u (File "index_constrs_records.ml", line 33, characters 5-6)
 Resolved: Index_constrs_records.24 :
@@ -55,16 +51,10 @@ Resolved: Index_constrs_records.3 :
   l_c (File "index_constrs_records.ml", line 25, characters 14-17)
 Resolved: Index_constrs_records.4 :
   M.A (File "index_constrs_records.ml", line 25, characters 8-11)
-Resolved: <predef:int> :
-  int (File "index_constrs_records.ml", line 19, characters 24-27)
 Resolved: Index_constrs_records.3 :
   l_c (File "index_constrs_records.ml", line 22, characters 14-17)
 Resolved: Index_constrs_records.4 :
   A (File "index_constrs_records.ml", line 22, characters 10-11)
-Resolved: <predef:int> :
-  int (File "index_constrs_records.ml", line 21, characters 24-27)
-Resolved: <predef:int> :
-  int (File "index_constrs_records.ml", line 17, characters 17-20)
 
 Uid of decls:
 Index_constrs_records.4:

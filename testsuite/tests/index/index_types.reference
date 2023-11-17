@@ -6,8 +6,6 @@ Resolved: Index_types.3 :
 Resolved: Index_types.0 : t (File "index_types.ml", line 25, characters 9-10)
 Resolved: Index_types.0 : t (File "index_types.ml", line 20, characters 8-9)
 Resolved: Index_types.0 : t (File "index_types.ml", line 20, characters 8-9)
-Resolved: <predef:int> :
-  int (File "index_types.ml", line 18, characters 9-12)
 
 Uid of decls:
 Index_types.3: poly (File "index_types.ml", line 27, characters 5-9)
