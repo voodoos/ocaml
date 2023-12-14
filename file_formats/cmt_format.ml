@@ -144,7 +144,9 @@ let clear_env binary_annots =
 
   else binary_annots
 
-let iter_on_usages
+(* Every typedtree node with a located longident corresponding to user-facing
+   syntax should be indexed. *)
+let iter_on_occurrences
   ~(f : namespace:Shape.Sig_component_kind.t ->
         Env.t -> Path.t -> Longident.t Location.loc ->
         unit) =
@@ -200,6 +202,12 @@ let iter_on_usages
             add_label exp_env lid label_descr
           | Overridden (lid, _) -> add_label exp_env lid label_descr
           | Kept _ -> ()) fields
+      | Texp_instvar  (_self_path, path, name) ->
+          let lid = { name with txt = Longident.Lident name.txt } in
+          f ~namespace:Value exp_env path lid
+      | Texp_setinstvar  (_self_path, path, name, _) ->
+          let lid = { name with txt = Longident.Lident name.txt } in
+          f ~namespace:Value exp_env path lid
       | _ -> ());
       default_iterator.expr sub e);
 
@@ -210,7 +218,10 @@ let iter_on_usages
           f ~namespace:Type ctyp_env path lid
       | Ttyp_package {pack_path; pack_txt} ->
           f ~namespace:Module_type ctyp_env pack_path pack_txt
-      | _ -> ());
+      | Ttyp_class (path, lid, _typs) ->
+          (* Deprecated syntax to extend a polymorphic variant *)
+          f ~namespace:Type ctyp_env path lid
+      |  _ -> ());
       default_iterator.typ sub ct);
 
   pat =
@@ -240,7 +251,7 @@ let iter_on_usages
             f ~namespace:Module pat_env path lid
         | Tpat_type (path, lid) ->
             f ~namespace:Type pat_env path lid
-        | _ -> ())
+        | Tpat_constraint _ | Tpat_unpack -> ())
         pat_extra;
       default_iterator.pat sub pat);
 
@@ -277,7 +288,7 @@ let iter_on_usages
     (fun sub ({ cl_desc; cl_env; _} as ce) ->
       (match cl_desc with
       | Tcl_ident (path, lid, _) -> f ~namespace:Class cl_env path lid
-      | _ -> ());
+      |  _ -> ());
       default_iterator.class_expr sub ce);
 
   class_type =
@@ -308,7 +319,7 @@ let iter_on_usages
           f ~namespace:Extension_constructor str_env path lid
       | Tstr_typext { tyext_path; tyext_txt } ->
           f ~namespace:Type str_env tyext_path tyext_txt
-      | _ -> ());
+      |  _ -> ());
       default_iterator.structure_item sub str_item)
 }
 
@@ -318,7 +329,7 @@ let index_declarations binary_annots =
   iter_on_annots (iter_on_declarations ~f) binary_annots;
   index
 
-let index_usages binary_annots =
+let index_occurrences binary_annots =
   let index : (Longident.t Location.loc * Shape_reduce.result) list ref =
     ref []
   in
@@ -332,7 +343,7 @@ let index_usages binary_annots =
         let result = Shape_reduce.local_reduce_for_uid env path_shape in
         index := (lid, result) :: !index
   in
-  iter_on_annots (iter_on_usages ~f) binary_annots;
+  iter_on_annots (iter_on_occurrences ~f) binary_annots;
   !index
 
 exception Error of error
@@ -408,7 +419,7 @@ let save_cmt filename modname binary_annots sourcefile initial_env cmi shape =
          in
          let cmt_ident_occurrences =
           if !Clflags.store_occurrences then
-            index_usages binary_annots
+            index_occurrences binary_annots
           else
             []
          in

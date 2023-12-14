@@ -43,12 +43,6 @@ let print_result fmt result =
 let find_shape env id =
   let namespace = Shape.Sig_component_kind.Module in
   Env.shape_of_path ~namespace env (Pident id)
-  (* | exception Not_found ->
-    let msg =
-      Format.asprintf "Could not find shape for %a" Ident.print_with_scope id
-    in
-    raise (Misc.fatal_error msg)
-  | shape -> shape *)
 
 module Make(Params : sig
   val fuel : int
@@ -97,11 +91,6 @@ end) = struct
 
   let approx_nf nf = { nf with approximated = true }
 
-  let improve_uid uid (nf : nf) =
-    match nf.uid with
-    | Some _ -> nf
-    | None -> { nf with uid }
-
   let in_memo_table memo_table memo_key f arg =
     match Hashtbl.find memo_table memo_key with
     | res -> res
@@ -124,9 +113,7 @@ end) = struct
   let rec reduce_ env t =
     let local_env = env.local_env in
     let memo_key = (local_env, t) in
-    in_memo_table
-      env.reduce_memo_table memo_key
-      (reduce__ env) t
+    in_memo_table env.reduce_memo_table memo_key (reduce__ env) t
   (* Memoization is absolutely essential for performance on this
      problem, because the normal forms we build can in some real-world
      cases contain an exponential amount of redundancy. Memoization
@@ -177,6 +164,11 @@ end) = struct
           force_aliases nf
       | _ -> nf
     in
+    let reset_uid_if_new_binding t' =
+      match t.uid with
+      | None -> t'
+      | Some _ as uid -> { t' with uid }
+    in
     if !fuel < 0 then approx_nf (return (NError "NoFuelLeft"))
     else
       match t.desc with
@@ -191,7 +183,7 @@ end) = struct
           | NAbs(clos_env, var, body, _body_nf) ->
               let arg = delay_reduce env arg in
               let env = bind { env with local_env = clos_env } var (Some arg) in
-              {(reduce env body) with uid = t.uid }
+              reduce env body |> reset_uid_if_new_binding
           | _ ->
               let arg = reduce env arg in
               return (NApp(f, arg))
@@ -203,9 +195,7 @@ end) = struct
           | NStruct (items) ->
               begin match Item.Map.find item items with
               | exception Not_found -> nored ()
-              | nf ->
-                  force nf
-                  |> improve_uid t.uid
+              | nf -> force nf |> reset_uid_if_new_binding
               end
           | _ ->
               nored ()
@@ -225,7 +215,13 @@ end) = struct
              (not the binding site), whereas for bound values we use
              their binding-time [Uid.t]. *)
           | None -> return (NVar id)
-          | Some def -> force def
+          | Some def ->
+              begin match force def with
+              | { uid = Some _; _  } as nf -> nf
+                  (* This var already has a binding uid *)
+              | { uid = None; _ } as nf -> { nf with uid = t.uid }
+                  (* Set the var's binding uid *)
+              end
           | exception Not_found ->
           match find_shape global_env id with
           | exception Not_found -> return (NVar id)
