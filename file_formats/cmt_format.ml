@@ -407,7 +407,7 @@ let save_cmt filename modname binary_annots sourcefile initial_env cmi shape =
            | Some cmi -> Some (output_cmi temp_file_name oc cmi)
          in
          let cmt_ident_occurrences =
-          if !Clflags.store_usage_index then
+          if !Clflags.store_occurrences then
             index_usages binary_annots
           else
             []
