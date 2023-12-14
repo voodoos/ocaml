@@ -1,18 +1,18 @@
 (* TEST
-flags = "-bin-annot -store-usage-index";
-compile_only = "true";
-readonly_files = "index_constrs_records.ml";
-setup-ocamlc.byte-build-env;
-all_modules = "index_constrs_records.ml";
-ocamlc.byte;
-check-ocamlc.byte-output;
-program = "-index -decls index_constrs_records.cmt";
-output = "out_objinfo";
-ocamlobjinfo;
-program = "awk '/Indexed/,0' out_objinfo";
-output = "out_awk";
-run;
-check-program-output;
+flags = "-bin-annot -store-usage-index"
+compile_only = "true"
+readonly_files = "index_constrs_records.ml"
+* setup-ocamlc.byte-build-env
+** ocamlc.byte
+all_modules = "index_constrs_records.ml"
+*** check-ocamlc.byte-output
+**** ocamlobjinfo
+program = "-quiet -index -decls index_constrs_records.cmt"
+output = "out_objinfo"
+***** check-program-output
+
+
+
 *)
 type l = { lbl : int }
 module M : sig

@@ -9,14 +9,10 @@ Resolved: Index_constrs_decl_def.1 :
   la (File "index_constrs_decl_def.ml", line 25, characters 14-16)
 Resolved: Index_constrs_decl_def.2 :
   M.A (File "index_constrs_decl_def.ml", line 25, characters 8-11)
-Resolved: <predef:int> :
-  int (File "index_constrs_decl_def.ml", line 19, characters 23-26)
 Resolved: Index_constrs_decl_def.1 :
   la (File "index_constrs_decl_def.ml", line 22, characters 14-16)
 Resolved: Index_constrs_decl_def.2 :
   A (File "index_constrs_decl_def.ml", line 22, characters 10-11)
-Resolved: <predef:int> :
-  int (File "index_constrs_decl_def.ml", line 21, characters 23-26)
 
 Uid of decls:
 Index_constrs_decl_def.9:
