@@ -7,12 +7,12 @@ readonly_files = "auxiliaire.ml"
 all_modules = "auxiliaire.ml index.ml"
 *** check-ocamlc.byte-output
 **** ocamlobjinfo
-program = "-index -decls index.cmt"
+program = "-quiet -index -decls index.cmt"
 output = "out_objinfo"
-***** run
-program = "awk '/Indexed/,0' out_objinfo"
-output = "out_awk"
-****** check-program-output
+***** check-program-output
+
+
+
 *)
 
 module type AS = sig

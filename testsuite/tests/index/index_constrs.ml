@@ -7,12 +7,12 @@ readonly_files = "index_constrs.ml"
 all_modules = "index_constrs.ml"
 *** check-ocamlc.byte-output
 **** ocamlobjinfo
-program = "-index -decls index_constrs.cmt"
+program = "-quiet -index -decls index_constrs.cmt"
 output = "out_objinfo"
-***** run
-program = "awk '/Indexed/,0' out_objinfo"
-output = "out_awk"
-****** check-program-output
+***** check-program-output
+
+
+
 *)
 
 exception E

@@ -7,12 +7,12 @@ readonly_files = "index_aliases.ml"
 all_modules = "index_aliases.ml"
 *** check-ocamlc.byte-output
 **** ocamlobjinfo
-program = "-index -decls index_aliases.cmt"
+program = "-quiet -index -decls index_aliases.cmt"
 output = "out_objinfo"
-***** run
-program = "awk '/Indexed/,0' out_objinfo"
-output = "out_awk"
-****** check-program-output
+***** check-program-output
+
+
+
 *)
 
 module A = struct type t end

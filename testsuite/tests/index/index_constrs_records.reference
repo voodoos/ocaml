@@ -1,19 +1,19 @@
 Indexed shapes:
 Resolved: Index_constrs_records.36 :
   l_exn (File "index_constrs_records.ml", line 43, characters 21-26)
-Resolved: Index_constrs_records.32 :
+Approximated: Index_constrs_records.33 :
   l_exn (File "index_constrs_records.ml", line 43, characters 10-15)
 Resolved: Index_constrs_records.33 :
   Exn (File "index_constrs_records.ml", line 43, characters 4-7)
 Resolved: Index_constrs_records.35 :
   e (File "index_constrs_records.ml", line 42, characters 14-15)
-Resolved: Index_constrs_records.32 :
+Approximated: Index_constrs_records.33 :
   l_exn (File "index_constrs_records.ml", line 41, characters 14-19)
 Resolved: Index_constrs_records.33 :
   Exn (File "index_constrs_records.ml", line 41, characters 8-11)
 Resolved: Index_constrs_records.31 :
   l_ext (File "index_constrs_records.ml", line 36, characters 21-26)
-Resolved: Index_constrs_records.26 :
+Approximated: Index_constrs_records.27 :
   l_ext (File "index_constrs_records.ml", line 36, characters 10-15)
 Resolved: Index_constrs_records.27 :
   Ext (File "index_constrs_records.ml", line 36, characters 4-7)

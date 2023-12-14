@@ -7,12 +7,12 @@ readonly_files = "index_types.ml"
 all_modules = "index_types.ml"
 *** check-ocamlc.byte-output
 **** ocamlobjinfo
-program = "-index -decls index_types.cmt"
+program = "-quiet -index -decls index_types.cmt"
 output = "out_objinfo"
-***** run
-program = "awk '/Indexed/,0' out_objinfo"
-output = "out_awk"
-****** check-program-output
+***** check-program-output
+
+
+
 *)
 
 type t = int
