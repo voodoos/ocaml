@@ -59,6 +59,7 @@ type iterator =
     value_bindings: iterator -> (rec_flag * value_binding list) -> unit;
     value_description: iterator -> value_description -> unit;
     with_constraint: iterator -> with_constraint -> unit;
+    item_declaration: iterator -> item_declaration -> unit;
   }
 
 let structure sub {str_items; str_final_env; _} =
@@ -69,19 +70,25 @@ let class_infos sub f x =
   List.iter (fun (ct, _) -> sub.typ sub ct) x.ci_params;
   f x.ci_expr
 
-let module_type_declaration sub {mtd_type; _} =
+let module_type_declaration sub ({mtd_type; _} as x) =
+  sub.item_declaration sub (Module_type x);
   Option.iter (sub.module_type sub) mtd_type
 
-let module_declaration sub {md_type; _} =
+let module_declaration sub ({md_type; _} as md) =
+  sub.item_declaration sub (Module md);
   sub.module_type sub md_type
-let module_substitution _ _ = ()
+
+let module_substitution sub ms =
+  sub.item_declaration sub (Module_substitution ms)
 
 let include_infos f {incl_mod; _} = f incl_mod
 
 let class_type_declaration sub x =
+  sub.item_declaration sub (Class_type x);
   class_infos sub (sub.class_type sub) x
 
 let class_declaration sub x =
+  sub.item_declaration sub (Class x);
   class_infos sub (sub.class_expr sub) x
 
 let structure_item sub {str_desc; str_env; _} =
@@ -104,15 +111,20 @@ let structure_item sub {str_desc; str_env; _} =
   | Tstr_open od -> sub.open_declaration sub od
   | Tstr_attribute _ -> ()
 
-let value_description sub x = sub.typ sub x.val_desc
+let value_description sub x =
+  sub.item_declaration sub (Value x);
+  sub.typ sub x.val_desc
 
-let label_decl sub {ld_type; _} = sub.typ sub ld_type
+let label_decl sub ({ld_type; _} as ld) =
+  sub.item_declaration sub (Label ld);
+  sub.typ sub ld_type
 
 let constructor_args sub = function
   | Cstr_tuple l -> List.iter (sub.typ sub) l
   | Cstr_record l -> List.iter (label_decl sub) l
 
-let constructor_decl sub {cd_args; cd_res; _} =
+let constructor_decl sub ({cd_args; cd_res; _} as x) =
+  sub.item_declaration sub (Constructor x);
   constructor_args sub cd_args;
   Option.iter (sub.typ sub) cd_res
 
@@ -122,7 +134,9 @@ let type_kind sub = function
   | Ttype_record list -> List.iter (label_decl sub) list
   | Ttype_open -> ()
 
-let type_declaration sub {typ_cstrs; typ_kind; typ_manifest; typ_params; _} =
+let type_declaration
+  sub ({typ_cstrs; typ_kind; typ_manifest; typ_params; _} as x) =
+  sub.item_declaration sub (Type x);
   List.iter
     (fun (c1, c2, _) ->
       sub.typ sub c1;
@@ -141,7 +155,8 @@ let type_extension sub {tyext_constructors; tyext_params; _} =
 let type_exception sub {tyexn_constructor; _} =
   sub.extension_constructor sub tyexn_constructor
 
-let extension_constructor sub {ext_kind; _} =
+let extension_constructor sub ({ext_kind; _} as ec) =
+  sub.item_declaration sub (Extension_constructor ec);
   match ext_kind with
   | Text_decl (_, ctl, cto) ->
       constructor_args sub ctl;
@@ -291,6 +306,7 @@ let signature_item sub {sig_desc; sig_env; _} =
   | Tsig_attribute _ -> ()
 
 let class_description sub x =
+  sub.item_declaration sub (Class_type x);
   class_infos sub (sub.class_type sub) x
 
 let functor_parameter sub = function
@@ -360,7 +376,9 @@ let module_expr sub {mod_desc; mod_env; _} =
       sub.module_coercion sub c
   | Tmod_unpack (exp, _) -> sub.expr sub exp
 
-let module_binding sub {mb_expr; _} = sub.module_expr sub mb_expr
+let module_binding sub ({mb_expr; _} as mb) =
+  sub.item_declaration sub (Module_binding mb);
+  sub.module_expr sub mb_expr
 
 let class_expr sub {cl_desc; cl_env; _} =
   sub.env sub cl_env;
@@ -463,11 +481,14 @@ let case sub {c_lhs; c_guard; c_rhs} =
   Option.iter (sub.expr sub) c_guard;
   sub.expr sub c_rhs
 
-let value_binding sub {vb_pat; vb_expr; _} =
+let value_binding sub ({vb_pat; vb_expr; _} as vb) =
+  sub.item_declaration sub (Value_binding vb);
   sub.pat sub vb_pat;
   sub.expr sub vb_expr
 
 let env _sub _ = ()
+
+let item_declaration _sub _ = ()
 
 let default_iterator =
   {
@@ -512,4 +533,5 @@ let default_iterator =
     value_bindings;
     value_description;
     with_constraint;
+    item_declaration;
   }
