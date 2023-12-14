@@ -32,13 +32,13 @@ module App = F(List)
 module M : sig end
 {
  "F"[module] -> Abs<.7>(X/352, {
-                                "t"[type] -> {<.6>};
+                                "t"[type] -> <.6>;
                                 });
  }
 module F : functor (X : sig end) -> sig type t end
 {
  "App"[module] -> {<.8>
-                   "t"[type] -> {<.6>};
+                   "t"[type] -> <.6>;
                    };
  }
 module App : sig type t = F(List).t end
@@ -60,4 +60,39 @@ module F : functor (X : sig end) -> sig end
  "App"[module] -> {<.12>};
  }
 module App : sig end
+|}]
+
+module Id(X : sig end) = X
+module Struct = struct
+  module L = List
+end
+[%%expect{|
+{
+ "Id"[module] -> Abs<.14>(X/371, X/371<.13>);
+ }
+module Id : functor (X : sig end) -> sig end
+{
+ "Struct"[module] ->
+   {<.16>
+    "L"[module] -> Alias(<.15>
+                         CU Stdlib . "List"[module]);
+    };
+ }
+module Struct : sig module L = List end
+|}]
+
+module App = Id(List) (* this should have the App uid *)
+module Proj = Struct.L
+  (* this should have the Proj uid and be an alias to Struct.L *)
+[%%expect{|
+{
+ "App"[module] -> (CU Stdlib . "List"[module])<.17>;
+ }
+module App : sig end
+{
+ "Proj"[module] -> Alias(<.18>
+                         Alias(<.15>
+                               CU Stdlib . "List"[module]));
+ }
+module Proj = Struct.L
 |}]
