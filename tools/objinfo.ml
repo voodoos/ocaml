@@ -144,28 +144,28 @@ let print_cmt_infos cmt =
   if !decls then begin
     printf "\nUid of decls:\n";
     Shape.Uid.Tbl.iter (fun uid item ->
-      let loc = match item with
-        | Value vd -> vd.Typedtree.val_name
-        | Value_binding vb ->
+      let loc = match (item : Typedtree.item_declaration) with
+        | Typedtree.Value vd -> vd.Typedtree.val_name
+        | Typedtree.Value_binding vb ->
           let (_, name, _, _) =
             List.hd (Typedtree.let_bound_idents_full [vb])
           in
           name
-        | Type td -> td.Typedtree.typ_name
-        | Constructor cd -> cd.Typedtree.cd_name
-        | Extension_constructor ec -> ec.Typedtree.ext_name
-        | Label ld -> ld.Typedtree.ld_name
-        | Module md ->
+        | Typedtree.Type td -> td.Typedtree.typ_name
+        | Typedtree.Constructor cd -> cd.Typedtree.cd_name
+        | Typedtree.Extension_constructor ec -> ec.Typedtree.ext_name
+        | Typedtree.Label ld -> ld.Typedtree.ld_name
+        | Typedtree.Module md ->
           { md.Typedtree.md_name with
             Location.txt = Option.value md.Typedtree.md_name.Location.txt ~default:"_" }
-        | Module_substitution ms -> ms.Typedtree.ms_name
-        | Module_binding mb ->
+        | Typedtree.Module_substitution ms -> ms.Typedtree.ms_name
+        | Typedtree.Module_binding mb ->
           { mb.Typedtree.mb_name with
             Location.txt =
               Option.value mb.Typedtree.mb_name.Location.txt ~default:"_" }
-        | Module_type mtd -> mtd.Typedtree.mtd_name
-        | Class cd -> cd.Typedtree.ci_id_name
-        | Class_type ctd -> ctd.Typedtree.ci_id_name
+        | Typedtree.Module_type mtd -> mtd.Typedtree.mtd_name
+        | Typedtree.Class cd -> cd.Typedtree.ci_id_name
+        | Typedtree.Class_type ctd -> ctd.Typedtree.ci_id_name
       in
       let pp_loc fmt { Location.txt; loc } =
         Format.fprintf fmt "%s (%a)"

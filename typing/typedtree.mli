@@ -785,6 +785,23 @@ type implementation = {
     structure.
 *)
 
+type item_declaration =
+  | Value of value_description
+  | Value_binding of value_binding
+  | Type of type_declaration
+  | Constructor of constructor_declaration
+  | Extension_constructor of extension_constructor
+  | Label of label_declaration
+  | Module of module_declaration
+  | Module_substitution of module_substitution
+  | Module_binding of module_binding
+  | Module_type of module_type_declaration
+  | Class of class_declaration
+  | Class_type of class_type_declaration
+(** [item_declaration] groups together items that correspond to the syntactic
+    category of "declarations" which include types, values, modules, etc.
+    declarations in signatures and their definitions in implementations. *)
+
 (* Auxiliary functions over the a.s.t. *)
 
 (** [as_computation_pattern p] is a computation pattern with description
@@ -817,7 +834,6 @@ val let_bound_idents: value_binding list -> Ident.t list
 val let_bound_idents_full:
     value_binding list ->
     (Ident.t * string loc * Types.type_expr * Types.Uid.t) list
-val let_filter_bound: value_binding list ->  (value_binding * Uid.t) list
 
 (** Alpha conversion of patterns *)
 val alpha_pat:

@@ -635,6 +635,19 @@ type implementation = {
   shape: Shape.t;
 }
 
+type item_declaration =
+  | Value of value_description
+  | Value_binding of value_binding
+  | Type of type_declaration
+  | Constructor of constructor_declaration
+  | Extension_constructor of extension_constructor
+  | Label of label_declaration
+  | Module of module_declaration
+  | Module_substitution of module_substitution
+  | Module_binding of module_binding
+  | Module_type of module_type_declaration
+  | Class of class_declaration
+  | Class_type of class_type_declaration
 
 (* Auxiliary functions over the a.s.t. *)
 
@@ -799,14 +812,6 @@ let let_bound_idents_full bindings =
   List.rev (rev_let_bound_idents_full bindings)
 let let_bound_idents pat =
   rev_only_idents (rev_let_bound_idents_full pat)
-
-let let_filter_bound bindings =
-  let decls = ref [] in
-  let add vb (_,_,_,uid) =
-    decls := (vb, uid) :: !decls
-  in
-  List.iter (fun vb -> iter_bound_idents (add vb) vb.vb_pat) bindings;
-  !decls
 
 let alpha_var env id = List.assoc id env
 
