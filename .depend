@@ -1163,20 +1163,31 @@ typing/rec_check.cmi : \
 typing/shape.cmo : \
     typing/path.cmi \
     utils/misc.cmi \
-    utils/local_store.cmi \
     utils/identifiable.cmi \
     typing/ident.cmi \
     typing/shape.cmi
 typing/shape.cmx : \
     typing/path.cmx \
     utils/misc.cmx \
-    utils/local_store.cmx \
     utils/identifiable.cmx \
     typing/ident.cmx \
     typing/shape.cmi
 typing/shape.cmi : \
     typing/path.cmi \
     utils/identifiable.cmi \
+    typing/ident.cmi
+typing/shape_reduce.cmo : \
+    typing/shape.cmi \
+    utils/local_store.cmi \
+    typing/ident.cmi \
+    typing/shape_reduce.cmi
+typing/shape_reduce.cmx : \
+    typing/shape.cmx \
+    utils/local_store.cmx \
+    typing/ident.cmx \
+    typing/shape_reduce.cmi
+typing/shape_reduce.cmi : \
+    typing/shape.cmi \
     typing/ident.cmi
 typing/signature_group.cmo : \
     typing/types.cmi \
@@ -1663,6 +1674,7 @@ typing/typemod.cmo : \
     typing/typeclass.cmi \
     typing/subst.cmi \
     typing/signature_group.cmi \
+    typing/shape_reduce.cmi \
     typing/shape.cmi \
     typing/printtyp.cmi \
     typing/path.cmi \
@@ -1698,6 +1710,7 @@ typing/typemod.cmx : \
     typing/typeclass.cmx \
     typing/subst.cmx \
     typing/signature_group.cmx \
+    typing/shape_reduce.cmx \
     typing/shape.cmx \
     typing/printtyp.cmx \
     typing/path.cmx \
@@ -2217,11 +2230,11 @@ asmcomp/afl_instrument.cmi : \
     lambda/debuginfo.cmi \
     asmcomp/cmm.cmi
 asmcomp/arch.cmo : \
-    utils/config.cmi \
-    utils/clflags.cmi
+    lambda/debuginfo.cmi \
+    utils/config.cmi
 asmcomp/arch.cmx : \
-    utils/config.cmx \
-    utils/clflags.cmx
+    lambda/debuginfo.cmx \
+    utils/config.cmx
 asmcomp/asmgen.cmo : \
     lambda/translmod.cmi \
     asmcomp/split.cmi \
@@ -2660,14 +2673,8 @@ asmcomp/deadcode.cmx : \
 asmcomp/deadcode.cmi : \
     asmcomp/mach.cmi
 asmcomp/emit.cmo : \
-    asmcomp/x86_proc.cmi \
-    asmcomp/x86_masm.cmi \
-    asmcomp/x86_gas.cmi \
-    asmcomp/x86_dsl.cmi \
-    asmcomp/x86_ast.cmi \
     asmcomp/reg.cmi \
     asmcomp/proc.cmi \
-    utils/numbers.cmi \
     utils/misc.cmi \
     asmcomp/mach.cmi \
     asmcomp/linear.cmi \
@@ -2683,14 +2690,8 @@ asmcomp/emit.cmo : \
     asmcomp/arch.cmo \
     asmcomp/emit.cmi
 asmcomp/emit.cmx : \
-    asmcomp/x86_proc.cmx \
-    asmcomp/x86_masm.cmx \
-    asmcomp/x86_gas.cmx \
-    asmcomp/x86_dsl.cmx \
-    asmcomp/x86_ast.cmi \
     asmcomp/reg.cmx \
     asmcomp/proc.cmx \
-    utils/numbers.cmx \
     utils/misc.cmx \
     asmcomp/mach.cmx \
     asmcomp/linear.cmx \
@@ -2938,21 +2939,21 @@ asmcomp/printmach.cmi : \
     asmcomp/reg.cmi \
     asmcomp/mach.cmi
 asmcomp/proc.cmo : \
-    asmcomp/x86_proc.cmi \
     asmcomp/reg.cmi \
     utils/misc.cmi \
     asmcomp/mach.cmi \
     utils/config.cmi \
     asmcomp/cmm.cmi \
+    utils/ccomp.cmi \
     asmcomp/arch.cmo \
     asmcomp/proc.cmi
 asmcomp/proc.cmx : \
-    asmcomp/x86_proc.cmx \
     asmcomp/reg.cmx \
     utils/misc.cmx \
     asmcomp/mach.cmx \
     utils/config.cmx \
     asmcomp/cmm.cmx \
+    utils/ccomp.cmx \
     asmcomp/arch.cmx \
     asmcomp/proc.cmi
 asmcomp/proc.cmi : \
@@ -2973,18 +2974,10 @@ asmcomp/reg.cmi : \
 asmcomp/reload.cmo : \
     asmcomp/reloadgen.cmi \
     asmcomp/reg.cmi \
-    asmcomp/mach.cmi \
-    asmcomp/cmm.cmi \
-    utils/clflags.cmi \
-    asmcomp/arch.cmo \
     asmcomp/reload.cmi
 asmcomp/reload.cmx : \
     asmcomp/reloadgen.cmx \
     asmcomp/reg.cmx \
-    asmcomp/mach.cmx \
-    asmcomp/cmm.cmx \
-    utils/clflags.cmx \
-    asmcomp/arch.cmx \
     asmcomp/reload.cmi
 asmcomp/reload.cmi : \
     asmcomp/mach.cmi
@@ -3069,7 +3062,7 @@ asmcomp/selectgen.cmi : \
     asmcomp/arch.cmo
 asmcomp/selection.cmo : \
     asmcomp/selectgen.cmi \
-    asmcomp/proc.cmi \
+    asmcomp/reg.cmi \
     asmcomp/mach.cmi \
     asmcomp/cmm.cmi \
     utils/clflags.cmi \
@@ -3077,7 +3070,7 @@ asmcomp/selection.cmo : \
     asmcomp/selection.cmi
 asmcomp/selection.cmx : \
     asmcomp/selectgen.cmx \
-    asmcomp/proc.cmx \
+    asmcomp/reg.cmx \
     asmcomp/mach.cmx \
     asmcomp/cmm.cmx \
     utils/clflags.cmx \
@@ -3891,6 +3884,7 @@ file_formats/cmt_format.cmo : \
     typing/typedtree.cmi \
     typing/tast_mapper.cmi \
     typing/tast_iterator.cmi \
+    typing/shape_reduce.cmi \
     typing/shape.cmi \
     typing/path.cmi \
     utils/misc.cmi \
@@ -3910,6 +3904,7 @@ file_formats/cmt_format.cmx : \
     typing/typedtree.cmx \
     typing/tast_mapper.cmx \
     typing/tast_iterator.cmx \
+    typing/shape_reduce.cmx \
     typing/shape.cmx \
     typing/path.cmx \
     utils/misc.cmx \
@@ -3927,6 +3922,7 @@ file_formats/cmt_format.cmx : \
 file_formats/cmt_format.cmi : \
     typing/types.cmi \
     typing/typedtree.cmi \
+    typing/shape_reduce.cmi \
     typing/shape.cmi \
     utils/misc.cmi \
     parsing/longident.cmi \
@@ -6465,6 +6461,7 @@ toplevel/byte/topeval.cmo : \
     toplevel/topcommon.cmi \
     bytecomp/symtable.cmi \
     lambda/simplif.cmi \
+    typing/shape_reduce.cmi \
     typing/shape.cmi \
     typing/printtyped.cmi \
     typing/printtyp.cmi \
@@ -6500,6 +6497,7 @@ toplevel/byte/topeval.cmx : \
     toplevel/topcommon.cmx \
     bytecomp/symtable.cmx \
     lambda/simplif.cmx \
+    typing/shape_reduce.cmx \
     typing/shape.cmx \
     typing/printtyped.cmx \
     typing/printtyp.cmx \
@@ -6606,6 +6604,7 @@ toplevel/native/topeval.cmo : \
     toplevel/native/tophooks.cmi \
     toplevel/topcommon.cmi \
     lambda/simplif.cmi \
+    typing/shape_reduce.cmi \
     typing/shape.cmi \
     typing/printtyped.cmi \
     typing/printtyp.cmi \
@@ -6636,6 +6635,7 @@ toplevel/native/topeval.cmx : \
     toplevel/native/tophooks.cmx \
     toplevel/topcommon.cmx \
     lambda/simplif.cmx \
+    typing/shape_reduce.cmx \
     typing/shape.cmx \
     typing/printtyped.cmx \
     typing/printtyp.cmx \
