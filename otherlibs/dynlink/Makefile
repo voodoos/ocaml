@@ -101,7 +101,6 @@ COMPILERLIBS_SOURCES=\
   typing/primitive.ml \
   typing/type_immediacy.ml \
   typing/shape.ml \
-  typing/shape_reduce.ml \
   typing/types.ml \
   typing/btype.ml \
   typing/subst.ml \
@@ -110,6 +109,7 @@ COMPILERLIBS_SOURCES=\
   file_formats/cmi_format.ml \
   typing/persistent_env.ml \
   typing/env.ml \
+  typing/shape_reduce.ml \
   lambda/debuginfo.ml \
   lambda/lambda.ml \
   lambda/runtimedef.ml \
