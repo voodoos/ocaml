@@ -122,15 +122,20 @@ and desc =
   | Comp_unit of string
   | Error of string
 
+(** The result of reducing a shape and looking for its uid.content *)
 type reduction_result =
-  | Resolved of Uid.t
-  | Unresolved of t
-  | Approximated of Uid.t option
-  | Missing_uid
+  | Resolved of Uid.t (** Shape reduction succeeded and a uid was found *)
+  | Resolved_alias of Uid.t list (** Reduction led to one or several aliases *)
+  | Unresolved of t (** Result still contains [Comp_unit] terms *)
+  | Approximated of Uid.t option (** Reduction failed *)
+  | Internal_error_missing_uid
+    (** Reduction succedded but no uid was found, this should never happen *)
 
 val print_reduction_result : Format.formatter -> reduction_result -> unit
 
 val print : Format.formatter -> t -> unit
+
+val strip_head_aliases : t -> t
 
 (* Smart constructors *)
 
