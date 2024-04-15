@@ -68,7 +68,8 @@ type cmt_infos = {
   cmt_uid_to_decl : item_declaration Shape.Uid.Tbl.t;
   cmt_impl_shape : Shape.t option; (* None for mli *)
   cmt_ident_occurrences :
-    (Longident.t Location.loc * Shape_reduce.result) list
+    (Longident.t Location.loc * Shape_reduce.result) list;
+  cmt_linked_declarations : (Uid.t * Uid.t) list;
 }
 
 type error =
@@ -123,3 +124,28 @@ val record_value_dependency:
   val read_signature : 'a -> string -> Types.signature * 'b list * 'c list
 
 *)
+
+
+(* We want to store an equivalence relation on declarations to track there
+relatedness. This will be done by leveragin includemod functions. We store that
+information as a collection of edges: uid -> uid.*)
+
+val record_linked_declarations : Uid.t -> Uid.t -> unit
+
+(* Mais tout prendre c'est trop pour les occurrences ou pour naviguer entre decl / def (c'est bien pour renommer)*)
+
+
+(*
+
+
+module M : sig module N : sig type t end end
+         = struct module N = struct type t end
+module type S = sig type t end
+module F (X : S) = struct type t = S.t end
+
+module R = F(M.N)
+*)
+
+(* Idée: lors de l'itération pour uid_to_decl, on accumule les coercions que l'on croise dans une hashtbl. Ce la nous permettre de stocker, pour chaque déclaration, l'uid de sa déclaration parente:
+    [cmt_uid_to_decl : (item_declaration * Uid.t option) Shape.Uid.Tbl.t;] *)
+(* On peut égalment en profiter pour construire les classes d'équivalence qui seront utiles au renommage *)

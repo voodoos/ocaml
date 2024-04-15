@@ -33,6 +33,17 @@ Resolved: Index.5 : A (File "index.ml", line 28, characters 11-12)
 Resolved: Index.3 : t (File "index.ml", line 25, characters 11-12)
 Resolved: Index.0 : t (File "index.ml", line 20, characters 10-11)
 
+Linked declarations:
+Index.4 -> Index.1
+Index.3 -> Index.0
+Index.4 -> Index.1
+Index.3 -> Index.0
+Index.4 -> Index.1
+Index.3 -> Index.0
+Index.4 -> Index.1
+Index.3 -> Index.0
+Index.7 -> Index.8
+
 Uid of decls:
 Index.10: y (File "index.ml", line 40, characters 4-5)
 Index.21: MS (File "index.ml", line 51, characters 12-14)

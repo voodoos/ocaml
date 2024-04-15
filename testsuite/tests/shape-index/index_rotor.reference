@@ -1,0 +1,104 @@
+Indexed shapes:
+Resolved: Index_rotor.8 :
+  T.to_string (File "index_rotor.ml", line 58, characters 8-19)
+Resolved: Index_rotor.20 :
+  Int (File "index_rotor.ml", line 56, characters 26-29)
+Resolved: Index_rotor.20 :
+  Int (File "index_rotor.ml", line 56, characters 21-24)
+Resolved: Index_rotor.16 :
+  Pair (File "index_rotor.ml", line 56, characters 16-20)
+Resolved: Index_rotor.9 :
+  Toto (File "index_rotor.ml", line 56, characters 11-15)
+Resolved: Index_rotor.13 :
+  P'.to_string (File "index_rotor.ml", line 54, characters 8-20)
+Resolved: Index_rotor.20 :
+  Int (File "index_rotor.ml", line 52, characters 35-38)
+Resolved: Index_rotor.24 :
+  String (File "index_rotor.ml", line 52, characters 27-33)
+Resolved: Index_rotor.16 :
+  Pair (File "index_rotor.ml", line 52, characters 22-26)
+Resolved: Index_rotor.20 :
+  Int (File "index_rotor.ml", line 52, characters 17-20)
+Resolved: Index_rotor.16 :
+  Pair (File "index_rotor.ml", line 52, characters 12-16)
+Resolved: Index_rotor.13 :
+  P.to_string (File "index_rotor.ml", line 50, characters 8-19)
+Resolved: Index_rotor.20 :
+  Int (File "index_rotor.ml", line 48, characters 21-24)
+Resolved: Index_rotor.20 :
+  Int (File "index_rotor.ml", line 48, characters 16-19)
+Resolved: Index_rotor.16 :
+  Pair (File "index_rotor.ml", line 48, characters 11-15)
+Resolved: Index_rotor.23 :
+  s (File "index_rotor.ml", line 45, characters 20-21)
+Resolved: Index_rotor.19 :
+  i (File "index_rotor.ml", line 40, characters 34-35)
+Unresolved: CU Stdlib . "string_of_int"[value]  :
+  string_of_int (File "index_rotor.ml", line 40, characters 20-33)
+Resolved: Index_rotor.15 :
+  y (File "index_rotor.ml", line 35, characters 38-39)
+Missing uid : Y.to_string (File "index_rotor.ml", line 35, characters 26-37)
+Unresolved: CU Stdlib . "^"[value]  :
+  (^) (File "index_rotor.ml", line 35, characters 24-25)
+Resolved: Index_rotor.14 :
+  x (File "index_rotor.ml", line 35, characters 16-17)
+Missing uid : X.to_string (File "index_rotor.ml", line 35, characters 4-15)
+Unresolved: CU Stdlib . "^"[value]  :
+  (^) (File "index_rotor.ml", line 35, characters 18-19)
+Missing uid : Y.t (File "index_rotor.ml", line 33, characters 17-20)
+Missing uid : X.t (File "index_rotor.ml", line 33, characters 11-14)
+Resolved: Index_rotor.2 :
+  Stringable (File "index_rotor.ml", line 32, characters 34-44)
+Resolved: Index_rotor.2 :
+  Stringable (File "index_rotor.ml", line 32, characters 17-27)
+Missing uid : X.to_string (File "index_rotor.ml", line 29, characters 18-29)
+Missing uid : X.t (File "index_rotor.ml", line 28, characters 12-15)
+Resolved: Index_rotor.5 :
+  Toto (File "index_rotor.ml", line 27, characters 17-21)
+Resolved: Index_rotor.3 :
+  t (File "index_rotor.ml", line 24, characters 18-19)
+Resolved: Index_rotor.0 :
+  t (File "index_rotor.ml", line 20, characters 18-19)
+
+Linked declarations:
+Index_rotor.13 -> Index_rotor.4
+Index_rotor.12 -> Index_rotor.3
+Index_rotor.18 -> Index_rotor.1
+Index_rotor.17 -> Index_rotor.0
+Index_rotor.18 -> Index_rotor.1
+Index_rotor.17 -> Index_rotor.0
+Index_rotor.13 -> Index_rotor.1
+Index_rotor.12 -> Index_rotor.0
+Index_rotor.18 -> Index_rotor.1
+Index_rotor.17 -> Index_rotor.0
+Index_rotor.18 -> Index_rotor.1
+Index_rotor.17 -> Index_rotor.0
+Index_rotor.22 -> Index_rotor.1
+Index_rotor.21 -> Index_rotor.0
+Index_rotor.18 -> Index_rotor.1
+Index_rotor.17 -> Index_rotor.0
+Index_rotor.18 -> Index_rotor.1
+Index_rotor.17 -> Index_rotor.0
+
+Uid of decls:
+Index_rotor.25: P (File "index_rotor.ml", line 48, characters 7-8)
+Index_rotor.22: to_string (File "index_rotor.ml", line 45, characters 6-15)
+Index_rotor.4: to_string (File "index_rotor.ml", line 24, characters 6-15)
+Index_rotor.1: to_string (File "index_rotor.ml", line 20, characters 6-15)
+Index_rotor.5: Toto (File "index_rotor.ml", line 22, characters 12-16)
+Index_rotor.13: to_string (File "index_rotor.ml", line 34, characters 6-15)
+Index_rotor.8: to_string (File "index_rotor.ml", line 29, characters 6-15)
+Index_rotor.27: T (File "index_rotor.ml", line 56, characters 7-8)
+Index_rotor.24: String (File "index_rotor.ml", line 43, characters 7-13)
+Index_rotor.12: t (File "index_rotor.ml", line 33, characters 7-8)
+Index_rotor.9: Toto (File "index_rotor.ml", line 27, characters 7-11)
+Index_rotor.26: P' (File "index_rotor.ml", line 52, characters 7-9)
+Index_rotor.3: t (File "index_rotor.ml", line 23, characters 7-8)
+Index_rotor.18: to_string (File "index_rotor.ml", line 40, characters 6-15)
+Index_rotor.20: Int (File "index_rotor.ml", line 38, characters 7-10)
+Index_rotor.7: t (File "index_rotor.ml", line 28, characters 7-8)
+Index_rotor.16: Pair (File "index_rotor.ml", line 32, characters 7-11)
+Index_rotor.2: Stringable (File "index_rotor.ml", line 18, characters 12-22)
+Index_rotor.21: t (File "index_rotor.ml", line 44, characters 7-8)
+Index_rotor.17: t (File "index_rotor.ml", line 39, characters 7-8)
+Index_rotor.0: t (File "index_rotor.ml", line 19, characters 7-8)

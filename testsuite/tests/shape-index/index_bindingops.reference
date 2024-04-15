@@ -38,6 +38,8 @@ Resolved: Index_bindingops.2 :
 Unresolved: CU Stdlib . "Option"[module] . "map"[value]  :
   Option.map (File "index_bindingops.ml", line 17, characters 17-27)
 
+Linked declarations:
+
 Uid of decls:
 Index_bindingops.8:
   minus_three (File "index_bindingops.ml", line 23, characters 4-15)

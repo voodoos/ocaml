@@ -16,6 +16,8 @@ Resolved: Index_constrs.4 :
 Resolved: Index_constrs.0 :
   E (File "index_constrs.ml", line 20, characters 16-17)
 
+Linked declarations:
+
 Uid of decls:
 Index_constrs.6: f (File "index_constrs.ml", line 27, characters 4-5)
 Index_constrs.5: x_ (File "index_constrs.ml", line 25, characters 4-6)

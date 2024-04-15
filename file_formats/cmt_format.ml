@@ -60,10 +60,11 @@ type cmt_infos = {
   cmt_imports : (string * Digest.t option) list;
   cmt_interface_digest : Digest.t option;
   cmt_use_summaries : bool;
-  cmt_uid_to_decl : item_declaration Shape.Uid.Tbl.t;
+  cmt_uid_to_decl : (item_declaration * (*parent_declaration_uid*) Uid.t option) Shape.Uid.Tbl.t;
   cmt_impl_shape : Shape.t option; (* None for mli *)
   cmt_ident_occurrences :
-    (Longident.t Location.loc * Shape_reduce.result) list
+    (Longident.t Location.loc * Shape_reduce.result) list;
+  cmt_linked_declarations : (Uid.t * Uid.t) list;
 }
 
 type error =
@@ -427,9 +428,12 @@ let read_cmi filename =
 let saved_types = ref []
 let value_deps = ref []
 
+let linked_declarations = ref []
+
 let clear () =
   saved_types := [];
-  value_deps := []
+  value_deps := [];
+  linked_declarations := []
 
 let add_saved_type b = saved_types := b :: !saved_types
 let get_saved_types () = !saved_types
@@ -438,6 +442,10 @@ let set_saved_types l = saved_types := l
 let record_value_dependency vd1 vd2 =
   if vd1.Types.val_loc <> vd2.Types.val_loc then
     value_deps := (vd1, vd2) :: !value_deps
+
+let record_linked_declarations uid1 uid2 =
+  if not (Uid.equal uid1 uid2) then
+    linked_declarations := (uid1, uid2) :: !linked_declarations
 
 let save_cmt target binary_annots initial_env cmi shape =
   if !Clflags.binary_annotations && not !Clflags.print_types then begin
@@ -477,6 +485,7 @@ let save_cmt target binary_annots initial_env cmi shape =
            cmt_uid_to_decl;
            cmt_impl_shape = shape;
            cmt_ident_occurrences;
+           cmt_linked_declarations = !linked_declarations
          } in
          output_cmt oc cmt)
   end;

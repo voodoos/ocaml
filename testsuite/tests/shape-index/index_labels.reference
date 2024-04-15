@@ -16,6 +16,8 @@ Resolved: Index_labels.2 :
 Resolved: Index_labels.1 :
   a (File "index_labels.ml", line 20, characters 10-11)
 
+Linked declarations:
+
 Uid of decls:
 Index_labels.5: f (File "index_labels.ml", line 25, characters 4-5)
 Index_labels.2: b (File "index_labels.ml", line 18, characters 27-28)

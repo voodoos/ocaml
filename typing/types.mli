@@ -716,6 +716,8 @@ val bound_value_identifiers: signature -> Ident.t list
 
 val signature_item_id : signature_item -> Ident.t
 
+val signature_item_uid : signature_item -> Uid.t
+
 (**** Utilities for backtracking ****)
 
 type snapshot

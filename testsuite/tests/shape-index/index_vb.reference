@@ -15,6 +15,8 @@ Resolved: Index_vb.1 : a (File "index_vb.ml", line 20, characters 26-27)
 Resolved: Index_vb.2 : b (File "index_vb.ml", line 20, characters 9-10)
 Resolved: Index_vb.1 : a (File "index_vb.ml", line 20, characters 6-7)
 
+Linked declarations:
+
 Uid of decls:
 Index_vb.3: a (File "index_vb.ml", line 20, characters 6-7)
 Index_vb.1: a (File "index_vb.ml", line 18, characters 11-12)

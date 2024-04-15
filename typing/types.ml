@@ -493,6 +493,15 @@ let signature_item_id = function
   | Sig_class_type (id, _, _, _)
     -> id
 
+let signature_item_uid = function
+  | Sig_value (_, { val_uid = uid; _ }, _)
+  | Sig_type (_, { type_uid = uid; _ }, _, _)
+  | Sig_typext (_, { ext_uid = uid; _ }, _, _)
+  | Sig_module (_, _, { md_uid = uid; _ }, _, _)
+  | Sig_modtype (_, { mtd_uid = uid; _ }, _)
+  | Sig_class (_, { cty_uid = uid; _ }, _, _)
+  | Sig_class_type (_, { clty_uid = uid; _ }, _, _)
+    -> uid
 (**** Definitions for backtracking ****)
 
 type change =

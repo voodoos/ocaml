@@ -22,6 +22,8 @@ Resolved: Index_objects.5 :
 Resolved: Index_objects.0 :
   o (File "index_objects.ml", line 23, characters 9-10)
 
+Linked declarations:
+
 Uid of decls:
 Index_objects.10: d (File "index_objects.ml", line 31, characters 6-7)
 Index_objects.15: M (File "index_objects.ml", line 35, characters 12-13)

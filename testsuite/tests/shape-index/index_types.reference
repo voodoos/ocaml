@@ -11,6 +11,8 @@ Resolved: Index_types.0 : t (File "index_types.ml", line 25, characters 9-10)
 Resolved: Index_types.0 : t (File "index_types.ml", line 20, characters 8-9)
 Resolved: Index_types.0 : t (File "index_types.ml", line 20, characters 8-9)
 
+Linked declarations:
+
 Uid of decls:
 Index_types.11: u (File "index_types.ml", line 41, characters 5-6)
 Index_types.3: poly (File "index_types.ml", line 27, characters 5-9)

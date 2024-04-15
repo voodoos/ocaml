@@ -127,7 +127,14 @@ let print_cmt_infos cmt =
       Format.printf "@[<hov 2>%a:@ %a@]@;"
         Shape_reduce.print_result item pp_loc loc)
       cmt.cmt_ident_occurrences;
-    Format.print_flush ()
+    Format.print_flush ();
+    printf "\nLinked declarations:\n";
+    List.iter (fun (uid1, uid2) ->
+      Format.printf "%a -> %a\n"
+        Shape.Uid.print uid1 Shape.Uid.print uid2)
+      cmt.cmt_linked_declarations;
+    Format.print_flush ();
+
   end;
   if !decls then begin
     printf "\nUid of decls:\n";

@@ -10,5 +10,7 @@ Unresolved: CU Stdlib . "print_int"[value]  :
 Resolved: Index_modules.1 :
   A (File "index_modules.ml", line 21, characters 11-12)
 
+Linked declarations:
+
 Uid of decls:
 Index_modules.0: x (File "index_modules.ml", line 20, characters 28-29)

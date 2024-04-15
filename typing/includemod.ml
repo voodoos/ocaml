@@ -846,6 +846,8 @@ and signature_components ~core ~in_eq ~loc old_env ~mark env subst
         | _ ->
             assert false
       in
+      let uid1, uid2 = Types.signature_item_uid sigi1, Types.signature_item_uid sigi2 in
+      Cmt_format.record_linked_declarations uid1 uid2;
       let deep_modifications = !shape_modified in
       let first =
         match item with

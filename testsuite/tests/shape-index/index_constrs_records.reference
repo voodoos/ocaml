@@ -56,6 +56,9 @@ Resolved: Index_constrs_records.3 :
 Resolved: Index_constrs_records.4 :
   A (File "index_constrs_records.ml", line 22, characters 10-11)
 
+Linked declarations:
+Index_constrs_records.2 -> Index_constrs_records.10
+
 Uid of decls:
 Index_constrs_records.4:
   A (File "index_constrs_records.ml", line 21, characters 11-12)
