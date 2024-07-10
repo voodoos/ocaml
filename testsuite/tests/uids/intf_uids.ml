@@ -15,9 +15,8 @@ ocamlobjinfo;
 check-program-output;
 *)
 
-(* This test illustrates the fact that uids, right now, are not unique accross a
-compilation unit if we consider a unit being formed of an interface file and an
-implementation file. Numbering of uids start at 0 for both, leading to identical uids not pointing to the same declaration *)
+(* This test illustrates the fact that uids are tagged to indicate if they
+  originate from an interface of an implementation. *)
 
 type u (* has uid Intf_uids.0 *)
 

@@ -55,13 +55,18 @@
     when trying to jump to an identifier's declaration or definition. They are
     stored to that effect in the [uid_to_decl] table of cmt files. *)
 module Uid : sig
+  type intf_or_impl = Intf | Impl
   type t = private
     | Compilation_unit of string
-    | Item of { comp_unit: string; id: int }
+    | Item of { comp_unit: string; id: int; from: intf_or_impl }
     | Internal
     | Predef of string
 
   val reinit : unit -> unit
+
+  (** [set_from] allow changing the [from] information stored with uids
+    indicating if they emanate from an interface or an implementation file. *)
+  val set_from : intf_or_impl -> unit
 
   val mk : current_unit:string -> t
   val of_compilation_unit_id : Ident.t -> t

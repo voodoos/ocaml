@@ -3183,6 +3183,7 @@ let save_signature target tsg initial_env cmi =
     (Cmt_format.Interface tsg) initial_env (Some cmi) None
 
 let type_interface env ast =
+  Uid.set_from Intf;
   transl_signature env ast
 
 (* "Packaging" of several compilation units into one unit
