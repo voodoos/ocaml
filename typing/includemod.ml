@@ -751,7 +751,7 @@ and signature_components ~core ~in_eq ~loc old_env ~mark env subst
   | [] -> Sign_diff.{ empty with shape_map }
   | (sigi1, sigi2, pos) :: rem ->
       let shape_modified = ref false in
-      let id, item, shape_map, present_at_runtime =
+      let id, item, paired_uids, shape_map, present_at_runtime =
         match sigi1, sigi2 with
         | Sig_value(id1, valdecl1, _) ,Sig_value(_id2, valdecl2, _) ->
             let item =
@@ -764,7 +764,8 @@ and signature_components ~core ~in_eq ~loc old_env ~mark env subst
               | _ -> true
             in
             let shape_map = Shape.Map.add_value_proj shape_map id1 orig_shape in
-            id1, item, shape_map, present_at_runtime
+            let paired_uids = (valdecl1.val_uid, valdecl2.val_uid) in
+            id1, item, paired_uids, shape_map, present_at_runtime
         | Sig_type(id1, tydec1, _, _), Sig_type(_id2, tydec2, _, _) ->
             let item =
               core.type_declarations ~loc env ~mark subst id1 tydec1 tydec2
@@ -773,7 +774,7 @@ and signature_components ~core ~in_eq ~loc old_env ~mark env subst
             (* Right now we don't filter hidden constructors / labels from the
             shape. *)
             let shape_map = Shape.Map.add_type_proj shape_map id1 orig_shape in
-            id1, item, shape_map, false
+            id1, item, (tydec1.type_uid, tydec2.type_uid), shape_map, false
         | Sig_typext(id1, ext1, _, _), Sig_typext(_id2, ext2, _, _) ->
             let item =
               core.extension_constructors ~loc env ~mark  subst id1 ext1 ext2
@@ -782,7 +783,7 @@ and signature_components ~core ~in_eq ~loc old_env ~mark env subst
             let shape_map =
               Shape.Map.add_extcons_proj shape_map id1 orig_shape
             in
-            id1, item, shape_map, true
+            id1, item, (ext1.ext_uid, ext2.ext_uid), shape_map, true
         | Sig_module(id1, pres1, mty1, _, _), Sig_module(_, pres2, mty2, _, _)
           -> begin
               let orig_shape =
@@ -814,7 +815,8 @@ and signature_components ~core ~in_eq ~loc old_env ~mark env subst
                 | Mp_absent, Mp_present, _ -> assert false
               in
               let item = mark_error_as_unrecoverable item in
-              id1, item, shape_map, present_at_runtime
+              let paired_uids = (mty1.md_uid, mty2.md_uid) in
+              id1, item, paired_uids, shape_map, present_at_runtime
             end
         | Sig_modtype(id1, info1, _), Sig_modtype(_id2, info2, _) ->
             let item =
@@ -824,7 +826,7 @@ and signature_components ~core ~in_eq ~loc old_env ~mark env subst
               Shape.Map.add_module_type_proj shape_map id1 orig_shape
             in
             let item = mark_error_as_unrecoverable item in
-            id1, item, shape_map, false
+            id1, item, (info1.mtd_uid, info2.mtd_uid), shape_map, false
         | Sig_class(id1, decl1, _, _), Sig_class(_id2, decl2, _, _) ->
             let item =
               core.class_declarations ~loc env ~mark subst id1 decl1 decl2
@@ -833,7 +835,7 @@ and signature_components ~core ~in_eq ~loc old_env ~mark env subst
               Shape.Map.add_class_proj shape_map id1 orig_shape
             in
             let item = mark_error_as_unrecoverable item in
-            id1, item, shape_map, true
+            id1, item, (decl1.cty_uid, decl2.cty_uid), shape_map, true
         | Sig_class_type(id1, info1, _, _), Sig_class_type(_id2, info2, _, _) ->
             let item =
               core.class_type_declarations ~loc env ~mark subst id1 info1 info2
@@ -842,7 +844,7 @@ and signature_components ~core ~in_eq ~loc old_env ~mark env subst
             let shape_map =
               Shape.Map.add_class_type_proj shape_map id1 orig_shape
             in
-            id1, item, shape_map, false
+            id1, item, (info1.clty_uid, info2.clty_uid), shape_map, false
         | _ ->
             assert false
       in
@@ -850,6 +852,7 @@ and signature_components ~core ~in_eq ~loc old_env ~mark env subst
       let first =
         match item with
         | Ok x ->
+            Cmt_format.record_declaration_dependency paired_uids;
             let runtime_coercions =
               if present_at_runtime then [pos,x] else []
             in
