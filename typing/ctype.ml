@@ -2622,7 +2622,7 @@ let complete_type_list ?(allow_absent=false) env fl1 lv2 mty2 fl2 =
     match fl1, fl2 with
       [], _ -> fl2
     | (n, _) :: nl, (n2, _ as nt2) :: ntl' when n >= n2 ->
-        nt2 :: complete (if n = n2 then nl else fl1) ntl'
+        nt2 :: complete (if Longident.same n n2 then nl else fl1) ntl'
     | (n, _) :: nl, _ ->
         let lid =
           concat_longident (Longident.Lident (Location.mknoloc "Pkg")) n
