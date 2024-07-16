@@ -854,6 +854,8 @@ and signature_components ~core ~in_eq ~loc old_env ~mark env subst
         match item with
         | Ok x ->
             if not (in_eq = Reverse) then
+              (* We do not store paired uids when checking for reverse
+                 module-type inclusion as it would introduce duplicates. *)
               Cmt_format.record_declaration_dependency paired_uids;
             let runtime_coercions =
               if present_at_runtime then [pos,x] else []
