@@ -427,20 +427,21 @@ type core_relation = {
 }
 
 (**
-   In the group of mutual functions below, the [~in_eq] argument is [true] when
-   we are in fact checking equality of module types.
+   In the group of mutual functions below, the [~in_eq] argument is not
+   [Initial] when we are in fact checking equality of module types.
 
    The module subtyping relation [A <: B] checks that [A.T = B.T] when [A]
    and [B] define a module type [T]. The relation [A.T = B.T] is equivalent
    to [(A.T <: B.T) and (B.T <: A.T)], but checking both recursively would lead
    to an exponential slowdown (see #10598 and #10616).
-   To avoid this issue, when [~in_eq] is [true], we compute a coarser relation
-   [A << B] which is the same as [A <: B] except that module types [T] are
-   checked only for [A.T << B.T] and not the reverse.
+   To avoid this issue, when [~in_eq] is not [Initial], we compute a coarser
+   relation [A << B] which is the same as [A <: B] except that module types [T]
+   are checked only for [A.T << B.T] and not the reverse.
    Thus, we can implement a cheap module type equality check [A.T = B.T] by
    computing [(A.T << B.T) and (B.T << A.T)], avoiding the exponential slowdown
    described above.
 *)
+type in_eq = Initial | Nested | Reverse
 
 let rec modtypes ~core ~in_eq ~loc env ~mark subst mty1 mty2 shape =
   match try_modtypes ~core ~in_eq ~loc env ~mark subst mty1 mty2 shape with
@@ -627,7 +628,7 @@ and strengthened_module_decl ~core ~loc ~aliasable env ~mark
       Ok (Tcoerce_none, shape)
   | _, _ ->
       let md1 = Mtype.strengthen_decl ~aliasable env md1 path1 in
-      modtypes ~core ~in_eq:false ~loc env ~mark subst
+      modtypes ~core ~in_eq:Initial ~loc env ~mark subst
         md1.md_type md2.md_type shape
 
 (* Inclusion between signatures *)
@@ -852,7 +853,8 @@ and signature_components ~core ~in_eq ~loc old_env ~mark env subst
       let first =
         match item with
         | Ok x ->
-            Cmt_format.record_declaration_dependency paired_uids;
+            if not (in_eq = Reverse) then
+              Cmt_format.record_declaration_dependency paired_uids;
             let runtime_coercions =
               if present_at_runtime then [pos,x] else []
             in
@@ -910,7 +912,7 @@ and modtype_infos ~core ~in_eq ~loc env ~mark subst id info1 info2 =
 
 and check_modtype_equiv ~core ~in_eq ~loc env ~mark mty1 mty2 =
   let c1 =
-    modtypes ~core ~in_eq:true ~loc env ~mark Subst.identity mty1 mty2
+    modtypes ~core ~in_eq:Nested ~loc env ~mark Subst.identity mty1 mty2
       Shape.dummy_mod
   in
   let c2 =
@@ -918,11 +920,11 @@ and check_modtype_equiv ~core ~in_eq ~loc env ~mark mty1 mty2 =
        the outer module type is the one responsible for checking the other side
        of the equivalence.
      *)
-    if in_eq then None
+    if in_eq = Initial then None
     else
       let mark = negate_mark mark in
       Some (
-        modtypes ~core ~in_eq:true ~loc env ~mark Subst.identity
+        modtypes ~core ~in_eq:Reverse ~loc env ~mark Subst.identity
           mty2 mty1 Shape.dummy_mod
       )
   in
@@ -994,7 +996,7 @@ exception Apply_error of {
 
 let check_modtype_inclusion_raw ~loc env mty1 path1 mty2 =
   let aliasable = can_alias env path1 in
-  strengthened_modtypes ~core:core_inclusion ~in_eq:false ~loc ~aliasable env
+  strengthened_modtypes ~core:core_inclusion ~in_eq:Initial ~loc ~aliasable env
     ~mark:Mark_both Subst.identity mty1 path1 mty2 Shape.dummy_mod
   |> Result.map fst
 
@@ -1032,7 +1034,7 @@ let () =
 let compunit env ~mark impl_name impl_sig intf_name intf_sig unit_shape =
   let loc = Location.in_file impl_name in
   match
-    signatures ~core:core_inclusion ~in_eq:false ~loc env
+    signatures ~core:core_inclusion ~in_eq:Initial ~loc env
       ~mark Subst.identity impl_sig intf_sig unit_shape
   with Result.Error reasons ->
     let cdiff =
@@ -1136,7 +1138,7 @@ module Functor_inclusion_diff = struct
         let test st mty1 mty2 =
           let loc = Location.none in
           let res, _, _ =
-            functor_param ~core:core_inclusion ~in_eq:false ~loc st.env
+            functor_param ~core:core_inclusion ~in_eq:Initial ~loc st.env
                ~mark:Mark_neither st.subst mty1 mty2
           in
           res
@@ -1231,7 +1233,7 @@ module Functor_app_diff = struct
                 Result.Error (Error.Incompatible_params(arg,param))
             | ( Anonymous | Named _ | Empty_struct ), Named (_, param) ->
                 match
-                  modtypes ~core:core_inclusion ~in_eq:false ~loc state.env
+                  modtypes ~core:core_inclusion ~in_eq:Initial ~loc state.env
                      ~mark:Mark_neither state.subst arg_mty param
                      Shape.dummy_mod
                 with
@@ -1254,28 +1256,29 @@ end
 (* Hide the context and substitution parameters to the outside world *)
 
 let modtypes_with_shape ~shape ~loc env ~mark mty1 mty2 =
-  match modtypes ~core:core_inclusion ~in_eq:false ~loc env ~mark
+  match modtypes ~core:core_inclusion ~in_eq:Initial ~loc env ~mark
           Subst.identity mty1 mty2 shape
   with
   | Ok (cc, shape) -> cc, shape
   | Error reason -> raise (Error (env, Error.(In_Module_type reason)))
 
 let modtypes_consistency ~loc env mty1 mty2 =
-  match modtypes ~core:core_consistency ~in_eq:false ~loc env ~mark:Mark_neither
-          Subst.identity mty1 mty2 Shape.dummy_mod
+  match
+    modtypes ~core:core_consistency ~in_eq:Initial ~loc env ~mark:Mark_neither
+      Subst.identity mty1 mty2 Shape.dummy_mod
   with
   | Ok _ -> ()
   | Error reason -> raise (Error (env, Error.(In_Module_type reason)))
 
 let modtypes ~loc env ~mark mty1 mty2 =
-  match modtypes ~core:core_inclusion ~in_eq:false ~loc env ~mark
+  match modtypes ~core:core_inclusion ~in_eq:Initial ~loc env ~mark
           Subst.identity mty1 mty2 Shape.dummy_mod
   with
   | Ok (cc, _) -> cc
   | Error reason -> raise (Error (env, Error.(In_Module_type reason)))
 
 let signatures env ~mark sig1 sig2 =
-  match signatures ~core:core_inclusion ~in_eq:false ~loc:Location.none env
+  match signatures ~core:core_inclusion ~in_eq:Initial ~loc:Location.none env
           ~mark Subst.identity sig1 sig2 Shape.dummy_mod
   with
   | Ok (cc, _) -> cc
@@ -1304,7 +1307,7 @@ let expand_module_alias ~strengthen env path =
       raise (Error(env,In_Expansion(Error.Unbound_module_path path)))
 
 let check_modtype_equiv ~loc env id mty1 mty2 =
-  match check_modtype_equiv ~core:core_inclusion ~in_eq:false ~loc env
+  match check_modtype_equiv ~core:core_inclusion ~in_eq:Initial ~loc env
           ~mark:Mark_both mty1 mty2
   with
   | Ok _ -> ()
