@@ -512,7 +512,10 @@ ocamllex_PROGRAMS = $(addprefix lex/,ocamllex ocamllex.opt)
 ocamlyacc_PROGRAM = yacc/ocamlyacc
 
 # Tools to be compiled to native and bytecode, then installed
-TOOLS_TO_INSTALL_NAT = ocamldep ocamlobjinfo
+TOOLS_TO_INSTALL_NAT = ocamldep
+ifeq "$(build_ocamlobjinfo)" "true"
+  TOOLS_TO_INSTALL_NAT += ocamlobjinfo
+endif
 
 # Tools to be compiled to bytecode only, then installed
 TOOLS_TO_INSTALL_BYT = \
@@ -526,7 +529,8 @@ endif
 # the configuration is not available during clean so we don't
 # know whether they have been configured / built or not
 clean::
-	rm -f $(addprefix tools/ocamlopt,p p.opt p.exe p.opt.exe)
+	rm -f $(addprefix tools/ocamlopt,p p.opt p.exe p.opt.exe) \
+	  tools/ocamlobjinfo $(addprefix tools/ocamlobjinfo,.opt .exe .opt.exe)
 
 TOOLS_NAT = $(TOOLS_TO_INSTALL_NAT)
 TOOLS_BYT = $(TOOLS_TO_INSTALL_BYT) dumpobj primreq stripdebug cmpbyt
@@ -1111,28 +1115,28 @@ beforedepend:: lambda/runtimedef.ml
 # Choose the right machine-dependent files
 
 asmcomp/arch.mli: asmcomp/$(ARCH)/arch.mli
-	cd asmcomp; $(LN) $(ARCH)/arch.mli .
+	@cd asmcomp; $(LN) $(ARCH)/arch.mli .
 
 asmcomp/arch.ml: asmcomp/$(ARCH)/arch.ml
-	cd asmcomp; $(LN) $(ARCH)/arch.ml .
+	@cd asmcomp; $(LN) $(ARCH)/arch.ml .
 
 asmcomp/proc.ml: asmcomp/$(ARCH)/proc.ml
-	cd asmcomp; $(LN) $(ARCH)/proc.ml .
+	@cd asmcomp; $(LN) $(ARCH)/proc.ml .
 
 asmcomp/selection.ml: asmcomp/$(ARCH)/selection.ml
-	cd asmcomp; $(LN) $(ARCH)/selection.ml .
+	@cd asmcomp; $(LN) $(ARCH)/selection.ml .
 
 asmcomp/CSE.ml: asmcomp/$(ARCH)/CSE.ml
-	cd asmcomp; $(LN) $(ARCH)/CSE.ml .
+	@cd asmcomp; $(LN) $(ARCH)/CSE.ml .
 
 asmcomp/reload.ml: asmcomp/$(ARCH)/reload.ml
-	cd asmcomp; $(LN) $(ARCH)/reload.ml .
+	@cd asmcomp; $(LN) $(ARCH)/reload.ml .
 
 asmcomp/scheduling.ml: asmcomp/$(ARCH)/scheduling.ml
-	cd asmcomp; $(LN) $(ARCH)/scheduling.ml .
+	@cd asmcomp; $(LN) $(ARCH)/scheduling.ml .
 
 asmcomp/stackframe.ml: asmcomp/$(ARCH)/stackframe.ml
-	cd asmcomp; $(LN) $(ARCH)/stackframe.ml .
+	@cd asmcomp; $(LN) $(ARCH)/stackframe.ml .
 
 # Preprocess the code emitters
 cvt_emit = tools/cvt_emit$(EXE)

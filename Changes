@@ -1,5 +1,32 @@
 Working version
-_______________
+---------------
+
+(Changes that can break existing programs are marked with a "*")
+
+### Language features:
+
+### Runtime system:
+
+### Code generation and optimizations:
+
+### Standard library:
+
+### Other libraries:
+
+### Tools:
+
+### Manual and documentation:
+
+### Compiler user-interface and warnings:
+
+### Internal/compiler-libs changes:
+
+### Build system:
+
+### Bug fixes:
+
+OCaml 5.3.0
+___________
 
 (Changes that can break existing programs are marked with a "*")
 
@@ -29,6 +56,15 @@ _______________
   (Jacques Garrigue, report and review by Gabriel Scherer and Florian Angeletti)
 
 ### Runtime system:
+
+- #13364: Emit major slice counters in the runtime events.
+  (KC Sivaramakrishnan and Sadiq Jaffer, review by Gabriel Scherer)
+
+- #13382: Add more documentation for Runtime_events types
+  (Sadiq Jaffer, review by Tim McGilchrist, Miod Vallat and KC Sivaramakrishnan)
+
+- #13370: Fix a low-probability crash when calling Gc.counters.
+  (Demi Marie Obenour, review by Gabriel Scherer)
 
 - #13272: Allow maximum number of domains to be specified as a OCAMLRUNPARAM
   parameter.
@@ -131,11 +167,9 @@ _______________
   unsupported native backends (POWER, riscv64 and s390x)
   (Miod Vallat, review by Nicolás Ojeda Bär)
 
-- #7241, #12555, #13076, #13138: fix a soundness bug in the
-  pattern-matching compiler when side-effects mutate the scrutinee
-  during matching.
-  Note that #7241 is not fully fixed yet, see the issue for the
-  current status.
+- #7241, #12555, #13076, #13138, #13338, #13152, #13153:
+  fix a soundness bug in the pattern-matching compiler
+  when side-effects mutate the scrutinee during matching.
   (Gabriel Scherer, review by Nick Roberts)
 
 - #13179: Fix evaluation of toplevel lets in classes containing
@@ -144,6 +178,10 @@ _______________
    and Gabriel Scherer)
 
 ### Standard library:
+
+- #13310: Add Stdlib.Pair
+  (Victoire Noizet, review by Nicolás Ojeda Bär, Daniel Bünzli, Xavier Van de
+   Woestyne, Jeremy Yallop and Florian Angeletti)
 
 - #12884: Add `Queue.drop`
   (Léo Andrès, review by Nicolás Ojeda Bär and Gabriel Scherer)
@@ -182,6 +220,11 @@ _______________
    review by KC Sivaramakrishnan, Miod Vallat and Nicolás Ojeda Bär,
    report by Vesa Karvonen)
 
+- #13197: Dynarray.blit, which allows to extend the destination
+  dynarray (0 <= dst_pos <= dst_length).
+  (Gabriel Scherer, report by Hazem Elmasry,
+   review by Olivier Nicole, Hazem Elmasry and Nicolás Ojeda Bär)
+
 * #13240: Add Uchar.seeded_hash, Change Uchar.hash implementation.
   Previously, Uchar.hash was aliased to Uchar.to_int. If you need that behavior,
   change your module instantiation from eg `module HT = Hashtbl.Make(Uchar)` to
@@ -199,6 +242,10 @@ _______________
 - #13318: Fix regression in GC alarms, and fix them for flambda.
   (Guillaume Munch-Maccagnoni, report by Benjamin Monate, review by
    Vincent Laviron and Gabriel Scherer)
+
+- #13296: Add mem, memq, find_opt, find_index, find_map and find_mapi
+  to Dynarray.
+  (Jake H, review by Gabriel Scherer and Florian Angeletti)
 
 ### Other libraries:
 
@@ -237,6 +284,10 @@ _______________
   (Samuel Vivien, review by Florian Angeletti)
 
 ### Manual and documentation:
+
+- #13370: Document that that temporary variables holding GCd pointers must
+  not be live across a GC.
+  (Demi Marie Obenour)
 
 - #12298: Manual: emphasize that Bigarray.int refers to an OCaml integer,
   which does not match the C int type.
@@ -383,6 +434,10 @@ _______________
   (Oleg Kiselyov, Gabriel Scherer and Florian Angeletti,
    review by Jeremy Yallop)
 
+- #13286: Distinguish unique identifiers `Shape.Uid.t` according to their
+  provenance: either an implementation or an interface.
+  (Ulysse Gérard, review by Florian Angeletti and Leo White)
+
 - #13289: Use C99 for loop to reduce the scope of the for loop iterator.
   (Antonin Décimo, review by Miod Vallat and Gabriel Scherer)
 
@@ -393,6 +448,11 @@ _______________
 - #13336: compiler-libs, split the `Printtyp` in three to only keep
   "user-friendly" functions in the `Printtyp` module.
   (Florian Angeletti, review by Gabriel Scherer)
+
+- #13361: split runtime/array.c functions to consistently expose
+  uniform_array and floatarray versions, use floatarray versions
+  in Float.Array.
+  (Gabriel Scherer, review by Nicolás Ojeda Bär)
 
 ### Build system:
 
@@ -531,6 +591,11 @@ _______________
   could sometimes, in theory, return the wrong answer. This patch fixes the
   oversight. No known program triggers the bug.
   (Richard Eisenberg, review by Florian Angeletti)
+
+- #13400: Initialize th->signal_stack to avoid free of uninitialized data
+  if the user calls caml_c_thread_unregister on the main thread.
+  (Richard W.M. Jones, review by Guillaume Munch-Maccagnoni and
+  Gabriel Scherer)
 
 OCaml 5.2.0 (13 May 2024)
 -------------------------
@@ -3826,9 +3891,6 @@ OCaml 4.13.0 (24 September 2021)
 
 - #10430: Add Format.print_bytes and Format.pp_print_bytes.
   (Gabriel Radanne, review by Gabriel Scherer and David Allsopp)
-
-- #13296: Add mem, memq, find_opt, find_index, find_map and find_mapi to Dynarray.
-  (Jake H, review by Gabriel Scherer and Florian Angeletti)
 
 ### Other libraries:
 
