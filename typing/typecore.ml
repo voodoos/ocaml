@@ -5894,8 +5894,7 @@ and type_application env funct sargs =
   | (* Special case for ignore: avoid discarding warning *)
     [Nolabel, sarg] when is_ignore funct ->
       let { ty_arg; ty_ret } =
-        with_local_level_generalize_structure_if_principal (fun () ->
-          filter_arrow_mono env (instance funct.exp_type) Nolabel)
+        filter_arrow_mono env (instance funct.exp_type) Nolabel
       in
       let exp = type_expect env sarg (mk_expected ty_arg) in
       check_partial_application ~statement:false exp;
