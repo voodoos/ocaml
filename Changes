@@ -114,6 +114,9 @@ OCaml 5.4.0
   (Ryan Tjoa and Chris Casinghino, review by Gabriel Scherer, Chris Casinghino,
   and Leo White)
 
+- #15733 Enable the use of function parameters with polymorphic types.
+  (Ulysse Gérard, Leo White, review by ...)
+
 
 
 - RFCs#39, #13404: atomic record fields
