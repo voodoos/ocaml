@@ -1,4 +1,0 @@
-File "w32sig.ml", line 17, characters 20-34:
-17 |   module F (_ : sig val test : int end) : sig end
-                         ^^^^^^^^^^^^^^
-Warning 32 [unused-value-declaration]: unused value test.

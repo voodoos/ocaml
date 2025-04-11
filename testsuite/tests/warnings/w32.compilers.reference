@@ -98,3 +98,21 @@ File "w32.ml", line 65, characters 18-29:
 65 | module G (X : sig val x : int end) = X
                        ^^^^^^^^^^^
 Warning 32 [unused-value-declaration]: unused value x.
+
+File "w32.ml", line 76, characters 20-34:
+76 |   module F (_ : sig val test : int end) : sig end
+                         ^^^^^^^^^^^^^^
+Warning 32 [unused-value-declaration]: unused value test.
+
+File "w32.ml", line 76, characters 2-49:
+76 |   module F (_ : sig val test : int end) : sig end
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Warning 60 [unused-module]: unused module F.
+
+File "w32.ml", lines 75-79, characters 0-3:
+75 | module I : sig
+76 |   module F (_ : sig val test : int end) : sig end
+77 | end = struct
+78 |  module F (X: sig val test : int end) = struct let _ = X.test end
+79 | end
+Warning 60 [unused-module]: unused module I.
