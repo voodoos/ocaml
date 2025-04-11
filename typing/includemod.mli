@@ -149,7 +149,7 @@ val modtypes_consistency:
   loc:Location.t -> Env.t -> module_type -> module_type -> unit
 
 val modtypes_with_shape:
-  shape:Shape.t -> loc:Location.t -> Env.t -> mark:bool ->
+  shape:Shape.t -> loc:Location.t -> Env.t -> mark:bool -> mark_both:bool ->
   module_type -> module_type -> module_coercion * Shape.t
 
 val strengthened_module_decl:
