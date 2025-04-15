@@ -2076,7 +2076,7 @@ let check_recmodule_inclusion env bindings =
         let coercion, shape =
           try
             Includemod.modtypes_with_shape ~shape
-              ~loc:modl.mod_loc ~mark:true ~mark_both:false
+              ~loc:modl.mod_loc ~mark:true
               env mty_actual' mty_decl'
           with Includemod.Error msg ->
             raise(Error(modl.mod_loc, env, Not_included msg)) in
@@ -2194,8 +2194,8 @@ let wrap_constraint_with_shape env mark arg mty
   shape explicit =
   let coercion, shape =
     try
-      Includemod.modtypes_with_shape ~shape ~loc:arg.mod_loc env
-        ~mark ~mark_both:true arg.mod_type mty
+      Includemod.modtypes_with_shape ~shape ~loc:arg.mod_loc env ~mark
+        arg.mod_type mty
     with Includemod.Error msg ->
       raise(Error(arg.mod_loc, env, Not_included msg)) in
   { mod_desc = Tmod_constraint(arg, mty, explicit, coercion);
