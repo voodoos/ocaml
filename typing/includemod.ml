@@ -1344,6 +1344,17 @@ let modtypes_with_shape ~shape ~loc env ~mark mty1 mty2 =
   | Ok (cc, shape) -> cc, shape
   | Error reason -> raise (Error (env, Error.(In_Module_type reason)))
 
+let modtypes_constraint ~shape ~loc env ~mark mty1 mty2 =
+  (* modtypes with shape is used when typing module expressions in [Typemod] *)
+  let direction = Directionality.unknown ~mark in
+  match
+    modtypes ~core:core_inclusion ~direction ~loc env Subst.identity
+      mty1 mty2 shape
+  with
+  | Ok (cc, shape) -> cc, shape
+  | Error reason -> raise (Error (env, Error.(In_Module_type reason)))
+
+
 let modtypes_consistency ~loc env mty1 mty2 =
   let direction = Directionality.unknown ~mark:false in
   match

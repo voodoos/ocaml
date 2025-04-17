@@ -20,6 +20,7 @@ open Shape
 type result =
   | Resolved of Uid.t
   | Resolved_alias of Uid.t * result
+  | Resolved_var of t
   | Unresolved of t
   | Approximated of Uid.t option
   | Internal_error_missing_uid
@@ -31,6 +32,8 @@ let rec print_result fmt result =
   | Resolved_alias (uid, r) ->
       Format.fprintf fmt "@[Alias:@ %a@] ->@ %a"
         Uid.print uid print_result r
+  | Resolved_var shape ->
+      Format.fprintf fmt "@[Resolved_var:@ %a@]" print shape
   | Unresolved shape ->
       Format.fprintf fmt "@[Unresolved:@ %a@]" print shape
   | Approximated (Some uid) ->
@@ -300,6 +303,19 @@ end) = struct
     | NError _ -> false
     | NLeaf -> false
 
+  let rec is_stuck_on_var (nf : nf) =
+    match nf.desc with
+    | NVar _ ->
+        (* This should not happen if we only reduce closed terms *)
+        true
+    | NApp (nf, _) | NProj (nf, _) -> is_stuck_on_var nf
+    | NStruct _ | NAbs _ -> false
+    | NAlias _ -> false
+    | NComp_unit _ -> false
+    | NError _ -> false
+    | NLeaf -> false
+
+
   let rec reduce_aliases_for_uid env (nf : nf) =
     match nf with
     | { uid = Some uid; desc = NAlias dnf; approximated = false; _ } ->
@@ -328,6 +344,8 @@ end) = struct
     let nf = reduce_ env t in
     if is_stuck_on_comp_unit nf then
       Unresolved (read_back env nf)
+    else if is_stuck_on_var nf then
+      Resolved_var (read_back env nf)
     else
       reduce_aliases_for_uid env nf
 end

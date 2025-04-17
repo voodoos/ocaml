@@ -373,6 +373,15 @@ let index_occurrences binary_annots =
       | { uid = Some (Predef _); _ } -> ()
       | path_shape ->
         let result = Shape_reduce.local_reduce_for_uid env path_shape in
+        (* if (Longident.last lid.Location.txt) =  "x" then (
+          Format.eprintf "lid: %a (%a)\nShape of path: %a\nResult: %a\n%!"
+          Pprintast.longident lid.Location.txt Location.print_loc lid.Location.loc
+          Shape.print path_shape Shape_reduce.print_result result;
+          match path with
+          | Path.Pdot (p, _) ->
+          Format.eprintf "Shape of path X: %a\n\n%!" Shape.print (Env.shape_of_path ~namespace:Module env p)
+          | _ -> ()
+          ); *)
         index := (lid, result) :: !index
     in
     (* Shape reduction can be expensive, but the persistent memoization tables

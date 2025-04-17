@@ -1,0 +1,35 @@
+Indexed shapes:
+Resolved: Index_funct_params.3:
+  M (File "index_funct_params.ml", line 29, characters 9-10)
+Resolved: Index_funct_params.2:
+  M.x (File "index_funct_params.ml", line 29, characters 9-12)
+Resolved: Index_funct_params.6:
+  F (File "index_funct_params.ml", line 28, characters 8-9)
+Resolved_var: X<Index_funct_params.4> . "x"[value] :
+  x (File "index_funct_params.ml", line 25, characters 10-11)
+Resolved_var: X<Index_funct_params.4> :
+  X (File "index_funct_params.ml", line 24, characters 10-11)
+Resolved: Index_funct_params.1:
+  S (File "index_funct_params.ml", line 23, characters 14-15)
+Resolved: Index_funct_params.1:
+  S (File "index_funct_params.ml", line 21, characters 11-12)
+
+Uid dependencies:
+Index_funct_params.2 <-> Index_funct_params.0
+
+Uid of decls:
+Index_funct_params.7 <-> Index_funct_params.0
+Index_funct_params.0:
+  x (File "index_funct_params.ml", line 18, characters 6-7)
+Index_funct_params.1:
+  S (File "index_funct_params.ml", line 17, characters 12-13)
+Index_funct_params.2:
+  x (File "index_funct_params.ml", line 21, characters 26-27)
+Index_funct_params.3:
+  M (File "index_funct_params.ml", line 21, characters 7-8)
+Index_funct_params.5:
+  x (File "index_funct_params.ml", line 25, characters 6-7)
+Index_funct_params.6:
+  F (File "index_funct_params.ml", line 23, characters 7-8)
+Index_funct_params.7:
+  x (File "index_funct_params.ml", line 28, characters 22-23)

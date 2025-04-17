@@ -2194,7 +2194,7 @@ let wrap_constraint_with_shape env mark arg mty
   shape explicit =
   let coercion, shape =
     try
-      Includemod.modtypes_with_shape ~shape ~loc:arg.mod_loc env ~mark
+      Includemod.modtypes_constraint ~shape ~loc:arg.mod_loc env ~mark
         arg.mod_type mty
     with Includemod.Error msg ->
       raise(Error(arg.mod_loc, env, Not_included msg)) in
