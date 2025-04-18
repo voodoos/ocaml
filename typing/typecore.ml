@@ -3226,6 +3226,10 @@ let rec approx_type env sty =
       approx_type env sty
   | _ -> newvar ()
 
+let approx_type_opt env = function
+  | None -> newvar ()
+  | Some sty -> approx_type env sty
+
 let type_pattern_approx env spat ty_expected =
   match spat.ppat_desc with
   | Ppat_constraint (_, sty) ->
@@ -3274,12 +3278,12 @@ let type_approx_constraint env constraint_ ~loc ty_expected =
         raise (Error (loc, env, Expr_type_clash (err, None, None)))
       end;
       ty_constrain
-  | Pcoerce (_constrain, coerce) ->
+  | Pcoerce (constrain, coerce) ->
       let ty_coerce = approx_type env coerce in
       begin try unify env ty_coerce ty_expected with Unify err ->
         raise (Error (loc, env, Expr_type_clash (err, None, None)))
       end;
-      ty_expected
+      approx_type_opt env constrain
 
 let type_approx_constraint_opt env constraint_ ~loc ty_expected =
   match constraint_ with
