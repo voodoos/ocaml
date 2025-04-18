@@ -462,3 +462,15 @@ Line 1, characters 8-19:
             ^^^^^^^^^^^
 Error: Pattern error
 |}]
+
+(** Pattern approx *)
+
+let rec f () = g true
+and g ((() : int) : bool) = ()
+[%%expect {|
+Line 4, characters 7-17:
+4 | and g ((() : int) : bool) = ()
+           ^^^^^^^^^^
+Error: This pattern matches values of type "int"
+       but a pattern was expected which matches values of type "bool"
+|}]
