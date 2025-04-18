@@ -2000,7 +2000,7 @@ class_fun_binding:
   | mkclass(
       COLON class_type EQUAL class_expr
         { Pcl_constraint($4, $2) }
-    | labeled_simple_pattern class_fun_binding
+    | simple_param_pattern class_fun_binding
       { let (l,o,p) = $1 in Pcl_fun(l, o, p, $2) }
     ) { $1 }
 ;
@@ -2055,8 +2055,8 @@ class_simple_expr:
 
 class_fun_def:
   mkclass(
-    labeled_simple_pattern MINUSGREATER e = class_expr
-  | labeled_simple_pattern e = class_fun_def
+    simple_param_pattern MINUSGREATER e = class_expr
+  | simple_param_pattern e = class_fun_def
       { let (l,o,p) = $1 in Pcl_fun(l, o, p, e) }
   ) { $1 }
 ;
@@ -2122,7 +2122,7 @@ method_:
     no_override_flag
     attrs = attributes
     private_ = virtual_with_private_flag
-    label = mkrhs(label) COLON ty = poly_type
+    label = mkrhs(label) COLON ty = possibly_poly_type
       { (label, private_, Cfk_virtual ty), attrs }
   | override_flag attributes private_flag mkrhs(label) strict_binding
       { let e = $5 in
@@ -2130,7 +2130,7 @@ method_:
         ($4, $3,
         Cfk_concrete ($1, ghexp ~loc (Pexp_poly (e, None)))), $2 }
   | override_flag attributes private_flag mkrhs(label)
-    COLON poly_type EQUAL seq_expr
+    COLON possibly_poly_type EQUAL seq_expr
       { let poly_exp =
           let loc = ($startpos($6), $endpos($8)) in
           ghexp ~loc (Pexp_poly($8, Some $6)) in
@@ -2211,7 +2211,8 @@ class_sig_field:
   | VAL attributes value_type post_item_attributes
       { let docs = symbol_docs $sloc in
         mkctf ~loc:$sloc (Pctf_val $3) ~attrs:($2@$4) ~docs }
-  | METHOD attributes private_virtual_flags mkrhs(label) COLON poly_type
+  | METHOD attributes private_virtual_flags mkrhs(label)
+    COLON possibly_poly_type
     post_item_attributes
       { let (p, v) = $3 in
         let docs = symbol_docs $sloc in
@@ -2366,7 +2367,7 @@ fun_seq_expr:
 seq_expr:
   | or_function(fun_seq_expr) { $1 }
 ;
-labeled_simple_pattern:
+simple_param_pattern:
     QUESTION LPAREN label_let_pattern opt_default RPAREN
       { (Optional (fst $3), $4, snd $3) }
   | QUESTION label_var
@@ -2407,9 +2408,7 @@ label_let_pattern:
       { let lab, pat = x in
         lab,
         mkpat ~loc:$sloc (Ppat_constraint (pat, cty)) }
-  | x = label_var COLON
-          cty = mktyp (vars = typevar_list DOT
-                       ty = core_type { Ptyp_poly(vars, ty) })
+  | x = label_var COLON cty = poly_type
       { let lab, pat = x in
         lab,
         mkpat ~loc:$sloc (Ppat_constraint (pat, cty)) }
@@ -2421,18 +2420,15 @@ label_let_pattern:
 let_pattern:
     pattern
       { $1 }
-  | mkpat(pattern COLON core_type
+  | mkpat(pattern COLON possibly_poly_type
       { Ppat_constraint($1, $3) })
-      { $1 }
-  | poly_pattern
       { $1 }
 ;
 %inline poly_pattern:
     mkpat(
       pat = pattern
       COLON
-      cty = mktyp(vars = typevar_list DOT ty = core_type
-              { Ptyp_poly(vars, ty) })
+      cty = poly_type
         { Ppat_constraint(pat, cty) })
       { $1 }
 ;
@@ -2859,7 +2855,7 @@ fun_param_as_list:
           (fun x -> { pparam_loc = loc; pparam_desc = Pparam_newtype x })
           ty_params
       }
-  | labeled_simple_pattern
+  | simple_param_pattern
       { let a, b, c = $1 in
         [ { pparam_loc = make_loc $sloc; pparam_desc = Pparam_val (a, b, c) } ]
       }
@@ -3647,6 +3643,10 @@ possibly_poly(X):
     { $1 }
 ;
 %inline poly_type:
+  mktyp(poly(core_type))
+    { $1 }
+;
+%inline possibly_poly_type:
   possibly_poly(core_type)
     { $1 }
 ;
