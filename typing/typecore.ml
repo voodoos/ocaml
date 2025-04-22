@@ -2869,18 +2869,19 @@ let collect_unknown_apply_args env funct ty_fun0 rev_args sargs =
           let ty_fun = expand_head env ty_fun in
           match get_desc ty_fun with
           | Tvar _ ->
-              let ty_arg_mono = newvar () in
-              let ty_arg = newmono ty_arg_mono in
+              let ty_arg = newvar () in
+              let ty_param = newmono ty_arg in
               let ty_res = newvar () in
-              if get_level ty_fun >= get_level ty_arg &&
+              if get_level ty_fun >= get_level ty_param &&
                  not (is_prim ~name:"%identity" funct)
               then
                 Location.prerr_warning sarg.pexp_loc
                   Warnings.Ignored_extra_argument;
-              unify env ty_fun (newty (Tarrow(lbl,ty_arg,ty_res,commu_var ())));
-              (ty_arg_mono, ty_res)
-          | Tarrow (l, ty_arg, ty_res, _) when labels_match ~param:l ~arg:lbl ->
-              (tpoly_get_mono ty_arg, ty_res)
+              unify env ty_fun
+                (newty (Tarrow(lbl,ty_param,ty_res,commu_var ())));
+              (ty_arg, ty_res)
+          | Tarrow (l, ty_param, ty_res, _) when labels_match ~param:l ~arg:lbl ->
+              (tpoly_get_mono ty_param, ty_res)
           | td ->
               let ty_fun = match td with Tarrow _ -> newty td | _ -> ty_fun in
               let ty_res = remaining_function_type_for_error ty_fun rev_args in
@@ -3273,10 +3274,10 @@ let type_approx_fun_one_param
             unify_pat_types spat.ppat_loc env ty_arg var;
             ty_arg
           | Optional _, Some _ ->
-            let var = (newvar ()) in
-            let wrapped_for_unif = (newmono (type_option var)) in
-            unify_pat_types spat.ppat_loc env ty_arg wrapped_for_unif;
-            newmono  var
+            let ty_opt_param = newvar () in
+            let ty_pat_param = (newmono (type_option ty_opt_param)) in
+            unify_pat_types spat.ppat_loc env ty_arg ty_pat_param;
+            newmono ty_opt_param
         in
         let ty_arg =
           if has_poly || not (Btype.tpoly_is_mono ty_arg) then ty_arg
