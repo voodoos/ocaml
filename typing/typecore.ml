@@ -4745,7 +4745,7 @@ and type_expect_
             { exp with exp_type = instance ty }
         | Tvar _ ->
             let exp = type_exp env sbody in
-            let exp = {exp with exp_type = newmono exp.exp_type} in
+            let exp = {exp with exp_type = newty (Tpoly (exp.exp_type, []))} in
             unify_exp ~sexp env exp ty;
             exp
         | _ -> assert false
