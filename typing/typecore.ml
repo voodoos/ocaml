@@ -3273,15 +3273,14 @@ let type_approx_fun_one_param
     | Some spat ->
         let ty_arg =
           match label, default with
-          | (Nolabel | Labelled _), _ ->
-            ty_arg
+          | (Nolabel | Labelled _), _ -> ty_arg
           | Optional _, None ->
             let var = newmono (type_option (newvar ())) in
             unify_pat_types spat.ppat_loc env ty_arg var;
             ty_arg
           | Optional _, Some _ ->
             let ty_opt_param = newvar () in
-            let ty_pat_param = (newmono (type_option ty_opt_param)) in
+            let ty_pat_param = newmono (type_option ty_opt_param) in
             unify_pat_types spat.ppat_loc env ty_arg ty_pat_param;
             newmono ty_opt_param
         in
