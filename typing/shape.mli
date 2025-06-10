@@ -58,12 +58,14 @@ module Uid : sig
   type t = private
     | Compilation_unit of string
     | Item of { comp_unit: string; id: int; from: Unit_info.intf_or_impl }
+    | Param_item of { comp_unit: string; id: int }
     | Internal
     | Predef of string
 
   val reinit : unit -> unit
 
   val mk : current_unit:(Unit_info.t option) -> t
+  val mk_param : current_unit:(Unit_info.t option) -> t
   val of_compilation_unit_id : Ident.t -> t
   val of_predef_id : Ident.t -> t
   val internal_not_actually_unique : t
@@ -120,7 +122,7 @@ end
 type var = Ident.t
 type t = { uid: Uid.t option; desc: desc; approximated: bool }
 and desc =
-  | Var of var
+  | Var of var * t option
   | Abs of var * t
   | App of t * t
   | Struct of t Item.Map.t
@@ -139,7 +141,7 @@ val strip_head_aliases : t -> t
 val for_unnamed_functor_param : var
 val fresh_var : ?name:string -> Uid.t -> var * t
 
-val var : Uid.t -> Ident.t -> t
+val var : Uid.t -> ?ghost_shape:t -> Ident.t -> t
 val abs : ?uid:Uid.t -> var -> t -> t
 val app : ?uid:Uid.t -> t -> arg:t -> t
 val str : ?uid:Uid.t -> t Item.Map.t -> t

@@ -191,7 +191,7 @@ end) = struct
               let arg = reduce env arg in
               return (NApp(f, arg))
           end
-      | Proj(str, item) ->
+      | Proj ({ desc = Var (_, Some str) }, item) | Proj(str, item) ->
           let str = reduce env str |> force_aliases in
           let nored () = return (NProj(str, item)) in
           begin match str.desc with
@@ -206,7 +206,7 @@ end) = struct
       | Abs(var, body) ->
           let body_nf = delay_reduce (bind env var None) body in
           return (NAbs(local_env, var, body, body_nf))
-      | Var id ->
+      | Var (id, _) ->
           begin match Ident.Map.find id local_env with
           (* Note: instead of binding abstraction-bound variables to
              [None], we could unify it with the [Some v] case by
@@ -257,7 +257,7 @@ end) = struct
     let read_back_force dnf = read_back (force env dnf) in
     match desc with
     | NVar v ->
-        Var v
+        Var (v, None)
     | NApp (nft, nfu) ->
         App(read_back nft, read_back nfu)
     | NAbs (_env, x, _t, nf) ->

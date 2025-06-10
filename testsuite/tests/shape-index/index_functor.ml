@@ -20,3 +20,7 @@ module N = F(struct end)
 module O = N.M
 include O
 include N
+
+module G (X : sig type t = int val x : t end) = struct
+  let y = X.x
+end

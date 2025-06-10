@@ -17,6 +17,7 @@ module Uid = struct
   type t =
     | Compilation_unit of string
     | Item of { comp_unit: string; id: int; from: Unit_info.intf_or_impl }
+    | Param_item of { comp_unit: string; id: int }
     | Internal
     | Predef of string
 
@@ -37,6 +38,8 @@ module Uid = struct
       | Compilation_unit s -> Format.pp_print_string fmt s
       | Item { comp_unit; id; from } ->
           Format.fprintf fmt "%a%s.%d" pp_intf_or_impl from comp_unit id
+      | Param_item { comp_unit; id } ->
+          Format.fprintf fmt "[P]%s.%d" comp_unit id
 
     let output oc t =
       let fmt = Format.formatter_of_out_channel oc in
@@ -44,8 +47,11 @@ module Uid = struct
   end)
 
   let id = ref (-1)
+  let id_param = ref (-1)
 
-  let reinit () = id := (-1)
+  let reinit () =
+    id := (-1);
+    id_param := (-1)
 
   let mk  ~current_unit =
       let comp_unit, from =
@@ -56,6 +62,16 @@ module Uid = struct
       in
       incr id;
       Item { comp_unit; id = !id; from }
+
+  let mk_param ~current_unit =
+    let comp_unit =
+      let open Unit_info in
+      match current_unit with
+      | None -> ""
+      | Some ui -> modname ui
+    in
+    incr id_param;
+    Param_item { comp_unit; id = !id_param }
 
   let of_compilation_unit_id id =
     if not (Ident.persistent id) then
@@ -148,7 +164,7 @@ end
 type var = Ident.t
 type t = { uid: Uid.t option; desc: desc; approximated: bool }
 and desc =
-  | Var of var
+  | Var of var * t option
   | Abs of var * t
   | App of t * t
   | Struct of t Item.Map.t
@@ -164,7 +180,7 @@ let print fmt t =
   in
   let rec aux fmt { uid; desc } =
     match desc with
-    | Var id ->
+    | Var (id, _) ->
         Format.fprintf fmt "%s%a" (Ident.name id) print_uid_opt uid
     | Abs (id, t) ->
         let rec collect_idents = function
@@ -228,12 +244,12 @@ let rec strip_head_aliases = function
 
 let fresh_var ?(name="shape-var") uid =
   let var = Ident.create_local name in
-  var, { uid = Some uid; desc = Var var; approximated = false }
+  var, { uid = Some uid; desc = Var (var, None); approximated = false }
 
 let for_unnamed_functor_param = Ident.create_local "()"
 
-let var uid id =
-  { uid = Some uid; desc = Var id; approximated = false }
+let var uid ?ghost_shape id =
+  { uid = Some uid; desc = Var (id, ghost_shape); approximated = false }
 
 let abs ?uid var body =
   { uid; desc = Abs (var, body); approximated = false }

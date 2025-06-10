@@ -2331,7 +2331,67 @@ and type_module_aux ~alias ~strengthen ~funct_body anchor env smod =
             match param.txt with
             | None -> None, env, Shape.for_unnamed_functor_param
             | Some name ->
-              let md_uid =  Uid.mk ~current_unit:(Env.get_current_unit ()) in
+              let current_unit = Env.get_current_unit () in
+              let md_uid =  Uid.mk ~current_unit in
+              let ghost_shape_of_module_type env mty =
+                let new_definition_uid decl_uid =
+                  let uid = Uid.mk_param ~current_unit in
+                  Cmt_format.record_declaration_dependency
+                    (Definition_to_declaration, uid, decl_uid);
+                  uid
+                in
+                let rec aux map = function
+                  | Mty_ident path | Mty_alias path ->
+                      let mtd = Env.find_modtype path env in
+                      begin match mtd.mtd_type with
+                      | Some mt -> aux map mt
+                      | None -> assert false
+                      end
+                  | Mty_signature s ->
+                      List.fold_left (fun map -> function
+                        | Sig_value (id, vd, _) ->
+                            let uid = new_definition_uid vd.val_uid in
+                            Shape.Map.add_value map id uid
+                        | Sig_type (id, td, _, _) ->
+                            let shape_map_labels =
+                              List.fold_left (fun map { Types.ld_id; ld_uid; _} ->
+                                let uid = new_definition_uid ld_uid in
+                                Shape.Map.add_label map ld_id uid)
+                                Shape.Map.empty
+                            in
+                            let shape_map_cstrs =
+                              List.fold_left
+                                (fun map { Types.cd_id; cd_uid; cd_args; _ } ->
+                                let cstr_shape_map =
+                                  let label_decls =
+                                    match cd_args with
+                                    | Cstr_tuple _ -> []
+                                    | Cstr_record ldecls -> ldecls
+                                  in
+                                  shape_map_labels label_decls
+                                in
+                                let uid = new_definition_uid cd_uid in
+                                Shape.Map.add_constr map cd_id
+                                  @@ Shape.str ~uid cstr_shape_map)
+                                (Shape.Map.empty)
+                            in
+                            let typ_shape =
+                              let uid = new_definition_uid td.type_uid in
+                              match td.type_kind with
+                              | Type_variant (cstrs, _) ->
+                                  Shape.str ~uid (shape_map_cstrs cstrs)
+                              | Type_record (labels, _) ->
+                                  Shape.str ~uid (shape_map_labels labels)
+                              | Type_abstract _ | Type_open | Type_external _ -> Shape.leaf uid
+                            in
+                            Shape.Map.add_type map id typ_shape
+                        | _ -> (* TODO "not implemented" *) map) map s
+                  | _ -> (* TODO "not implemented" *) map
+                in
+                aux Shape.Map.empty mty.mty_type
+                |> Shape.str
+              in
+              let ghost_shape = ghost_shape_of_module_type env mty in
               let arg_md =
                 { md_type = mty.mty_type;
                   md_attributes = [];
@@ -2340,7 +2400,7 @@ and type_module_aux ~alias ~strengthen ~funct_body anchor env smod =
                 }
               in
               let id = Ident.create_scoped ~scope name in
-              let shape = Shape.var md_uid id in
+              let shape = Shape.var md_uid id ~ghost_shape in
               let newenv = Env.add_module_declaration
                 ~shape ~noalias:true ~check:true id Mp_present arg_md env
               in

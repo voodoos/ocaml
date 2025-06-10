@@ -84,7 +84,7 @@ module G (X : sig type t end) = struct include X end
 [%%expect{|
 {
  "G"[module] -> Abs<.13>(X, {
-                             "t"[type] -> X<.12> . "t"[type];
+                             "t"[type] -> <[P].1>;
                              });
  }
 module G : (X : sig type t end) -> sig type t = X.t end
@@ -94,7 +94,7 @@ module E = G(B)
 [%%expect{|
 {
  "E"[module] -> {<.14>
-                 "t"[type] -> <.0>;
+                 "t"[type] -> <[P].1>;
                  };
  }
 module E : sig type t = B.t end
