@@ -2235,6 +2235,28 @@ let ghost_shape_of_module_type env (mty : Typedtree.module_type) =
     uid
   in
   let open Types in
+  let shape_map_labels =
+    List.fold_left (fun map { Types.ld_id; ld_uid; _} ->
+      let uid = new_definition_uid ld_uid in
+      Shape.Map.add_label map ld_id uid)
+      Shape.Map.empty
+  in
+  let shape_map_cstrs =
+    List.fold_left
+      (fun map { Types.cd_id; cd_uid; cd_args; _ } ->
+      let cstr_shape_map =
+        let label_decls =
+          match cd_args with
+          | Cstr_tuple _ -> []
+          | Cstr_record ldecls -> ldecls
+        in
+        shape_map_labels label_decls
+      in
+      let uid = new_definition_uid cd_uid in
+      Shape.Map.add_constr map cd_id
+        @@ Shape.str ~uid cstr_shape_map)
+      (Shape.Map.empty)
+  in
   let rec aux map = function
     | Mty_ident path | Mty_alias path ->
         let mtd = Env.find_modtype path env in
@@ -2248,28 +2270,6 @@ let ghost_shape_of_module_type env (mty : Typedtree.module_type) =
               let uid = new_definition_uid vd.val_uid in
               Shape.Map.add_value map id uid
           | Sig_type (id, td, _, _) ->
-              let shape_map_labels =
-                List.fold_left (fun map { Types.ld_id; ld_uid; _} ->
-                  let uid = new_definition_uid ld_uid in
-                  Shape.Map.add_label map ld_id uid)
-                  Shape.Map.empty
-              in
-              let shape_map_cstrs =
-                List.fold_left
-                  (fun map { Types.cd_id; cd_uid; cd_args; _ } ->
-                  let cstr_shape_map =
-                    let label_decls =
-                      match cd_args with
-                      | Cstr_tuple _ -> []
-                      | Cstr_record ldecls -> ldecls
-                    in
-                    shape_map_labels label_decls
-                  in
-                  let uid = new_definition_uid cd_uid in
-                  Shape.Map.add_constr map cd_id
-                    @@ Shape.str ~uid cstr_shape_map)
-                  (Shape.Map.empty)
-              in
               let typ_shape =
                 let uid = new_definition_uid td.type_uid in
                 match td.type_kind with
@@ -2280,8 +2280,30 @@ let ghost_shape_of_module_type env (mty : Typedtree.module_type) =
                 | Type_abstract _ | Type_open | Type_external _ -> Shape.leaf uid
               in
               Shape.Map.add_type map id typ_shape
-          | _ -> (* TODO "not implemented" *) map) map s
-    | _ -> (* TODO "not implemented" *) map
+          | Sig_typext (id, ec, _, _) ->
+              let uid = new_definition_uid ec.ext_uid in
+                let shape =
+                  let map =  match ec.ext_args with
+                  | Cstr_record lbls -> shape_map_labels lbls
+                  | _ -> Shape.Map.empty
+                  in
+                  Shape.str ~uid map
+              in
+              Shape.Map.add_extcons map id shape
+          | Sig_module (id, _, md, _, _) ->
+              let uid = new_definition_uid md.md_uid in
+              let md_shape = Shape.str ~uid (aux Shape.Map.empty md.md_type) in
+              Shape.Map.add_module map id md_shape
+          | Sig_modtype (id, mtd, _) ->
+              let uid = new_definition_uid mtd.mtd_uid in
+              Shape.Map.add_module_type map id uid
+          | Sig_class (id, cty, _, _) ->
+              let uid = new_definition_uid cty.cty_uid in
+              Shape.Map.add_class map id uid
+          | Sig_class_type (id, clty, _, _) ->
+              let uid = new_definition_uid clty.clty_uid in
+              Shape.Map.add_class_type map id uid) map s
+    | Mty_functor (_, _) -> (* TODO "not implemented" *) map
   in
   Shape.str (aux Shape.Map.empty mty.mty_type)
 
