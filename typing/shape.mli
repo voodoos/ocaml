@@ -73,6 +73,15 @@ module Uid : sig
   val for_actual_declaration : t -> bool
 
   include Identifiable.S with type t := t
+
+  (* Dependencies between related Uids are recorded and written in CMT files *)
+  module Deps : sig
+    type kind = Definition_to_declaration | Declaration_to_declaration
+
+    val clear : unit -> unit
+    val get : unit -> (kind * t * t) list
+    val record_declaration_dependency: kind * t * t -> unit
+  end
 end
 
 module Sig_component_kind : sig

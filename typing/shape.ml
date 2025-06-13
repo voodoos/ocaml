@@ -88,6 +88,20 @@ module Uid = struct
   let for_actual_declaration = function
     | Item _ -> true
     | _ -> false
+
+  module Deps = struct
+    type kind = Definition_to_declaration | Declaration_to_declaration
+
+    let uids_deps : (kind * t * t) list ref = ref []
+
+    let clear () = uids_deps := []
+
+    let get () = !uids_deps
+
+    let record_declaration_dependency (rk, uid1, uid2) =
+      if not (equal uid1 uid2) then
+        uids_deps := (rk, uid1, uid2) :: !uids_deps
+    end
 end
 
 module Sig_component_kind = struct
