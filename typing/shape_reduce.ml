@@ -54,7 +54,7 @@ end) = struct
 
   type nf = { uid: Uid.t option; desc: nf_desc; approximated: bool }
   and nf_desc =
-    | NVar of var
+    | NVar of var * delayed_nf option
     | NApp of nf * nf
     | NAbs of local_env * var * t * delayed_nf
     | NStruct of delayed_nf Item.Map.t
@@ -191,7 +191,7 @@ end) = struct
               let arg = reduce env arg in
               return (NApp(f, arg))
           end
-      | Proj ({ desc = Var (_, Some str) }, item) | Proj(str, item) ->
+      | Proj(str, item) ->
           let str = reduce env str |> force_aliases in
           let nored () = return (NProj(str, item)) in
           begin match str.desc with
@@ -206,7 +206,10 @@ end) = struct
       | Abs(var, body) ->
           let body_nf = delay_reduce (bind env var None) body in
           return (NAbs(local_env, var, body, body_nf))
-      | Var (id, _) ->
+      | Var (id, param_shape) ->
+          let param_nf =
+            Option.map (delay_reduce env) param_shape
+          in
           begin match Ident.Map.find id local_env with
           (* Note: instead of binding abstraction-bound variables to
              [None], we could unify it with the [Some v] case by
@@ -217,7 +220,7 @@ end) = struct
              variables, we use the [Uid.t] of the bound occurrence
              (not the binding site), whereas for bound values we use
              their binding-time [Uid.t]. *)
-          | None -> return (NVar id)
+          | None -> return (NVar (id, param_nf))
           | Some def ->
               begin match force env def with
               | { uid = Some _; _  } as nf -> nf
@@ -227,8 +230,8 @@ end) = struct
               end
           | exception Not_found ->
           match find_shape global_env id with
-          | exception Not_found -> return (NVar id)
-          | res when res = t -> return (NVar id)
+          | exception Not_found -> return (NVar (id, param_nf))
+          | res when res = t -> return (NVar (id, param_nf))
           | res ->
               decr fuel;
               reduce env res
@@ -256,8 +259,8 @@ end) = struct
     let read_back nf = read_back env nf in
     let read_back_force dnf = read_back (force env dnf) in
     match desc with
-    | NVar v ->
-        Var (v, None)
+    | NVar (id, _param_shape) ->
+        Var (id, None)
     | NApp (nft, nfu) ->
         App(read_back nft, read_back nfu)
     | NAbs (_env, x, _t, nf) ->
@@ -300,6 +303,27 @@ end) = struct
     | NError _ -> false
     | NLeaf -> false
 
+  let rec unstuck_on_functor_param ~in_proj env (nf : nf) =
+    match nf.desc with
+    | NVar (_, Some nf') ->
+         if in_proj then
+          force env nf'
+         else nf
+    | NApp (nf1, nf2) -> { nf with desc = NApp (unstuck_on_functor_param ~in_proj:false env nf1, nf2) }
+    | NProj (nf1, item) -> begin
+        let str = unstuck_on_functor_param ~in_proj:true env nf1 in
+        let nored = { nf with desc = NProj(str, item) } in
+        match str.desc with
+        | NStruct items ->
+          begin match Item.Map.find item items with
+          | exception Not_found -> nored
+          | nf -> force env nf
+          end
+        | _ -> nored
+        end
+    | NStruct _ | NAbs _ | NAlias _ | NVar (_, None)
+    | NComp_unit _ | NError _ | NLeaf -> nf
+
   let rec reduce_aliases_for_uid env (nf : nf) =
     match nf with
     | { uid = Some uid; desc = NAlias dnf; approximated = false; _ } ->
@@ -329,7 +353,8 @@ end) = struct
     if is_stuck_on_comp_unit nf then
       Unresolved (read_back env nf)
     else
-      reduce_aliases_for_uid env nf
+      unstuck_on_functor_param ~in_proj:false env nf
+      |> reduce_aliases_for_uid env
 end
 
 module Local_reduce =

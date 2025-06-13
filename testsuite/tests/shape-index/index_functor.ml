@@ -23,4 +23,9 @@ include N
 
 module G (X : sig type t = int val x : t end) = struct
   let y = X.x
+
+  module Y = X (* FIXME: this "alias" shape  is not a shape alias  *)
+
+  let _ = Y.x
 end
+

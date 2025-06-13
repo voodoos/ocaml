@@ -1,5 +1,11 @@
 Indexed shapes:
 Resolved: Index_functor.7:
+  Y (File "index_functor.ml", line 29, characters 10-11)
+Resolved: [P]Index_functor.1:
+  Y.x (File "index_functor.ml", line 29, characters 10-13)
+Resolved: Index_functor.7:
+  X (File "index_functor.ml", line 27, characters 13-14)
+Resolved: Index_functor.7:
   X (File "index_functor.ml", line 25, characters 10-11)
 Resolved: [P]Index_functor.1:
   X.x (File "index_functor.ml", line 25, characters 10-13)
@@ -26,4 +32,5 @@ Index_functor.4: O (File "index_functor.ml", line 20, characters 7-8)
 Index_functor.5: t (File "index_functor.ml", line 24, characters 23-24)
 Index_functor.6: x (File "index_functor.ml", line 24, characters 35-36)
 Index_functor.8: y (File "index_functor.ml", line 25, characters 6-7)
-Index_functor.9: G (File "index_functor.ml", line 24, characters 7-8)
+Index_functor.9: Y (File "index_functor.ml", line 27, characters 9-10)
+Index_functor.10: G (File "index_functor.ml", line 24, characters 7-8)
