@@ -45,6 +45,88 @@ let find_shape env id =
   let namespace = Shape.Sig_component_kind.Module in
   Env.shape_of_path ~namespace env (Pident id)
 
+let ghost_shape_of_module_type env (mty : Types.module_type) =
+  let current_unit = Env.get_current_unit () in
+  let new_definition_uid decl_uid =
+    let uid = Uid.mk_param ~current_unit in
+    Uid.Deps.record_declaration_dependency
+      (Definition_to_declaration, uid, decl_uid);
+    uid
+  in
+  let open Types in
+  let shape_map_labels =
+    List.fold_left (fun map { Types.ld_id; ld_uid; _} ->
+      let uid = new_definition_uid ld_uid in
+      Shape.Map.add_label map ld_id uid)
+      Shape.Map.empty
+  in
+  let shape_map_cstrs =
+    List.fold_left
+      (fun map { Types.cd_id; cd_uid; cd_args; _ } ->
+      let cstr_shape_map =
+        let label_decls =
+          match cd_args with
+          | Cstr_tuple _ -> []
+          | Cstr_record ldecls -> ldecls
+        in
+        shape_map_labels label_decls
+      in
+      let uid = new_definition_uid cd_uid in
+      Shape.Map.add_constr map cd_id
+        @@ Shape.str ~uid cstr_shape_map)
+      (Shape.Map.empty)
+  in
+  let rec aux ?uid = function
+    | Mty_ident path | Mty_alias path ->
+        begin match Env.find_modtype path env with
+        | exception _ | { mtd_type = None; _ } -> Shape.dummy_mod
+        | { mtd_type = Some mt; mtd_uid; _ } -> aux ~uid:mtd_uid mt
+        end
+    | Mty_signature s ->
+        Shape.str ?uid @@
+        List.fold_left (fun map -> function
+          | Sig_value (id, vd, _) ->
+              let uid = new_definition_uid vd.val_uid in
+              Shape.Map.add_value map id uid
+          | Sig_type (id, td, _, _) ->
+              let typ_shape =
+                let uid = new_definition_uid td.type_uid in
+                match td.type_kind with
+                | Type_variant (cstrs, _) ->
+                    Shape.str ~uid (shape_map_cstrs cstrs)
+                | Type_record (labels, _) ->
+                    Shape.str ~uid (shape_map_labels labels)
+                | Type_abstract _ | Type_open | Type_external _ -> Shape.leaf uid
+              in
+              Shape.Map.add_type map id typ_shape
+          | Sig_typext (id, ec, _, _) ->
+              let uid = new_definition_uid ec.ext_uid in
+                let shape =
+                  let map =  match ec.ext_args with
+                  | Cstr_record lbls -> shape_map_labels lbls
+                  | _ -> Shape.Map.empty
+                  in
+                  Shape.str ~uid map
+              in
+              Shape.Map.add_extcons map id shape
+          | Sig_module (id, _, md, _, _) ->
+              let uid = new_definition_uid md.md_uid in
+              let md_shape = aux ~uid md.md_type in
+              Shape.Map.add_module map id md_shape
+          | Sig_modtype (id, mtd, _) ->
+              let uid = new_definition_uid mtd.mtd_uid in
+              Shape.Map.add_module_type map id uid
+          | Sig_class (id, cty, _, _) ->
+              let uid = new_definition_uid cty.cty_uid in
+              Shape.Map.add_class map id uid
+          | Sig_class_type (id, clty, _, _) ->
+              let uid = new_definition_uid clty.clty_uid in
+              Shape.Map.add_class_type map id uid) Shape.Map.empty s
+    | Mty_functor (_, _) -> (* TODO "not implemented" *)
+       Shape.dummy_mod
+  in
+  aux mty
+
 module Make(Params : sig
   val fuel : int
   val read_unit_shape : unit_name:string -> t option
@@ -89,6 +171,22 @@ end) = struct
      bind [x] to [None] in the environment. [Some v] is used for
      actual substitutions, for example in [App(Abs(x, body), t)], when
      [v] is a thunk that will evaluate to the normal form of [t]. *)
+
+  (* [_print_nf] is an (incomplete) printer for normal forms
+     useful for debugging purposes *)
+  let _print_nf fmt nf =
+    let print_uid_opt =
+      Format.pp_print_option (fun fmt -> Format.fprintf fmt "<%a>" Uid.print)
+    in
+    let rec aux fmt { uid; desc; _ }=
+      match desc with
+      | NVar (var, _ ) ->
+          Format.fprintf fmt "%a%a" Ident.print var print_uid_opt uid
+      | NProj (nf, item) ->
+        Format.fprintf fmt "(%a.%a)%a" aux nf Item.print item print_uid_opt uid
+      | _ -> ()
+    in
+    Format.fprintf fmt "@[%a@]@;" aux nf
 
   let approx_nf nf = { nf with approximated = true }
 
@@ -303,41 +401,53 @@ end) = struct
     | NError _ -> false
     | NLeaf -> false
 
-  let rec unstuck_on_functor_param ~in_proj env (nf : nf) =
-    match nf.desc with
-    | NVar (_, Some nf') ->
-         if in_proj then
-          force env nf'
-         else nf
-    | NApp (nf1, nf2) -> { nf with desc = NApp (unstuck_on_functor_param ~in_proj:false env nf1, nf2) }
-    | NProj (nf1, item) -> begin
-        let str = unstuck_on_functor_param ~in_proj:true env nf1 in
-        let nored = { nf with desc = NProj(str, item) } in
-        match str.desc with
-        | NStruct items ->
-          begin match Item.Map.find item items with
-          | exception Not_found -> nored
-          | nf -> force env nf
-          end
-        | _ -> nored
-        end
-    | NStruct _ | NAbs _ | NAlias _ | NVar (_, None)
-    | NComp_unit _ | NError _ | NLeaf -> nf
+  (* POC *)
+  let mty_memo : Shape.t Ident.Tbl.t ref = Local_store.s_table Ident.Tbl.create 16
+  let unstuck env nf =
+    let exception Noop in
+    let rec aux env nf =
+      match nf.desc with
+      | NVar (id, _) -> begin
+          match Ident.Tbl.find_opt !mty_memo id with
+          | Some shape -> shape
+          | None ->
+              try
+                let { Types.md_type; _ } =
+                  Env.find_module (Path.Pident id) env.global_env
+                in
+                let shape = ghost_shape_of_module_type env.global_env md_type in
+                Ident.Tbl.add !mty_memo id shape;
+                shape
 
-  let rec reduce_aliases_for_uid env (nf : nf) =
+              with _ -> raise Noop
+        end
+      | NProj (nf1, item) ->  Shape.proj ?uid:nf.uid (aux env nf1) item
+      | _ -> raise Noop
+    in
+    try
+      aux env nf |> reduce_ env
+    with Noop -> nf
+
+  let rec reduce_aliases_for_uid ?(last = false) env (nf : nf) =
     match nf with
     | { uid = Some uid; desc = NAlias dnf; approximated = false; _ } ->
-        let result = reduce_aliases_for_uid env (force env dnf) in
+        let result = reduce_aliases_for_uid ~last env (force env dnf) in
         Resolved_alias (uid, result)
     | { uid = Some uid; approximated = false; _ } -> Resolved uid
     | { uid; approximated = true } -> Approximated uid
     | { uid = None; approximated = false; _ } ->
-      (* A missing Uid after a complete reduction means the Uid was first
-         missing in the shape which is a code error. Having the
-         [Missing_uid] reported will allow Merlin (or another tool working
-         with the index) to ask users to report the issue if it does happen.
-      *)
-      Internal_error_missing_uid
+      if not last then
+        (* Sometimes we are stuck on an free functor variable *)
+        (* TODO this is not a robust way to detect that situation and first
+           removing aliases might be wrong. *)
+        reduce_aliases_for_uid ~last:true env (unstuck env nf)
+      else
+        (* A missing Uid after a complete reduction means the Uid was first
+           missing in the shape which is a code error. Having the
+           [Missing_uid] reported will allow Merlin (or another tool working
+           with the index) to ask users to report the issue if it does happen.
+        *)
+        Internal_error_missing_uid
 
   let reduce_for_uid global_env t =
     let fuel = ref Params.fuel in
@@ -353,8 +463,7 @@ end) = struct
     if is_stuck_on_comp_unit nf then
       Unresolved (read_back env nf)
     else
-      unstuck_on_functor_param ~in_proj:false env nf
-      |> reduce_aliases_for_uid env
+      reduce_aliases_for_uid env nf
 end
 
 module Local_reduce =

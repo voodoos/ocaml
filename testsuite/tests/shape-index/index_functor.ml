@@ -7,7 +7,7 @@ all_modules = "index_functor.ml";
 ocamlc.byte;
 check-ocamlc.byte-output;
 
-program = "-quiet -index -decls index_functor.cmt";
+program = "-quiet -index -uid-deps -decls index_functor.cmt";
 output = "out_objinfo";
 ocamlobjinfo;
 

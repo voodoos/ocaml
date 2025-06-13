@@ -2226,87 +2226,6 @@ let wrap_constraint_with_shape env mark arg mty
     mod_loc = arg.mod_loc }, shape
 
 
-let ghost_shape_of_module_type env (mty : Typedtree.module_type) =
-  let current_unit = Env.get_current_unit () in
-  let new_definition_uid decl_uid =
-    let uid = Uid.mk_param ~current_unit in
-    Cmt_format.record_declaration_dependency
-      (Definition_to_declaration, uid, decl_uid);
-    uid
-  in
-  let open Types in
-  let shape_map_labels =
-    List.fold_left (fun map { Types.ld_id; ld_uid; _} ->
-      let uid = new_definition_uid ld_uid in
-      Shape.Map.add_label map ld_id uid)
-      Shape.Map.empty
-  in
-  let shape_map_cstrs =
-    List.fold_left
-      (fun map { Types.cd_id; cd_uid; cd_args; _ } ->
-      let cstr_shape_map =
-        let label_decls =
-          match cd_args with
-          | Cstr_tuple _ -> []
-          | Cstr_record ldecls -> ldecls
-        in
-        shape_map_labels label_decls
-      in
-      let uid = new_definition_uid cd_uid in
-      Shape.Map.add_constr map cd_id
-        @@ Shape.str ~uid cstr_shape_map)
-      (Shape.Map.empty)
-  in
-  let rec aux ?uid = function
-    | Mty_ident path | Mty_alias path ->
-        begin match Env.find_modtype path env with
-        | exception _ | { mtd_type = None; _ } -> Shape.dummy_mod
-        | { mtd_type = Some mt; mtd_uid; _ } -> aux ~uid:mtd_uid mt
-        end
-    | Mty_signature s ->
-        Shape.str ?uid @@
-        List.fold_left (fun map -> function
-          | Sig_value (id, vd, _) ->
-              let uid = new_definition_uid vd.val_uid in
-              Shape.Map.add_value map id uid
-          | Sig_type (id, td, _, _) ->
-              let typ_shape =
-                let uid = new_definition_uid td.type_uid in
-                match td.type_kind with
-                | Type_variant (cstrs, _) ->
-                    Shape.str ~uid (shape_map_cstrs cstrs)
-                | Type_record (labels, _) ->
-                    Shape.str ~uid (shape_map_labels labels)
-                | Type_abstract _ | Type_open | Type_external _ -> Shape.leaf uid
-              in
-              Shape.Map.add_type map id typ_shape
-          | Sig_typext (id, ec, _, _) ->
-              let uid = new_definition_uid ec.ext_uid in
-                let shape =
-                  let map =  match ec.ext_args with
-                  | Cstr_record lbls -> shape_map_labels lbls
-                  | _ -> Shape.Map.empty
-                  in
-                  Shape.str ~uid map
-              in
-              Shape.Map.add_extcons map id shape
-          | Sig_module (id, _, md, _, _) ->
-              let uid = new_definition_uid md.md_uid in
-              let md_shape = aux ~uid md.md_type in
-              Shape.Map.add_module map id md_shape
-          | Sig_modtype (id, mtd, _) ->
-              let uid = new_definition_uid mtd.mtd_uid in
-              Shape.Map.add_module_type map id uid
-          | Sig_class (id, cty, _, _) ->
-              let uid = new_definition_uid cty.cty_uid in
-              Shape.Map.add_class map id uid
-          | Sig_class_type (id, clty, _, _) ->
-              let uid = new_definition_uid clty.clty_uid in
-              Shape.Map.add_class_type map id uid) Shape.Map.empty s
-    | Mty_functor (_, _) -> (* TODO "not implemented" *)
-       Shape.dummy_mod
-  in
-  aux mty.mty_type
 
 
 (* Type a module value expression *)
@@ -2417,7 +2336,6 @@ and type_module_aux ~alias ~strengthen ~funct_body anchor env smod =
             | Some name ->
               let current_unit = Env.get_current_unit () in
               let md_uid =  Uid.mk ~current_unit in
-              let ghost_shape = ghost_shape_of_module_type env mty in
               let arg_md =
                 { md_type = mty.mty_type;
                   md_attributes = [];
@@ -2426,7 +2344,7 @@ and type_module_aux ~alias ~strengthen ~funct_body anchor env smod =
                 }
               in
               let id = Ident.create_scoped ~scope name in
-              let shape = Shape.var md_uid id ~ghost_shape in
+              let shape = Shape.var md_uid id ~ghost_shape: Shape.dummy_mod in
               let newenv = Env.add_module_declaration
                 ~shape ~noalias:true ~check:true id Mp_present arg_md env
               in

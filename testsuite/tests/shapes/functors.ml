@@ -28,10 +28,11 @@ end
 [%%expect{|
 {
  "Finclude"[module] ->
-   Abs<.6>(X, {
-               "t"[type] -> <[P].2>;
-               "x"[value] -> <[P].3>;
-               });
+   Abs<.6>
+      (X, {
+           "t"[type] -> X<.5> . "t"[type];
+           "x"[value] -> X<.5> . "x"[value];
+           });
  }
 module Finclude : (X : S) -> sig type t = X.t val x : t end
 |}]
@@ -101,8 +102,10 @@ val x : t = <abstr>
 include Finclude(Arg)
 [%%expect{|
 {
- "t"[type] -> <[P].2>;
- "x"[value] -> <[P].3>;
+ "t"[type] -> {<.15>
+               "T"[constructor] -> {<.16>};
+               };
+ "x"[value] -> <.17>;
  }
 type t = Arg.t
 val x : t = <abstr>
@@ -143,8 +146,8 @@ val x : t = 0
 include Finclude(struct type t = int let x = 0 end)
 [%%expect{|
 {
- "t"[type] -> <[P].2>;
- "x"[value] -> <[P].3>;
+ "t"[type] -> <.21>;
+ "x"[value] -> <.22>;
  }
 type t = int
 val x : t = 0
@@ -239,9 +242,10 @@ module type B2S = (X : Big) -> sig type t = X.t end
 module Big_to_small1 : B2S = functor (X : Big) -> X
 [%%expect{|
 {
- "Big_to_small1"[module] -> Abs<.40>(X, {<.39>
-                                         "t"[type] -> <[P].6>;
-                                         });
+ "Big_to_small1"[module] ->
+   Abs<.40>(X, {<.39>
+                "t"[type] -> X<.39> . "t"[type];
+                });
  }
 module Big_to_small1 : B2S
 |}]
@@ -250,7 +254,7 @@ module Big_to_small2 : B2S = functor (X : Big) -> struct include X end
 [%%expect{|
 {
  "Big_to_small2"[module] -> Abs<.42>(X, {
-                                         "t"[type] -> <[P].8>;
+                                         "t"[type] -> X<.41> . "t"[type];
                                          });
  }
 module Big_to_small2 : B2S

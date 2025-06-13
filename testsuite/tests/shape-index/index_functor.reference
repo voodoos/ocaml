@@ -24,6 +24,10 @@ Resolved: Index_functor.2:
 Resolved: Index_functor.0:
   X (File "index_functor.ml", line 18, characters 43-44)
 
+Uid dependencies:
+[P]Index_functor.0 <- Index_functor.5
+[P]Index_functor.1 <- Index_functor.6
+
 Uid of decls:
 Index_functor.1: M (File "index_functor.ml", line 18, characters 39-40)
 Index_functor.2: F (File "index_functor.ml", line 18, characters 7-8)
