@@ -2257,14 +2257,14 @@ let ghost_shape_of_module_type env (mty : Typedtree.module_type) =
         @@ Shape.str ~uid cstr_shape_map)
       (Shape.Map.empty)
   in
-  let rec aux map = function
+  let rec aux ?uid = function
     | Mty_ident path | Mty_alias path ->
-        let mtd = Env.find_modtype path env in
-        begin match mtd.mtd_type with
-        | Some mt -> aux map mt
-        | None -> assert false
+        begin match Env.find_modtype path env with
+        | exception _ | { mtd_type = None; _ } -> Shape.dummy_mod
+        | { mtd_type = Some mt; mtd_uid; _ } -> aux ~uid:mtd_uid mt
         end
     | Mty_signature s ->
+        Shape.str ?uid @@
         List.fold_left (fun map -> function
           | Sig_value (id, vd, _) ->
               let uid = new_definition_uid vd.val_uid in
@@ -2292,7 +2292,7 @@ let ghost_shape_of_module_type env (mty : Typedtree.module_type) =
               Shape.Map.add_extcons map id shape
           | Sig_module (id, _, md, _, _) ->
               let uid = new_definition_uid md.md_uid in
-              let md_shape = Shape.str ~uid (aux Shape.Map.empty md.md_type) in
+              let md_shape = aux ~uid md.md_type in
               Shape.Map.add_module map id md_shape
           | Sig_modtype (id, mtd, _) ->
               let uid = new_definition_uid mtd.mtd_uid in
@@ -2302,10 +2302,11 @@ let ghost_shape_of_module_type env (mty : Typedtree.module_type) =
               Shape.Map.add_class map id uid
           | Sig_class_type (id, clty, _, _) ->
               let uid = new_definition_uid clty.clty_uid in
-              Shape.Map.add_class_type map id uid) map s
-    | Mty_functor (_, _) -> (* TODO "not implemented" *) map
+              Shape.Map.add_class_type map id uid) Shape.Map.empty s
+    | Mty_functor (_, _) -> (* TODO "not implemented" *)
+       Shape.dummy_mod
   in
-  Shape.str (aux Shape.Map.empty mty.mty_type)
+  aux mty.mty_type
 
 
 (* Type a module value expression *)
@@ -2855,6 +2856,7 @@ and type_str_item ~names ~toplevel ~funct_body anchor env shape_map
           }
         in
         let md_shape = Shape.set_uid_if_none md_shape md_uid in
+        (* Format.eprintf "Pstr_module %a" Shape.print md_shape; *)
         (*prerr_endline (Ident.unique_toplevel_name id);*)
         Mtype.lower_nongen outer_scope md.md_type;
         let id, newenv, sg =
