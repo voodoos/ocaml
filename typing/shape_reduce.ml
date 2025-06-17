@@ -403,11 +403,11 @@ end) = struct
 
   (* POC *)
   let mty_memo : Shape.t Ident.Tbl.t ref = Local_store.s_table Ident.Tbl.create 16
-  let unstuck env nf =
+  let read_back_replace_params_and_reduce env nf =
     let exception Noop in
-    let rec aux env nf =
-      match nf.desc with
-      | NVar (id, _) -> begin
+    let rec replace_params_vars env (shape : Shape.t) =
+      match shape.desc with
+      | Var (id, _) -> begin
           match Ident.Tbl.find_opt !mty_memo id with
           | Some shape -> shape
           | None ->
@@ -418,14 +418,27 @@ end) = struct
                 let shape = ghost_shape_of_module_type env.global_env md_type in
                 Ident.Tbl.add !mty_memo id shape;
                 shape
-
               with _ -> raise Noop
         end
-      | NProj (nf1, item) ->  Shape.proj ?uid:nf.uid (aux env nf1) item
-      | _ -> raise Noop
+      | Abs (id, t) ->
+          let desc = Abs (id, replace_params_vars env t) in
+          { shape with desc }
+      | App (t1, t2) ->
+          let desc = App (replace_params_vars env t1, replace_params_vars env t2) in
+          { shape with desc }
+      | Struct map ->
+          let desc = Struct (Item.Map.map (replace_params_vars env) map) in
+          { shape with desc}
+      | Alias t -> { shape with desc = Alias (replace_params_vars env t)}
+      | Proj (t, item) ->
+          let desc = Proj (replace_params_vars env t, item) in
+          { shape with desc }
+      | Leaf | Comp_unit _ | Error _ -> shape
     in
     try
-      aux env nf |> reduce_ env
+      read_back env nf
+      |> replace_params_vars env
+      |> reduce_ env
     with Noop -> nf
 
   let rec reduce_aliases_for_uid ?(last = false) env (nf : nf) =
@@ -440,7 +453,8 @@ end) = struct
         (* Sometimes we are stuck on an free functor variable *)
         (* TODO this is not a robust way to detect that situation and first
            removing aliases might be wrong. *)
-        reduce_aliases_for_uid ~last:true env (unstuck env nf)
+        let nf = read_back_replace_params_and_reduce env nf in
+        reduce_aliases_for_uid ~last:true env nf
       else
         (* A missing Uid after a complete reduction means the Uid was first
            missing in the shape which is a code error. Having the
