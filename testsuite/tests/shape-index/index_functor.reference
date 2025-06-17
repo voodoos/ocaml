@@ -1,13 +1,13 @@
 Indexed shapes:
 Resolved: Index_functor.7:
   Y (File "index_functor.ml", line 29, characters 10-11)
-Resolved: [P]Index_functor.1:
+Resolved: [P]Index_functor.0:
   Y.x (File "index_functor.ml", line 29, characters 10-13)
 Resolved: Index_functor.7:
   X (File "index_functor.ml", line 27, characters 13-14)
 Resolved: Index_functor.7:
   X (File "index_functor.ml", line 25, characters 10-11)
-Resolved: [P]Index_functor.1:
+Resolved: [P]Index_functor.0:
   X.x (File "index_functor.ml", line 25, characters 10-13)
 Resolved: Index_functor.5:
   t (File "index_functor.ml", line 24, characters 39-40)
@@ -25,8 +25,7 @@ Resolved: Index_functor.0:
   X (File "index_functor.ml", line 18, characters 43-44)
 
 Uid dependencies:
-[P]Index_functor.0 <- Index_functor.5
-[P]Index_functor.1 <- Index_functor.6
+[P]Index_functor.0 <- Index_functor.6
 
 Uid of decls:
 Index_functor.1: M (File "index_functor.ml", line 18, characters 39-40)

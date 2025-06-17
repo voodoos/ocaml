@@ -45,88 +45,6 @@ let find_shape env id =
   let namespace = Shape.Sig_component_kind.Module in
   Env.shape_of_path ~namespace env (Pident id)
 
-let ghost_shape_of_module_type env (mty : Types.module_type) =
-  let current_unit = Env.get_current_unit () in
-  let new_definition_uid decl_uid =
-    let uid = Uid.mk_param ~current_unit in
-    Uid.Deps.record_declaration_dependency
-      (Definition_to_declaration, uid, decl_uid);
-    uid
-  in
-  let open Types in
-  let shape_map_labels =
-    List.fold_left (fun map { Types.ld_id; ld_uid; _} ->
-      let uid = new_definition_uid ld_uid in
-      Shape.Map.add_label map ld_id uid)
-      Shape.Map.empty
-  in
-  let shape_map_cstrs =
-    List.fold_left
-      (fun map { Types.cd_id; cd_uid; cd_args; _ } ->
-      let cstr_shape_map =
-        let label_decls =
-          match cd_args with
-          | Cstr_tuple _ -> []
-          | Cstr_record ldecls -> ldecls
-        in
-        shape_map_labels label_decls
-      in
-      let uid = new_definition_uid cd_uid in
-      Shape.Map.add_constr map cd_id
-        @@ Shape.str ~uid cstr_shape_map)
-      (Shape.Map.empty)
-  in
-  let rec aux ?uid = function
-    | Mty_ident path | Mty_alias path ->
-        begin match Env.find_modtype path env with
-        | exception _ | { mtd_type = None; _ } -> Shape.dummy_mod
-        | { mtd_type = Some mt; mtd_uid; _ } -> aux ~uid:mtd_uid mt
-        end
-    | Mty_signature s ->
-        Shape.str ?uid @@
-        List.fold_left (fun map -> function
-          | Sig_value (id, vd, _) ->
-              let uid = new_definition_uid vd.val_uid in
-              Shape.Map.add_value map id uid
-          | Sig_type (id, td, _, _) ->
-              let typ_shape =
-                let uid = new_definition_uid td.type_uid in
-                match td.type_kind with
-                | Type_variant (cstrs, _) ->
-                    Shape.str ~uid (shape_map_cstrs cstrs)
-                | Type_record (labels, _) ->
-                    Shape.str ~uid (shape_map_labels labels)
-                | Type_abstract _ | Type_open | Type_external _ -> Shape.leaf uid
-              in
-              Shape.Map.add_type map id typ_shape
-          | Sig_typext (id, ec, _, _) ->
-              let uid = new_definition_uid ec.ext_uid in
-                let shape =
-                  let map =  match ec.ext_args with
-                  | Cstr_record lbls -> shape_map_labels lbls
-                  | _ -> Shape.Map.empty
-                  in
-                  Shape.str ~uid map
-              in
-              Shape.Map.add_extcons map id shape
-          | Sig_module (id, _, md, _, _) ->
-              let uid = new_definition_uid md.md_uid in
-              let md_shape = aux ~uid md.md_type in
-              Shape.Map.add_module map id md_shape
-          | Sig_modtype (id, mtd, _) ->
-              let uid = new_definition_uid mtd.mtd_uid in
-              Shape.Map.add_module_type map id uid
-          | Sig_class (id, cty, _, _) ->
-              let uid = new_definition_uid cty.cty_uid in
-              Shape.Map.add_class map id uid
-          | Sig_class_type (id, clty, _, _) ->
-              let uid = new_definition_uid clty.clty_uid in
-              Shape.Map.add_class_type map id uid) Shape.Map.empty s
-    | Mty_functor (_, _) -> (* TODO "not implemented" *)
-       Shape.dummy_mod
-  in
-  aux mty
-
 module Make(Params : sig
   val fuel : int
   val read_unit_shape : unit_name:string -> t option
@@ -402,44 +320,58 @@ end) = struct
     | NLeaf -> false
 
   (* POC *)
-  let mty_memo : Shape.t Ident.Tbl.t ref = Local_store.s_table Ident.Tbl.create 16
-  let read_back_replace_params_and_reduce env nf =
+  let uid_memo : Uid.t Uid.Tbl.t ref = Local_store.s_table Uid.Tbl.create 16
+
+  let definition_uid ~current_unit decl_uid =
+    match Uid.Tbl.find_opt !uid_memo decl_uid with
+    | Some uid -> uid
+    | None ->
+      let uid = Uid.mk_param ~current_unit in
+      Uid.Deps.record_declaration_dependency
+        (Definition_to_declaration, uid, decl_uid);
+      Uid.Tbl.add !uid_memo decl_uid uid;
+      uid
+
+  let read_back_and_reduce_with_module_type env nf =
     let exception Noop in
-    let rec replace_params_vars env (shape : Shape.t) =
+    let current_unit = Env.get_current_unit () in
+    let rec reduce_with_module_type env (shape : Shape.t) =
       match shape.desc with
       | Var (id, _) -> begin
-          match Ident.Tbl.find_opt !mty_memo id with
-          | Some shape -> shape
-          | None ->
-              try
-                let { Types.md_type; _ } =
-                  Env.find_module (Path.Pident id) env.global_env
-                in
-                let shape = ghost_shape_of_module_type env.global_env md_type in
-                Ident.Tbl.add !mty_memo id shape;
-                shape
-              with _ -> raise Noop
+          try
+            let { Types.md_type; _ } =
+              Env.find_module (Path.Pident id) env.global_env
+            in
+            match md_type with
+            | Mty_ident path ->
+                let path = Env.normalize_modtype_path env.global_env path in
+                (match Env.find_modtype_expansion path env.global_env with
+                | exception Not_found -> raise Noop
+                | mt -> Some mt, None)
+            | _ -> Some md_type, None
+          with _ -> raise Noop
         end
-      | Abs (id, t) ->
-          let desc = Abs (id, replace_params_vars env t) in
-          { shape with desc }
-      | App (t1, t2) ->
-          let desc = App (replace_params_vars env t1, replace_params_vars env t2) in
-          { shape with desc }
-      | Struct map ->
-          let desc = Struct (Item.Map.map (replace_params_vars env) map) in
-          { shape with desc}
-      | Alias t -> { shape with desc = Alias (replace_params_vars env t)}
-      | Proj (t, item) ->
-          let desc = Proj (replace_params_vars env t, item) in
-          { shape with desc }
-      | Leaf | Comp_unit _ | Error _ -> shape
+      | Proj (t, (name, kind)) ->
+          let md_type, _shape = reduce_with_module_type env t in
+          (match md_type with
+          | Some (Types.Mty_signature signature) ->  ();
+              List.find_map (fun sig_item ->
+                match (sig_item, kind) with
+                | Types.Sig_value (id, { val_uid; _ }, _), Value when (Ident.name id) = name ->
+                    let uid = definition_uid ~current_unit val_uid in
+                    Some (None, Some (Shape.leaf uid))
+                | _ -> (* TODO *) None
+              ) signature
+              (* Well-typed programs should never fail here.
+                TODO is that really true ? *)
+              |> (function None -> None, None | Some result -> result)
+          | _ -> raise Noop)
+      | Leaf | Comp_unit _ | Error _ | _ -> failwith "not implemented"
     in
     try
       read_back env nf
-      |> replace_params_vars env
-      |> reduce_ env
-    with Noop -> nf
+      |> reduce_with_module_type env
+    with Noop -> None, None
 
   let rec reduce_aliases_for_uid ?(last = false) env (nf : nf) =
     match nf with
@@ -449,19 +381,12 @@ end) = struct
     | { uid = Some uid; approximated = false; _ } -> Resolved uid
     | { uid; approximated = true } -> Approximated uid
     | { uid = None; approximated = false; _ } ->
-      if not last then
         (* Sometimes we are stuck on an free functor variable *)
-        (* TODO this is not a robust way to detect that situation and first
-           removing aliases might be wrong. *)
-        let nf = read_back_replace_params_and_reduce env nf in
-        reduce_aliases_for_uid ~last:true env nf
-      else
-        (* A missing Uid after a complete reduction means the Uid was first
-           missing in the shape which is a code error. Having the
-           [Missing_uid] reported will allow Merlin (or another tool working
-           with the index) to ask users to report the issue if it does happen.
-        *)
-        Internal_error_missing_uid
+        begin
+          match read_back_and_reduce_with_module_type env nf with
+          | _, Some { uid = Some uid; _ } ->  Resolved uid
+          | _ -> Internal_error_missing_uid
+        end
 
   let reduce_for_uid global_env t =
     let fuel = ref Params.fuel in
