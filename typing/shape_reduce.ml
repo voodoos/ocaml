@@ -332,10 +332,41 @@ end) = struct
       Uid.Tbl.add !uid_memo decl_uid uid;
       uid
 
+  type shape_path = Proj of Item.t
   let read_back_and_reduce_with_module_type env nf =
     let exception Noop in
     let current_unit = Env.get_current_unit () in
-    let rec reduce_with_module_type env (shape : Shape.t) =
+
+    let lookup_item signature (name, kind) =
+      List.find_map (fun sig_item ->
+        match (sig_item, kind) with
+        | Types.Sig_value (id, { val_uid; _ }, _),
+          Sig_component_kind.Value when (Ident.name id) = name ->
+            let uid = definition_uid ~current_unit val_uid in
+             Some (None, Some uid)
+        | Types.Sig_module (id, _, { md_uid; md_type; _ }, _, _),
+          Sig_component_kind.Module when (Ident.name id) = name ->
+            let uid = definition_uid ~current_unit md_uid in
+             Some (Some md_type, Some uid)
+        | _ -> (* TODO *) Some (None, None)
+      ) signature
+      |> Option.get
+    in
+    let rec resolve_sig signature path =
+      match path with
+      | [ Proj item ] -> snd (lookup_item signature item)
+      | Proj item :: tl ->
+          (match lookup_item signature item with
+          | Some md_type, _ ->  resolve md_type tl
+          | _ -> None)
+      | _ -> assert false
+    and resolve module_type path =
+      match module_type with
+      | Types.Mty_signature signature -> resolve_sig signature path
+      | _ -> None
+    in
+
+    let rec reduce_with_module_type env shape_path (shape : Shape.t) =
       match shape.desc with
       | Var (id, _) -> begin
           try
@@ -347,31 +378,18 @@ end) = struct
                 let path = Env.normalize_modtype_path env.global_env path in
                 (match Env.find_modtype_expansion path env.global_env with
                 | exception Not_found -> raise Noop
-                | mt -> Some mt, None)
-            | _ -> Some md_type, None
+                | mt -> resolve mt shape_path)
+            | _ -> resolve md_type shape_path
           with _ -> raise Noop
         end
-      | Proj (t, (name, kind)) ->
-          let md_type, _shape = reduce_with_module_type env t in
-          (match md_type with
-          | Some (Types.Mty_signature signature) ->  ();
-              List.find_map (fun sig_item ->
-                match (sig_item, kind) with
-                | Types.Sig_value (id, { val_uid; _ }, _), Value when (Ident.name id) = name ->
-                    let uid = definition_uid ~current_unit val_uid in
-                    Some (None, Some (Shape.leaf uid))
-                | _ -> (* TODO *) None
-              ) signature
-              (* Well-typed programs should never fail here.
-                TODO is that really true ? *)
-              |> (function None -> None, None | Some result -> result)
-          | _ -> raise Noop)
+      | Proj (t, item) ->
+          reduce_with_module_type env ((Proj item)::shape_path) t
       | Leaf | Comp_unit _ | Error _ | _ -> failwith "not implemented"
     in
     try
       read_back env nf
-      |> reduce_with_module_type env
-    with Noop -> None, None
+      |> reduce_with_module_type env []
+    with Noop -> None
 
   let rec reduce_aliases_for_uid ?(last = false) env (nf : nf) =
     match nf with
@@ -384,7 +402,7 @@ end) = struct
         (* Sometimes we are stuck on an free functor variable *)
         begin
           match read_back_and_reduce_with_module_type env nf with
-          | _, Some { uid = Some uid; _ } ->  Resolved uid
+          | Some uid-> Resolved uid
           | _ -> Internal_error_missing_uid
         end
 
