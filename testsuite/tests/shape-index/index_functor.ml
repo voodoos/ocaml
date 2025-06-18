@@ -21,11 +21,16 @@ module O = N.M
 include O
 include N
 
-module G (X : sig type t = int val x : t end) = struct
+module type S = sig val s : unit end
+
+module G (X : sig type t = int val x : t module M : S end) = struct
+  type t = X.t
   let y = X.x
 
   module Y = X (* FIXME: this "alias" shape  is not a shape alias  *)
 
   let _ = Y.x
+
+  let () = X.M.s
 end
 

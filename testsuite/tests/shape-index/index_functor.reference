@@ -1,23 +1,24 @@
 Indexed shapes:
 Resolved: Index_functor.10:
   X (File "index_functor.ml", line 34, characters 11-12)
-Resolved: [P]Index_functor.2:
+Resolved: [P]Index_functor.3:
   X.M (File "index_functor.ml", line 34, characters 11-14)
-Resolved: [P]Index_functor.1:
+Resolved: [P]Index_functor.2:
   X.M.s (File "index_functor.ml", line 34, characters 11-16)
 Resolved: Index_functor.10:
   Y (File "index_functor.ml", line 32, characters 10-11)
-Resolved: [P]Index_functor.0:
+Resolved: [P]Index_functor.1:
   Y.x (File "index_functor.ml", line 32, characters 10-13)
 Resolved: Index_functor.10:
   X (File "index_functor.ml", line 30, characters 13-14)
 Resolved: Index_functor.10:
   X (File "index_functor.ml", line 28, characters 10-11)
-Resolved: [P]Index_functor.0:
+Resolved: [P]Index_functor.1:
   X.x (File "index_functor.ml", line 28, characters 10-13)
 Resolved: Index_functor.10:
   X (File "index_functor.ml", line 27, characters 11-12)
-Missing uid: X.t (File "index_functor.ml", line 27, characters 11-14)
+Resolved: [P]Index_functor.0:
+  X.t (File "index_functor.ml", line 27, characters 11-14)
 Resolved: Index_functor.6:
   S (File "index_functor.ml", line 26, characters 52-53)
 Resolved: Index_functor.7:
@@ -36,9 +37,10 @@ Resolved: Index_functor.0:
   X (File "index_functor.ml", line 18, characters 43-44)
 
 Uid dependencies:
-[P]Index_functor.0 <- Index_functor.8
-[P]Index_functor.1 <- Index_functor.5
-[P]Index_functor.2 <- Index_functor.9
+[P]Index_functor.0 <- Index_functor.7
+[P]Index_functor.1 <- Index_functor.8
+[P]Index_functor.2 <- Index_functor.5
+[P]Index_functor.3 <- Index_functor.9
 
 Uid of decls:
 Index_functor.1: M (File "index_functor.ml", line 18, characters 39-40)
