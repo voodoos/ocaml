@@ -430,4 +430,25 @@ module Local_reduce =
   end)
 
 let local_reduce = Local_reduce.reduce
-let local_reduce_for_uid = Local_reduce.reduce_for_uid
+
+(* POC *)
+let uid_memo : Uid.t Uid.Tbl.t ref = Local_store.s_table Uid.Tbl.create 16
+
+let definition_uid ~current_unit decl_uid =
+  match Uid.Tbl.find_opt !uid_memo decl_uid with
+  | Some uid -> uid
+  | None ->
+    let uid = Uid.mk_param ~current_unit in
+    Uid.Deps.record_declaration_dependency
+      (Definition_to_declaration, uid, decl_uid);
+    Uid.Tbl.add !uid_memo decl_uid uid;
+    uid
+
+let local_reduce_for_uid env ?decl_uid _path shape =
+  match Local_reduce.reduce_for_uid env shape, decl_uid with
+  | Internal_error_missing_uid, Some decl_uid ->
+    (* TODO: check that we are stuck on a Var *)
+    let current_unit = Env.get_current_unit () in
+    let uid = definition_uid ~current_unit decl_uid in
+    Resolved uid
+  | otherwise, _ -> otherwise

@@ -59,4 +59,5 @@ val local_reduce : Env.t -> Shape.t -> Shape.t
 
 (** [local_reduce_for_uid] will not reduce shapes that require loading external
   compilation units. *)
-val local_reduce_for_uid : Env.t -> Shape.t -> result
+val local_reduce_for_uid :
+  Env.t -> ?decl_uid:Shape.Uid.t -> Path.t -> Shape.t -> result
