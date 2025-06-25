@@ -1,5 +1,6 @@
 Indexed shapes:
-Missing uid: t (File "index_aliases.ml", line 52, characters 9-10)
+Resolved decl: [G]Index_aliases.1:
+  t (File "index_aliases.ml", line 52, characters 9-10)
 Resolved: Index_aliases.26:
   FArg (File "index_aliases.ml", line 49, characters 5-9)
 Resolved: Index_aliases.25:
@@ -11,7 +12,8 @@ Approximated: Index_aliases.22:
 Alias: Index_aliases.24 -> Alias: Index_aliases.23 ->
   Approximated: Index_aliases.22:
   Z (File "index_aliases.ml", line 45, characters 8-9)
-Missing uid: Z.s (File "index_aliases.ml", line 45, characters 8-11)
+Resolved decl: [G]Index_aliases.0:
+  Z.s (File "index_aliases.ml", line 45, characters 8-11)
 Alias: Index_aliases.23 -> Approximated: Index_aliases.22:
   Y (File "index_aliases.ml", line 42, characters 11-12)
 Resolved: Index_aliases.22:
@@ -43,6 +45,16 @@ Resolved: Index_aliases.4:
   X (File "index_aliases.ml", line 21, characters 32-33)
 Resolved: Index_aliases.1:
   A (File "index_aliases.ml", line 19, characters 11-12)
+
+Uid dependencies:
+Index_aliases.0 <-> Index_aliases.3
+Index_aliases.0 <-> Index_aliases.3
+Index_aliases.18 <-> Index_aliases.11
+Index_aliases.19 <-> Index_aliases.12
+Index_aliases.20 <-> Index_aliases.14
+Index_aliases.21 <-> Index_aliases.15
+[G]Index_aliases.0 <- Index_aliases.11
+[G]Index_aliases.1 <- Index_aliases.14
 
 Uid of decls:
 Index_aliases.0: t (File "index_aliases.ml", line 18, characters 23-24)

@@ -17,7 +17,7 @@ module Uid = struct
   type t =
     | Compilation_unit of string
     | Item of { comp_unit: string; id: int; from: Unit_info.intf_or_impl }
-    | Param_item of { comp_unit: string; id: int }
+    | Ghost_item of { comp_unit: string; id: int }
     | Internal
     | Predef of string
 
@@ -38,8 +38,8 @@ module Uid = struct
       | Compilation_unit s -> Format.pp_print_string fmt s
       | Item { comp_unit; id; from } ->
           Format.fprintf fmt "%a%s.%d" pp_intf_or_impl from comp_unit id
-      | Param_item { comp_unit; id } ->
-          Format.fprintf fmt "[P]%s.%d" comp_unit id
+      | Ghost_item { comp_unit; id } ->
+          Format.fprintf fmt "[G]%s.%d" comp_unit id
 
     let output oc t =
       let fmt = Format.formatter_of_out_channel oc in
@@ -63,7 +63,7 @@ module Uid = struct
       incr id;
       Item { comp_unit; id = !id; from }
 
-  let mk_param ~current_unit =
+  let mk_ghost ~current_unit =
     let comp_unit =
       let open Unit_info in
       match current_unit with
@@ -71,7 +71,7 @@ module Uid = struct
       | Some ui -> modname ui
     in
     incr id_param;
-    Param_item { comp_unit; id = !id_param }
+    Ghost_item { comp_unit; id = !id_param }
 
   let of_compilation_unit_id id =
     if not (Ident.persistent id) then

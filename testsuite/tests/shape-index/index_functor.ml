@@ -13,7 +13,7 @@ ocamlobjinfo;
 
 check-program-output;
 *)
-
+module Id (X : sig type t end) = X
 
 module F (X :sig end ) = struct module M = X end
 module N = F(struct end)
@@ -32,5 +32,7 @@ module G (X : sig type t = int val x : t module M : S end) = struct
   let _ = Y.x
 
   let () = X.M.s
+
+  type u = Id (X).t
 end
 

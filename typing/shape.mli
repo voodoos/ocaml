@@ -58,14 +58,14 @@ module Uid : sig
   type t = private
     | Compilation_unit of string
     | Item of { comp_unit: string; id: int; from: Unit_info.intf_or_impl }
-    | Param_item of { comp_unit: string; id: int }
+    | Ghost_item of { comp_unit: string; id: int }
     | Internal
     | Predef of string
 
   val reinit : unit -> unit
 
   val mk : current_unit:(Unit_info.t option) -> t
-  val mk_param : current_unit:(Unit_info.t option) -> t
+  val mk_ghost : current_unit:(Unit_info.t option) -> t
   val of_compilation_unit_id : Ident.t -> t
   val of_predef_id : Ident.t -> t
   val internal_not_actually_unique : t

@@ -18,6 +18,9 @@
 (** The result of reducing a shape and looking for its uid *)
 type result =
   | Resolved of Shape.Uid.t (** Shape reduction succeeded and a uid was found *)
+  | Resolved_decl of Shape.Uid.t
+    (** Shape reduction was stuck on a functor parameter or a first class module
+        and a new uid was generated linked to the item's declaration uid. *)
   | Resolved_alias of Shape.Uid.t * result (** Reduction led to an alias *)
   | Unresolved of Shape.t (** Result still contains [Comp_unit] terms *)
   | Approximated of Shape.Uid.t option
@@ -60,4 +63,4 @@ val local_reduce : Env.t -> Shape.t -> Shape.t
 (** [local_reduce_for_uid] will not reduce shapes that require loading external
   compilation units. *)
 val local_reduce_for_uid :
-  Env.t -> ?decl_uid:Shape.Uid.t -> Path.t -> Shape.t -> result
+  Env.t -> namespace:Shape.Sig_component_kind.t -> Path.t -> Shape.t -> result

@@ -147,7 +147,7 @@ let clear_env binary_annots =
    syntax should be indexed. *)
 let iter_on_occurrences
   ~(f : namespace:Shape.Sig_component_kind.t ->
-        Env.t -> ?decl_uid:Uid.t -> Path.t -> Longident.t Location.loc ->
+        Env.t -> Path.t -> Longident.t Location.loc ->
         unit) =
   let path_in_type typ name =
     match Types.get_desc typ with
@@ -157,19 +157,18 @@ let iter_on_occurrences
   in
   let add_constructor_description env lid =
     function
-    | { Data_types.cstr_tag = Cstr_extension (path, _);
-                   cstr_uid = decl_uid; _ } ->
-        f ~namespace:Extension_constructor env ~decl_uid path lid
-    | { Data_types.cstr_uid = (Predef name as decl_uid); _} ->
+    | { Data_types.cstr_tag = Cstr_extension (path, _); _ } ->
+        f ~namespace:Extension_constructor env path lid
+    | { Data_types.cstr_uid = (Predef name); _} ->
         let id = List.assoc name Predef.builtin_idents in
-        f ~namespace:Constructor env ~decl_uid (Pident id) lid
-    | { Data_types.cstr_res; cstr_name; cstr_uid = decl_uid; _ } ->
+        f ~namespace:Constructor env (Pident id) lid
+    | { Data_types.cstr_res; cstr_name; _ } ->
         let path = path_in_type cstr_res cstr_name in
-        Option.iter (fun path -> f ~namespace:Constructor ~decl_uid env path lid) path
+        Option.iter (fun path -> f ~namespace:Constructor env path lid) path
   in
-  let add_label env lid { Data_types.lbl_name; lbl_res; lbl_uid = decl_uid; _ } =
+  let add_label env lid { Data_types.lbl_name; lbl_res; _ } =
     let path = path_in_type lbl_res lbl_name in
-    Option.iter (fun path -> f ~namespace:Label env ~decl_uid path lid) path
+    Option.iter (fun path -> f ~namespace:Label env path lid) path
   in
   let with_constraint ~env (_path, _lid, with_constraint) =
     match with_constraint with
@@ -181,16 +180,16 @@ let iter_on_occurrences
 
   expr = (fun sub ({ exp_desc; exp_env; _ } as e) ->
       (match exp_desc with
-      | Texp_ident (path, lid, { val_uid = decl_uid; _}) ->
-          f ~namespace:Value exp_env ~decl_uid path lid
+      | Texp_ident (path, lid, _) ->
+          f ~namespace:Value exp_env path lid
       | Texp_construct (lid, constr_desc, _) ->
           add_constructor_description exp_env lid constr_desc
       | Texp_field (_, lid, label_desc)
       | Texp_setfield (_, lid, label_desc, _)
       | Texp_atomic_loc (_, lid, label_desc) ->
           add_label exp_env lid label_desc
-      | Texp_new (path, lid, { cty_uid = decl_uid; _ }) ->
-          f ~namespace:Class exp_env ~decl_uid path lid
+      | Texp_new (path, lid, _) ->
+          f ~namespace:Class exp_env path lid
       | Texp_record { fields; _ } ->
         Array.iter (fun (label_descr, record_label_definition) ->
           match record_label_definition with
@@ -366,25 +365,16 @@ let index_occurrences binary_annots =
   let index : (Longident.t Location.loc * Shape_reduce.result) list ref =
     ref []
   in
-  let f ~namespace env ?decl_uid path lid =
+  let f ~namespace env path lid =
     let not_ghost { Location.loc = { loc_ghost; _ }; _ } = not loc_ghost in
     let reduce_and_store ~namespace lid path = if not_ghost lid then
       (* [decl_uid] are useful when we are stuck on a functor parameter. We use
          them to keep track of the parameter's item usages. *)
-      let decl_uid = match namespace with
-        | Shape.Sig_component_kind.Module ->
-            let { Types.md_uid; _ } = Env.find_module path env in
-            Some md_uid
-        | Shape.Sig_component_kind.Type ->
-            let { Types.type_uid; _ } = Env.find_type path env in
-            Some type_uid
-        | _ -> decl_uid
-      in
       match Env.shape_of_path ~namespace env path with
       | exception Not_found -> ()
       | { uid = Some (Predef _); _ } -> ()
       | path_shape ->
-        let result = Shape_reduce.local_reduce_for_uid env ?decl_uid path path_shape in
+        let result = Shape_reduce.local_reduce_for_uid env ~namespace path path_shape in
         index := (lid, result) :: !index
     in
     (* Shape reduction can be expensive, but the persistent memoization tables

@@ -19,6 +19,7 @@ open Shape
 
 type result =
   | Resolved of Uid.t
+  | Resolved_decl of Shape.Uid.t
   | Resolved_alias of Uid.t * result
   | Unresolved of t
   | Approximated of Uid.t option
@@ -28,6 +29,8 @@ let rec print_result fmt result =
   match result with
   | Resolved uid ->
       Format.fprintf fmt "@[Resolved:@ %a@]" Uid.print uid
+  | Resolved_decl uid ->
+      Format.fprintf fmt "@[Resolved decl:@ %a@]" Uid.print uid
   | Resolved_alias (uid, r) ->
       Format.fprintf fmt "@[Alias:@ %a@] ->@ %a"
         Uid.print uid print_result r
@@ -319,78 +322,6 @@ end) = struct
     | NError _ -> false
     | NLeaf -> false
 
-  (* POC *)
-  let uid_memo : Uid.t Uid.Tbl.t ref = Local_store.s_table Uid.Tbl.create 16
-
-  let definition_uid ~current_unit decl_uid =
-    match Uid.Tbl.find_opt !uid_memo decl_uid with
-    | Some uid -> uid
-    | None ->
-      let uid = Uid.mk_param ~current_unit in
-      Uid.Deps.record_declaration_dependency
-        (Definition_to_declaration, uid, decl_uid);
-      Uid.Tbl.add !uid_memo decl_uid uid;
-      uid
-
-  type shape_path = Proj of Item.t
-  let read_back_and_reduce_with_module_type env nf =
-    let exception Noop in
-    let current_unit = Env.get_current_unit () in
-
-    let lookup_item signature (name, kind) =
-      List.find_map (fun sig_item ->
-        match (sig_item, kind) with
-        | Types.Sig_value (id, { val_uid; _ }, _),
-          Sig_component_kind.Value when (Ident.name id) = name ->
-            let uid = definition_uid ~current_unit val_uid in
-             Some (None, Some uid)
-        | Types.Sig_module (id, _, { md_uid; md_type; _ }, _, _),
-          Sig_component_kind.Module when (Ident.name id) = name ->
-            let uid = definition_uid ~current_unit md_uid in
-             Some (Some md_type, Some uid)
-        | _ -> (* TODO *) Some (None, None)
-      ) signature
-      |> Option.get
-    in
-    let rec resolve_sig signature path =
-      match path with
-      | [ Proj item ] -> snd (lookup_item signature item)
-      | Proj item :: tl ->
-          (match lookup_item signature item with
-          | Some md_type, _ ->  resolve md_type tl
-          | _ -> None)
-      | _ -> assert false
-    and resolve module_type path =
-      match module_type with
-      | Types.Mty_signature signature -> resolve_sig signature path
-      | _ -> None
-    in
-
-    let rec reduce_with_module_type env shape_path (shape : Shape.t) =
-      match shape.desc with
-      | Var (id, _) -> begin
-          try
-            let { Types.md_type; _ } =
-              Env.find_module (Path.Pident id) env.global_env
-            in
-            match md_type with
-            | Mty_ident path ->
-                let path = Env.normalize_modtype_path env.global_env path in
-                (match Env.find_modtype_expansion path env.global_env with
-                | exception Not_found -> raise Noop
-                | mt -> resolve mt shape_path)
-            | _ -> resolve md_type shape_path
-          with _ -> raise Noop
-        end
-      | Proj (t, item) ->
-          reduce_with_module_type env ((Proj item)::shape_path) t
-      | Leaf | Comp_unit _ | Error _ | _ -> failwith "not implemented"
-    in
-    try
-      read_back env nf
-      |> reduce_with_module_type env []
-    with Noop -> None
-
   let rec reduce_aliases_for_uid ?(last = false) env (nf : nf) =
     match nf with
     | { uid = Some uid; desc = NAlias dnf; approximated = false; _ } ->
@@ -401,9 +332,7 @@ end) = struct
     | { uid = None; approximated = false; _ } ->
         (* Sometimes we are stuck on an free functor variable *)
         begin
-          match read_back_and_reduce_with_module_type env nf with
-          | Some uid-> Resolved uid
-          | _ -> Internal_error_missing_uid
+         Internal_error_missing_uid
         end
 
   let reduce_for_uid global_env t =
@@ -434,21 +363,47 @@ let local_reduce = Local_reduce.reduce
 (* POC *)
 let uid_memo : Uid.t Uid.Tbl.t ref = Local_store.s_table Uid.Tbl.create 16
 
-let definition_uid ~current_unit decl_uid =
+let make_definition_uid ~current_unit decl_uid =
   match Uid.Tbl.find_opt !uid_memo decl_uid with
   | Some uid -> uid
   | None ->
-    let uid = Uid.mk_param ~current_unit in
+    let uid = Uid.mk_ghost ~current_unit in
     Uid.Deps.record_declaration_dependency
       (Definition_to_declaration, uid, decl_uid);
     Uid.Tbl.add !uid_memo decl_uid uid;
     uid
 
-let local_reduce_for_uid env ?decl_uid _path shape =
-  match Local_reduce.reduce_for_uid env shape, decl_uid with
-  | Internal_error_missing_uid, Some decl_uid ->
-    (* TODO: check that we are stuck on a Var *)
-    let current_unit = Env.get_current_unit () in
-    let uid = definition_uid ~current_unit decl_uid in
-    Resolved uid
-  | otherwise, _ -> otherwise
+let find_uid_by_path env namespace path =
+  try
+    Option.some @@ match (namespace : Sig_component_kind.t) with
+      | Value ->
+        let vd = Env.find_value path env in
+        vd.val_uid
+      | Type | Extension_constructor | Constructor | Label ->
+        let td = Env.find_type path env in
+        td.type_uid
+      | Module ->
+        let md = Env.find_module path env in
+        md.md_uid
+      | Module_type ->
+        let mtd = Env.find_modtype path env in
+        mtd.mtd_uid
+      | Class ->
+        let cty = Env.find_class path env in
+        cty.cty_uid
+      | Class_type ->
+        let clty = Env.find_cltype path env in
+        clty.clty_uid
+  with Not_found -> None
+
+let local_reduce_for_uid env ~namespace path shape =
+  match Local_reduce.reduce_for_uid env shape with
+  | Internal_error_missing_uid->
+    begin match find_uid_by_path env namespace path with
+      | Some uid ->
+          let current_unit = Env.get_current_unit () in
+          let uid = make_definition_uid ~current_unit uid in
+          Resolved_decl uid
+      | None -> Internal_error_missing_uid
+    end
+  | otherwise -> otherwise
