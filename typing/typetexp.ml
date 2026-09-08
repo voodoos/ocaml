@@ -484,7 +484,7 @@ let rec transl_type env ~policy ?(aliased=false) ~row_context styp =
             ctyp_env = env;
             ctyp_loc = styp.ptyp_loc;
             ctyp_attributes = [];
-          })
+          }, Discourse_types.empty)
   else delayed ()
 
 and transl_type_aux env ~row_context ~aliased ~policy styp =
@@ -493,10 +493,11 @@ and transl_type_aux env ~row_context ~aliased ~policy styp =
     { ctyp_desc; ctyp_type; ctyp_env = env;
       ctyp_loc = loc; ctyp_attributes = styp.ptyp_attributes }
   in
+  let empty_discourse = Discourse_types.empty in
   match styp.ptyp_desc with
     Ptyp_any ->
       let ty = TyVarEnv.new_any_var styp.ptyp_loc env policy in
-      ctyp Ttyp_any ty
+      ctyp Ttyp_any ty, empty_discourse
   | Ptyp_var name ->
     let ty =
       check_tyvar_name env styp.ptyp_loc name;
@@ -508,10 +509,10 @@ and transl_type_aux env ~row_context ~aliased ~policy styp =
         v
       end
     in
-    ctyp (Ttyp_var name) ty
+    ctyp (Ttyp_var name) ty, empty_discourse
   | Ptyp_arrow(l, st1, st2) ->
-    let arg_cty = transl_type env ~policy ~row_context st1 in
-    let ret_cty = transl_type env ~policy ~row_context st2 in
+    let arg_cty, arg_discourse = transl_type env ~policy ~row_context st1 in
+    let ret_cty, ret_discourse = transl_type env ~policy ~row_context st2 in
     let arg_ty = arg_cty.ctyp_type in
     let arg_ty =
       if Btype.is_Tpoly arg_ty then arg_ty else newmono arg_ty
@@ -527,20 +528,29 @@ and transl_type_aux env ~row_context ~aliased ~policy styp =
         end
     in
     let ty = newty (Tarrow(l, arg_ty, ret_cty.ctyp_type, commu_ok)) in
-    ctyp (Ttyp_arrow (l, arg_cty, ret_cty)) ty
+    ctyp (Ttyp_arrow (l, arg_cty, ret_cty)) ty,
+    Discourse_types.union arg_discourse ret_discourse
   | Ptyp_tuple stl ->
     assert (List.length stl >= 2);
     Option.iter (fun l -> Error.log_and_raise loc env (Repeated_tuple_label l))
       (Misc.repeated_label stl);
-    let ctys =
-      List.map (fun (l, t) -> l, transl_type env ~policy ~row_context t) stl
+    let discourse, ctys =
+      List.fold_left_map
+        (fun acc_discourse (l, t) ->
+           let ct, discourse = transl_type env ~policy ~row_context t in
+           Discourse_types.union acc_discourse discourse, (l, ct))
+        empty_discourse stl
     in
     let ty =
       newty (Ttuple (List.map (fun (l, ctyp) -> l, ctyp.ctyp_type) ctys))
     in
-    ctyp (Ttyp_tuple ctys) ty
+    ctyp (Ttyp_tuple ctys) ty, discourse
   | Ptyp_constr(lid, stl) ->
       let (path, decl) = Env.lookup_type ~loc:lid.loc lid.txt env in
+      let discourse =
+        Discourse_types.singleton (Shape.Sig_component_kind.Type, path)
+      in
+      Discourse.use_type env lid path;
       let stl =
         match stl with
         | [ {ptyp_desc=Ptyp_any} as t ] when decl.type_arity > 1 ->
@@ -550,7 +560,13 @@ and transl_type_aux env ~row_context ~aliased ~policy styp =
       if List.length stl <> decl.type_arity then
         Error.log_and_raise styp.ptyp_loc env
           (Type_arity_mismatch(lid.txt, decl.type_arity, List.length stl));
-      let args = List.map (transl_type env ~policy ~row_context) stl in
+      let discourse, args =
+        List.fold_left_map
+          (fun acc_discourse st ->
+             let ct, discourse = transl_type env ~policy ~row_context st in
+             Discourse_types.union acc_discourse discourse, ct)
+          discourse stl
+      in
       let params = instance_list decl.type_params in
       let unify_param =
         match decl.type_manifest with
@@ -567,19 +583,30 @@ and transl_type_aux env ~row_context ~aliased ~policy styp =
         (List.combine stl args) params;
       let constr =
         newconstr path (List.map (fun ctyp -> ctyp.ctyp_type) args) in
-      ctyp (Ttyp_constr (path, lid, args)) constr
+      ctyp (Ttyp_constr (path, lid, args)) constr, discourse
   | Ptyp_object (fields, o) ->
-      let ty, fields = transl_fields env ~policy ~row_context o fields in
-      ctyp (Ttyp_object (fields, o)) (newobj ty)
+      let ty, fields, discourse =
+        transl_fields env ~policy ~row_context o fields
+      in
+      ctyp (Ttyp_object (fields, o)) (newobj ty), discourse
   | Ptyp_class(lid, stl) ->
       let (path, decl) =
         let path, decl = Env.lookup_cltype ~loc:lid.loc lid.txt env in
         (path, decl.clty_hash_type)
       in
+      let discourse =
+        Discourse_types.singleton (Shape.Sig_component_kind.Class_type, path)
+      in
       if List.length stl <> decl.type_arity then
         Error.log_and_raise styp.ptyp_loc env
           (Type_arity_mismatch(lid.txt, decl.type_arity, List.length stl));
-      let args = List.map (transl_type env ~policy ~row_context) stl in
+      let discourse, args =
+        List.fold_left_map
+          (fun acc_discourse st ->
+             let ct, discourse = transl_type env ~policy ~row_context st in
+             Discourse_types.union acc_discourse discourse, ct)
+          discourse stl
+      in
       let body = Option.get decl.type_manifest in
       let (params, body) = instance_parameterized_type decl.type_params body in
       List.iter2
@@ -599,30 +626,32 @@ and transl_type_aux env ~row_context ~aliased ~policy styp =
         | _ ->
             assert false
       in
-      ctyp (Ttyp_class (path, lid, args)) ty
+      ctyp (Ttyp_class (path, lid, args)) ty, discourse
   | Ptyp_alias(st, alias) ->
-      let cty =
+      let cty, discourse =
         try
           check_tyvar_name env alias.loc alias.txt;
           let t = TyVarEnv.lookup_local ~row_context alias.txt in
-          let ty = transl_type env ~policy ~aliased:true ~row_context st in
+          let ty, discourse =
+            transl_type env ~policy ~aliased:true ~row_context st
+          in
           begin try unify_var env t ty.ctyp_type with Unify err ->
             let err = Errortrace.swap_unification_error err in
             Error.log_and_raise alias.loc env (Alias_type_mismatch err)
           end;
-          ty
+          ty, discourse
         with Not_found ->
-          let t, ty =
+          let t, ty, discourse =
             with_local_level_generalize_structure_if_principal begin fun () ->
               let t = newvar () in
               (* Use the whole location, which is used by [Type_mismatch]. *)
               TyVarEnv.remember_used ~check:alias.loc alias.txt t styp.ptyp_loc;
-              let ty = transl_type env ~policy ~row_context st in
+              let ty, discourse = transl_type env ~policy ~row_context st in
               begin try unify_var env t ty.ctyp_type with Unify err ->
                 let err = Errortrace.swap_unification_error err in
                 Error.log_and_raise alias.loc env (Alias_type_mismatch err)
               end;
-              (t, ty)
+              (t, ty, discourse)
             end
           in
           let t = instance t in
@@ -632,9 +661,9 @@ and transl_type_aux env ~row_context ~aliased ~policy styp =
           | Tunivar None -> set_type_desc px (Tunivar (Some alias.txt))
           | _ -> ()
           end;
-          { ty with ctyp_type = t }
+          { ty with ctyp_type = t }, discourse
       in
-      ctyp (Ttyp_alias (cty, alias)) cty.ctyp_type
+      ctyp (Ttyp_alias (cty, alias)) cty.ctyp_type, discourse
   | Ptyp_variant(fields, closed, present) ->
       let name = ref None in
       let mkfield l f =
@@ -662,12 +691,19 @@ and transl_type_aux env ~row_context ~aliased ~policy styp =
       let add_field row_context field =
         let rf_loc = field.prf_loc in
         let rf_attributes = field.prf_attributes in
-        let rf_desc = match field.prf_desc with
+        let rf_desc, discourse = match field.prf_desc with
         | Rtag (l, c, stl) ->
             name := None;
-            let tl =
+            let discourse, tl =
               Builtin_attributes.warning_scope rf_attributes
-                (fun () -> List.map (transl_type env ~policy ~row_context) stl)
+                (fun () ->
+                   List.fold_left_map
+                     (fun acc_discourse st ->
+                        let ct, discourse =
+                          transl_type env ~policy ~row_context st
+                        in
+                        Discourse_types.union acc_discourse discourse, ct)
+                     empty_discourse stl)
             in
             let f = match present with
               Some present when not (List.mem l.txt present) ->
@@ -681,9 +717,9 @@ and transl_type_aux env ~row_context ~aliased ~policy styp =
                 | st :: _ -> rf_present (Some st.ctyp_type)
             in
             add_typed_field styp.ptyp_loc l.txt f;
-              Ttag (l,c,tl)
+            Ttag (l,c,tl), discourse
         | Rinherit sty ->
-            let cty = transl_type env ~policy ~row_context sty in
+            let cty, discourse = transl_type env ~policy ~row_context sty in
             let ty = cty.ctyp_type in
             let nm =
               match get_desc cty.ctyp_type with
@@ -712,15 +748,21 @@ and transl_type_aux env ~row_context ~aliased ~policy styp =
                 in
                 add_typed_field sty.ptyp_loc l f)
               fl;
-              Tinherit cty
+            Tinherit cty, discourse
         in
-        { rf_desc; rf_loc; rf_attributes; }
+        { rf_desc; rf_loc; rf_attributes; }, discourse
       in
       let more_slot = ref None in
       let row_context =
         if aliased then row_context else more_slot :: row_context
       in
-      let tfields = List.map (add_field row_context) fields in
+      let discourse, tfields =
+        List.fold_left_map
+          (fun acc_discourse field ->
+             let tfield, discourse = add_field row_context field in
+             Discourse_types.union acc_discourse discourse, tfield)
+          empty_discourse fields
+      in
       let fields = HMap.fold (fun _ p l -> p :: l) !hfields [] in
       begin match present with None -> ()
       | Some present ->
@@ -739,16 +781,16 @@ and transl_type_aux env ~row_context ~aliased ~policy styp =
       in
       more_slot := Some more;
       let ty = newty (Tvariant (make_row more)) in
-      ctyp (Ttyp_variant (tfields, closed, present)) ty
+      ctyp (Ttyp_variant (tfields, closed, present)) ty, discourse
   | Ptyp_poly(vars, st) ->
       let vars = List.map (fun v -> v.txt) vars in
-      let new_univars, cty =
+      let new_univars, cty, discourse =
         with_local_level_generalize begin fun () ->
           let new_univars = TyVarEnv.make_poly_univars vars in
-          let cty = TyVarEnv.with_univars new_univars begin fun () ->
+          let cty, discourse = TyVarEnv.with_univars new_univars begin fun () ->
             transl_type env ~policy ~row_context st
           end in
-          (new_univars, cty)
+          (new_univars, cty, discourse)
         end
       in
       let ty = cty.ctyp_type in
@@ -756,9 +798,9 @@ and transl_type_aux env ~row_context ~aliased ~policy styp =
       let ty_list = List.filter (fun v -> Btype.deep_occur v ty) ty_list in
       let ty' = Btype.newgenty (Tpoly(ty, ty_list)) in
       unify_var env (newvar()) ty';
-      ctyp (Ttyp_poly (vars, cty)) ty'
+      ctyp (Ttyp_poly (vars, cty)) ty', discourse
   | Ptyp_package ptyp ->
-      let pack, (), ptys =
+      let pack, (), ptys, discourse =
         transl_package env ~policy ~row_context NoMType ptyp in
       let ty = newty (Tpackage pack) in
       ctyp (Ttyp_package {
@@ -766,13 +808,17 @@ and transl_type_aux env ~row_context ~aliased ~policy styp =
             tpt_type = pack;
             tpt_constraints = ptys;
             tpt_txt = ptyp.ppt_path;
-           }) ty
+           }) ty,
+      discourse
   | Ptyp_open (mod_ident, t) ->
       let path, new_env =
         !type_open Asttypes.Fresh env loc mod_ident
       in
-      let cty = transl_type new_env ~policy ~row_context t in
-      ctyp (Ttyp_open (path, mod_ident, cty)) cty.ctyp_type
+      let cty, discourse = transl_type new_env ~policy ~row_context t in
+      let discourse =
+        Discourse_types.add (Shape.Sig_component_kind.Module, path) discourse
+      in
+      ctyp (Ttyp_open (path, mod_ident, cty)) cty.ctyp_type, discourse
   | Ptyp_extension ext ->
       raise (Error_forward (Builtin_attributes.error_of_extension ext))
   | Ptyp_functor (lbl, name, ptyp, st) ->
@@ -781,17 +827,17 @@ and transl_type_aux env ~row_context ~aliased ~policy styp =
           Error.log_and_raise ptyp.ppt_loc env (Functor_optional_param l);
       | Nolabel | Labelled _ -> ()
     end;
-    let pack, mty, ptys =
+    let pack, mty, ptys, pack_discourse =
       transl_package env ~policy ~row_context ComputeMType ptyp in
     let t = newvar () in
     let ident = Ident.Unscoped.create name.txt in
-    let scoped_ident, cty, ty =
+    let scoped_ident, cty, ty, discourse =
       with_local_level begin fun () ->
         let scoped_ident =
           Ident.create_scoped ~scope:(Ctype.get_current_level()) name.txt
         in
         let env = Env.add_module scoped_ident Mp_present mty env in
-        let cty = transl_type env ~policy ~row_context st in
+        let cty, discourse = transl_type env ~policy ~row_context st in
         let ctyp_type =
           instance_funct ~p_out:(Pident (Ident.of_unscoped ident))
                          ~id_in:scoped_ident ~fixed:false cty.ctyp_type
@@ -801,14 +847,15 @@ and transl_type_aux env ~row_context ~aliased ~policy styp =
         let _ = try unify env ty t with Unify trace ->
           Error.log_and_raise loc env (Type_mismatch trace)
         in
-        scoped_ident, cty, ty
+        scoped_ident, cty, ty, discourse
       end in
     ctyp (Ttyp_functor (lbl, {txt = scoped_ident; loc = name.loc}, {
                 tpt_path = pack.pack_path;
                 tpt_type = pack;
                 tpt_constraints = ptys;
                 tpt_txt = ptyp.ppt_path;
-                }, cty)) ty
+                }, cty)) ty,
+    Discourse_types.union pack_discourse discourse
 
 and transl_fields env ~policy ~row_context o fields =
   (* Using a reference to a map rather than a hash table gives us
@@ -824,22 +871,22 @@ and transl_fields env ~policy ~row_context o fields =
           Error.log_and_raise loc env (Method_mismatch (l, ty, ty'))
     with Not_found ->
       hfields := HMap.add l ty !hfields in
-  let add_field {pof_desc; pof_loc; pof_attributes;} =
+  let add_field acc_discourse {pof_desc; pof_loc; pof_attributes;} =
     let of_loc = pof_loc in
     let of_attributes = pof_attributes in
-    let of_desc = match pof_desc with
+    let of_desc, discourse = match pof_desc with
     | Otag (s, ty1) -> begin
-        let ty1 =
+        let ty1, ty1_discourse =
           Builtin_attributes.warning_scope of_attributes
             (fun () -> transl_type env ~policy ~row_context
                 (Ast_helper.Typ.force_poly ty1))
         in
         let field = OTtag (s, ty1) in
         add_typed_field ty1.ctyp_loc s.txt ty1.ctyp_type;
-        field
+        field, ty1_discourse
       end
     | Oinherit sty -> begin
-        let cty = transl_type env ~policy ~row_context sty in
+        let cty, discourse = transl_type env ~policy ~row_context sty in
         let nm =
           match get_desc cty.ctyp_type with
             Tconstr(p, _, _) -> Some p
@@ -860,16 +907,19 @@ and transl_fields env ~policy ~row_context o fields =
                 | _ -> assert false
               in
               iter_add tf;
-              OTinherit cty
+              OTinherit cty, discourse
             end
         | Tvar _, Some p ->
             Error.log_and_raise sty.ptyp_loc env (Undefined_type_constructor p)
         | _ ->
             Error.log_and_raise sty.ptyp_loc env (Not_an_object t)
       end in
+    Discourse_types.union acc_discourse discourse,
     { of_desc; of_loc; of_attributes; }
   in
-  let object_fields = List.map add_field fields in
+  let discourse, object_fields =
+    List.fold_left_map add_field Discourse_types.empty fields
+  in
   let fields = HMap.fold (fun s ty l -> (s, ty) :: l) !hfields [] in
   let ty_init =
      match o with
@@ -878,18 +928,23 @@ and transl_fields env ~policy ~row_context o fields =
   in
   let ty = List.fold_left (fun ty (s, ty') ->
       newty (Tfield (s, field_public, ty', ty))) ty_init fields in
-  ty, object_fields
+  ty, object_fields, discourse
 
 and transl_package
   : type a. Env.t -> policy:_ -> row_context:_ -> a maybe_compute_mty ->
-    Parsetree.package_type -> Types.package * a * _ list
+    Parsetree.package_type ->
+    Types.package * a * _ list * Discourse_types.t
   = fun env ~policy ~row_context (maybe : a maybe_compute_mty) ptyp ->
   let loc = ptyp.ppt_loc in
   let l = sort_constraints_no_duplicates loc env ptyp.ppt_constraints in
   let mty = Ast_helper.Mty.mk ~loc (Pmty_ident ptyp.ppt_path) in
   let mty = TyVarEnv.with_local_scope (fun () -> !transl_modtype env mty) in
-  let ptys =
-    List.map (fun (s, pty) -> s, transl_type env ~policy ~row_context pty) l
+  let discourse, ptys =
+    List.fold_left_map
+      (fun acc_discourse (s, pty) ->
+         let ct, discourse = transl_type env ~policy ~row_context pty in
+         Discourse_types.union acc_discourse discourse, (s, ct))
+      Discourse_types.empty l
   in
   let mty : a =
     if ptys <> [] then
@@ -903,7 +958,11 @@ and transl_package
   let pack_constraints =
     List.map (fun (s, cty) -> (Longident.flatten s.txt, cty.ctyp_type)) ptys
   in
-  {pack_path; pack_constraints}, mty, ptys
+  let discourse =
+    Discourse_types.add
+      (Shape.Sig_component_kind.Module_type, pack_path) discourse
+  in
+  {pack_path; pack_constraints}, mty, ptys, discourse
 
 (* Make the rows "fixed" in this type, to make universal check easier *)
 let rec make_fixed_univars mark ty =
@@ -935,13 +994,16 @@ let make_fixed_univars ty =
 let transl_type env policy styp =
   transl_type env ~policy ~row_context:[] styp
 
-let transl_simple_type env ?univars ~closed styp =
+let transl_simple_type_with_discourse env ?univars ~closed styp =
   TyVarEnv.reset_locals ?univars ();
   let policy = TyVarEnv.(if closed then fixed_policy else extensible_policy) in
-  let typ = transl_type env policy styp in
+  let typ, discourse = transl_type env policy styp in
   TyVarEnv.globalize_used_variables policy env ();
   make_fixed_univars typ.ctyp_type;
-  typ
+  typ, discourse
+
+let transl_simple_type env ?univars ~closed styp =
+  fst @@ transl_simple_type_with_discourse env ?univars ~closed styp
 
 let transl_simple_type_univars env styp =
   TyVarEnv.reset_locals ();
@@ -949,7 +1011,7 @@ let transl_simple_type_univars env styp =
     TyVarEnv.collect_univars begin fun () ->
       with_local_level_generalize begin fun () ->
         let policy = TyVarEnv.univars_policy in
-        let typ = transl_type env policy styp in
+        let typ, _discourse = transl_type env policy styp in
         TyVarEnv.globalize_used_variables policy env ();
         typ
       end
@@ -963,7 +1025,7 @@ let transl_simple_type_delayed env styp =
   let typ, force =
     with_local_level_generalize begin fun () ->
       let policy = TyVarEnv.extensible_policy in
-      let typ = transl_type env policy styp in
+      let typ, _discourse = transl_type env policy styp in
       make_fixed_univars typ.ctyp_type;
       (* This brings the used variables to the global level, but doesn't link
          them to their other occurrences just yet. This will be done when
@@ -978,12 +1040,14 @@ let transl_type_scheme env styp =
   match styp.ptyp_desc with
   | Ptyp_poly (vars, st) ->
      let vars = List.map (fun v -> v.txt) vars in
-     let univars, typ =
+     let univars, typ, discourse =
        with_local_level_generalize begin fun () ->
          TyVarEnv.reset ();
          let univars = TyVarEnv.make_poly_univars vars in
-         let typ = transl_simple_type env ~univars ~closed:true st in
-         (univars, typ)
+         let typ, discourse =
+           transl_simple_type_with_discourse env ~univars ~closed:true st
+         in
+         (univars, typ, discourse)
        end
      in
      let _ = TyVarEnv.instance_poly_univars env styp.ptyp_loc univars in
@@ -991,10 +1055,13 @@ let transl_type_scheme env styp =
        ctyp_type = typ.ctyp_type;
        ctyp_env = env;
        ctyp_loc = styp.ptyp_loc;
-       ctyp_attributes = styp.ptyp_attributes }
+       ctyp_attributes = styp.ptyp_attributes },
+     discourse
   | _ ->
       with_local_level_generalize
-        (fun () -> TyVarEnv.reset (); transl_simple_type env ~closed:false styp)
+        (fun () ->
+           TyVarEnv.reset ();
+           transl_simple_type_with_discourse env ~closed:false styp)
 
 
 (* Error report *)

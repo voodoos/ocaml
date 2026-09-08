@@ -92,6 +92,7 @@ let constructor_args ~current_unit priv cd_args cd_res path rep =
           type_immediate = Unknown;
           type_unboxed_default = false;
           type_uid = Uid.mk ~current_unit;
+          type_discourse = Discourse_types.empty;
         }
       in
       existentials,
@@ -107,7 +108,8 @@ let constructor_descrs ~current_unit ty_path decl cstrs rep =
     cstrs;
   let rec describe_constructors idx_const idx_nonconst = function
       [] -> []
-    | {cd_id; cd_args; cd_res; cd_loc; cd_attributes; cd_uid} :: rem ->
+    | {cd_id; cd_args; cd_res; cd_loc; cd_attributes; cd_uid;
+       cd_discourse = _} :: rem ->
         let ty_res =
           match cd_res with
           | Some ty_res' -> ty_res'
@@ -149,6 +151,9 @@ let constructor_descrs ~current_unit ty_path decl cstrs rep =
             cstr_attributes = cd_attributes;
             cstr_inlined;
             cstr_uid = cd_uid;
+            (* A constructor's discourse is the one of its type.
+               See [Discourse] rule D7. *)
+            cstr_discourse = decl.type_discourse;
           } in
         (cd_id, cstr) :: descr_rem in
   describe_constructors 0 0 cstrs
@@ -177,6 +182,7 @@ let extension_descr ~current_unit path_ext ext =
       cstr_attributes = ext.ext_attributes;
       cstr_inlined;
       cstr_uid = ext.ext_uid;
+      cstr_discourse = Discourse_types.empty;
     }
 
 let none : type_expr =
@@ -191,9 +197,10 @@ let dummy_label =
     lbl_loc = Location.none;
     lbl_attributes = [];
     lbl_uid = Uid.internal_not_actually_unique;
+    lbl_discourse = Discourse_types.empty;
   }
 
-let label_descrs ty_res lbls repres priv =
+let label_descrs ty_res lbls repres decl =
   let all_labels = Array.make (List.length lbls) dummy_label in
   let rec describe_labels num = function
       [] -> []
@@ -207,10 +214,11 @@ let label_descrs ty_res lbls repres priv =
             lbl_pos = num;
             lbl_all = all_labels;
             lbl_repres = repres;
-            lbl_private = priv;
+            lbl_private = decl.type_private;
             lbl_loc = l.ld_loc;
             lbl_attributes = l.ld_attributes;
             lbl_uid = l.ld_uid;
+            lbl_discourse = decl.type_discourse;
           } in
         all_labels.(num) <- lbl;
         (l.ld_id, lbl) :: describe_labels (num+1) rest in
@@ -243,5 +251,5 @@ let labels_of_type ty_path decl =
   match decl.type_kind with
   | Type_record(labels, rep) ->
       label_descrs (newgenconstr ty_path decl.type_params)
-        labels rep decl.type_private
+        labels rep decl
   | Type_variant _ | Type_abstract _ | Type_open | Type_external _ -> []

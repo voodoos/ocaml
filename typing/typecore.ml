@@ -447,7 +447,10 @@ let error_of_filter_arrow_failure ~explanation ~first ty_fun
 
 let type_module =
   ref ((fun _env _md -> assert false) :
-       Env.t -> Parsetree.module_expr -> Typedtree.module_expr * Shape.t)
+       Env.t -> Parsetree.module_expr ->
+         Typedtree.module_expr * Shape.t *
+         Discourse_types.t *
+         (Longident.t loc * Discourse_types.Item.t) option)
 
 let type_str_item =
   ref ((fun _env _sstr -> assert false) :
@@ -2530,6 +2533,7 @@ let add_pattern_variables ?check ?check_as env pv =
          {val_type = pv_type; val_kind = Val_reg; Types.val_loc = pv_loc;
           val_attributes = pv_attributes;
           val_uid = pv_uid;
+          val_discourse = Discourse_types.empty;
          } env
     )
     pv env
@@ -2549,7 +2553,7 @@ let add_module_variables env module_variables =
   in
   List.fold_left (fun env { mv_id; mv_loc; mv_name; mv_uid } ->
     Typetexp.TyVarEnv.with_local_scope begin fun () ->
-      let modl, md_shape =
+      let modl, md_shape, md_discourse, md_discourse_alias =
         !type_module env
           Ast_helper.(
             Mod.unpack ~loc:mv_loc
@@ -2565,7 +2569,9 @@ let add_module_variables env module_variables =
       let md =
         { md_type = modl.mod_type; md_attributes = [];
           md_loc = mv_name.loc;
-          md_uid = mv_uid; }
+          md_uid = mv_uid;
+          md_discourse;
+          md_discourse_alias; }
       in
       Env.add_module_declaration ~shape:md_shape ~check:true mv_id pres md env
     end
@@ -2640,6 +2646,7 @@ let type_class_arg_pattern cl_num val_env met_env l spat =
             ; val_attributes = pv_attributes
             ; val_loc = pv_loc
             ; val_uid
+            ; val_discourse = Discourse_types.empty
             }
             val_env
          in
@@ -2650,6 +2657,7 @@ let type_class_arg_pattern cl_num val_env met_env l spat =
             ; val_attributes = pv_attributes
             ; val_loc = pv_loc
             ; val_uid
+            ; val_discourse = Discourse_types.empty
             }
             met_env
          in
@@ -4536,7 +4544,8 @@ and type_expect ?recarg env sexp (ty_expected_explained : type_expected) =
                val_kind = Val_reg;
                val_loc = loc;
                val_attributes = [];
-               val_uid = Uid.internal_not_actually_unique
+               val_uid = Uid.internal_not_actually_unique;
+               val_discourse = Discourse_types.empty
              })
         in
         { exp_desc = exp;
@@ -5183,6 +5192,7 @@ and type_expect_
                val_kind = Val_reg;
                val_loc = loc;
                val_uid = Uid.mk ~current_unit:(Env.get_current_unit ());
+               val_discourse = Discourse_types.empty;
               } env
               ~check:(fun s -> Warnings.Unused_for_index s)
         | _ ->
@@ -6242,6 +6252,8 @@ and type_moddep_fun ~env ~name ~pack_param ~rest ~arg_label ~first
     md_attributes = [];
     md_loc = pparam_loc;
     md_uid = pv_uid;
+    md_discourse = Discourse_types.empty;
+    md_discourse_alias = None;
   } in
   let (res_ty, params, body, newtypes, contains_gadt), s_ident =
     with_local_level begin fun () ->
@@ -6346,6 +6358,7 @@ and type_label_access env srecord usage lid =
       lbl_attributes = [];
       lbl_uid = Uid.internal_not_actually_unique;
       lbl_atomic = Nonatomic;
+      lbl_discourse = Discourse_types.empty;
     } in
     (record, fake_label, expected_type)
 
@@ -6712,6 +6725,7 @@ and type_argument_ ?explanation ?recarg env sarg ty_expected' ty_expected =
             val_attributes = [];
             val_loc = Location.none;
             val_uid = Uid.mk ~current_unit:(Env.get_current_unit ());
+            val_discourse = Discourse_types.empty;
           }
         in
         let exp_env = Env.add_value id desc env in
@@ -6785,6 +6799,7 @@ and type_argument ?explanation ?recarg env sarg ty_expected' ty_expected =
                  val_loc = loc;
                  val_attributes = [];
                  val_uid = Uid.internal_not_actually_unique;
+                 val_discourse = Discourse_types.empty;
                })
           in
           { exp_desc = exp;

@@ -120,6 +120,7 @@ typing_SOURCES = \
   typing/type_immediacy.mli typing/type_immediacy.ml \
   typing/outcometree.mli \
   typing/shape.mli typing/shape.ml \
+  typing/discourse_types.mli typing/discourse_types.ml \
   typing/types.mli typing/types.ml \
   typing/data_types.mli typing/data_types.ml \
   typing/rawprinttyp.mli typing/rawprinttyp.ml \
@@ -153,6 +154,7 @@ typing_SOURCES = \
   typing/cmt2annot.mli typing/cmt2annot.ml \
   typing/typing_recovery_state.mli typing/typing_recovery_state.ml \
   typing/untypeast.mli typing/untypeast.ml \
+  typing/discourse.mli typing/discourse.ml \
   typing/includemod.mli typing/includemod.ml \
   typing/signature_matching.mli typing/signature_matching.ml \
   typing/includemod_errorprinter.mli typing/includemod_errorprinter.ml \

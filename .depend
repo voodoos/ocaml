@@ -661,6 +661,7 @@ typing/ctype.cmo : \
     utils/format_doc.cmi \
     typing/errortrace.cmi \
     typing/env.cmi \
+    typing/discourse_types.cmi \
     typing/data_types.cmi \
     utils/clflags.cmi \
     typing/btype.cmi \
@@ -680,6 +681,7 @@ typing/ctype.cmx : \
     utils/format_doc.cmx \
     typing/errortrace.cmx \
     typing/env.cmx \
+    typing/discourse_types.cmx \
     typing/data_types.cmx \
     utils/clflags.cmx \
     typing/btype.cmx \
@@ -701,6 +703,7 @@ typing/data_types.cmo : \
     typing/path.cmi \
     parsing/parsetree.cmi \
     parsing/location.cmi \
+    typing/discourse_types.cmi \
     parsing/asttypes.cmi \
     typing/data_types.cmi
 typing/data_types.cmx : \
@@ -708,6 +711,7 @@ typing/data_types.cmx : \
     typing/path.cmx \
     parsing/parsetree.cmi \
     parsing/location.cmx \
+    typing/discourse_types.cmx \
     parsing/asttypes.cmx \
     typing/data_types.cmi
 typing/data_types.cmi : \
@@ -715,12 +719,14 @@ typing/data_types.cmi : \
     typing/path.cmi \
     parsing/parsetree.cmi \
     parsing/location.cmi \
+    typing/discourse_types.cmi \
     parsing/asttypes.cmi
 typing/datarepr.cmo : \
     typing/types.cmi \
     typing/path.cmi \
     parsing/location.cmi \
     typing/ident.cmi \
+    typing/discourse_types.cmi \
     typing/data_types.cmi \
     typing/btype.cmi \
     parsing/asttypes.cmi \
@@ -730,6 +736,7 @@ typing/datarepr.cmx : \
     typing/path.cmx \
     parsing/location.cmx \
     typing/ident.cmx \
+    typing/discourse_types.cmx \
     typing/data_types.cmx \
     typing/btype.cmx \
     parsing/asttypes.cmx \
@@ -740,6 +747,69 @@ typing/datarepr.cmi : \
     typing/path.cmi \
     typing/ident.cmi \
     typing/data_types.cmi
+typing/discourse.cmo : \
+    typing/untypeast.cmi \
+    typing/types.cmi \
+    typing/shape.cmi \
+    typing/predef.cmi \
+    parsing/pprintast.cmi \
+    typing/path.cmi \
+    parsing/longident.cmi \
+    parsing/location.cmi \
+    utils/local_store.cmi \
+    typing/ident.cmi \
+    utils/format_doc.cmi \
+    typing/env.cmi \
+    typing/discourse_types.cmi \
+    typing/data_types.cmi \
+    utils/config.cmi \
+    typing/discourse.cmi
+typing/discourse.cmx : \
+    typing/untypeast.cmx \
+    typing/types.cmx \
+    typing/shape.cmx \
+    typing/predef.cmx \
+    parsing/pprintast.cmx \
+    typing/path.cmx \
+    parsing/longident.cmx \
+    parsing/location.cmx \
+    utils/local_store.cmx \
+    typing/ident.cmx \
+    utils/format_doc.cmx \
+    typing/env.cmx \
+    typing/discourse_types.cmx \
+    typing/data_types.cmx \
+    utils/config.cmx \
+    typing/discourse.cmi
+typing/discourse.cmi : \
+    typing/types.cmi \
+    typing/path.cmi \
+    parsing/longident.cmi \
+    parsing/location.cmi \
+    typing/ident.cmi \
+    typing/env.cmi \
+    typing/discourse_types.cmi \
+    typing/data_types.cmi
+typing/discourse_types.cmo : \
+    typing/shape.cmi \
+    parsing/pprintast.cmi \
+    typing/path.cmi \
+    parsing/longident.cmi \
+    parsing/location.cmi \
+    utils/format_doc.cmi \
+    typing/discourse_types.cmi
+typing/discourse_types.cmx : \
+    typing/shape.cmx \
+    parsing/pprintast.cmx \
+    typing/path.cmx \
+    parsing/longident.cmx \
+    parsing/location.cmx \
+    utils/format_doc.cmx \
+    typing/discourse_types.cmi
+typing/discourse_types.cmi : \
+    typing/shape.cmi \
+    typing/path.cmi \
+    parsing/longident.cmi
 typing/env.cmo : \
     utils/warnings.cmi \
     utils/utf8_lexeme.cmi \
@@ -760,6 +830,7 @@ typing/env.cmo : \
     utils/lazy_backtrack.cmi \
     typing/ident.cmi \
     utils/format_doc.cmi \
+    typing/discourse_types.cmi \
     typing/datarepr.cmi \
     typing/data_types.cmi \
     file_formats/cmi_format.cmi \
@@ -788,6 +859,7 @@ typing/env.cmx : \
     utils/lazy_backtrack.cmx \
     typing/ident.cmx \
     utils/format_doc.cmx \
+    typing/discourse_types.cmx \
     typing/datarepr.cmx \
     typing/data_types.cmx \
     file_formats/cmi_format.cmx \
@@ -1187,6 +1259,7 @@ typing/out_type.cmo : \
     utils/format_doc.cmi \
     typing/errortrace.cmi \
     typing/env.cmi \
+    typing/discourse_types.cmi \
     typing/ctype.cmi \
     utils/clflags.cmi \
     typing/btype.cmi \
@@ -1211,6 +1284,7 @@ typing/out_type.cmx : \
     utils/format_doc.cmx \
     typing/errortrace.cmx \
     typing/env.cmx \
+    typing/discourse_types.cmx \
     typing/ctype.cmx \
     utils/clflags.cmx \
     typing/btype.cmx \
@@ -1363,10 +1437,12 @@ typing/persistent_env.cmi : \
 typing/predef.cmo : \
     typing/types.cmi \
     typing/type_immediacy.cmi \
+    typing/shape.cmi \
     typing/path.cmi \
     parsing/parsetree.cmi \
     parsing/location.cmi \
     typing/ident.cmi \
+    typing/discourse_types.cmi \
     typing/btype.cmi \
     parsing/asttypes.cmi \
     parsing/ast_helper.cmi \
@@ -1374,10 +1450,12 @@ typing/predef.cmo : \
 typing/predef.cmx : \
     typing/types.cmx \
     typing/type_immediacy.cmx \
+    typing/shape.cmx \
     typing/path.cmx \
     parsing/parsetree.cmi \
     parsing/location.cmx \
     typing/ident.cmx \
+    typing/discourse_types.cmx \
     typing/btype.cmx \
     parsing/asttypes.cmx \
     parsing/ast_helper.cmx \
@@ -1385,7 +1463,8 @@ typing/predef.cmx : \
 typing/predef.cmi : \
     typing/types.cmi \
     typing/path.cmi \
-    typing/ident.cmi
+    typing/ident.cmi \
+    typing/discourse_types.cmi
 typing/primitive.cmo : \
     typing/outcometree.cmi \
     utils/misc.cmi \
@@ -1601,10 +1680,12 @@ typing/subst.cmo : \
     typing/path.cmi \
     parsing/parsetree.cmi \
     utils/misc.cmi \
+    parsing/longident.cmi \
     parsing/location.cmi \
     utils/local_store.cmi \
     utils/lazy_backtrack.cmi \
     typing/ident.cmi \
+    typing/discourse_types.cmi \
     utils/clflags.cmi \
     typing/btype.cmi \
     parsing/ast_mapper.cmi \
@@ -1614,10 +1695,12 @@ typing/subst.cmx : \
     typing/path.cmx \
     parsing/parsetree.cmi \
     utils/misc.cmx \
+    parsing/longident.cmx \
     parsing/location.cmx \
     utils/local_store.cmx \
     utils/lazy_backtrack.cmx \
     typing/ident.cmx \
+    typing/discourse_types.cmx \
     utils/clflags.cmx \
     typing/btype.cmx \
     parsing/ast_mapper.cmx \
@@ -1626,8 +1709,10 @@ typing/subst.cmi : \
     typing/types.cmi \
     typing/path.cmi \
     parsing/parsetree.cmi \
+    parsing/longident.cmi \
     parsing/location.cmi \
-    typing/ident.cmi
+    typing/ident.cmi \
+    typing/discourse_types.cmi
 typing/tast_iterator.cmo : \
     typing/typedtree.cmi \
     parsing/parsetree.cmi \
@@ -1707,6 +1792,7 @@ typing/typeclass.cmo : \
     typing/errortrace_report.cmi \
     typing/errortrace.cmi \
     typing/env.cmi \
+    typing/discourse_types.cmi \
     typing/ctype.cmi \
     file_formats/cmt_format.cmi \
     utils/clflags.cmi \
@@ -1740,6 +1826,7 @@ typing/typeclass.cmx : \
     typing/errortrace_report.cmx \
     typing/errortrace.cmx \
     typing/env.cmx \
+    typing/discourse_types.cmx \
     typing/ctype.cmx \
     file_formats/cmt_format.cmx \
     utils/clflags.cmx \
@@ -1789,6 +1876,7 @@ typing/typecore.cmo : \
     typing/errortrace_report.cmi \
     typing/errortrace.cmi \
     typing/env.cmi \
+    typing/discourse_types.cmi \
     typing/data_types.cmi \
     typing/ctype.cmi \
     file_formats/cmt_format.cmi \
@@ -1827,6 +1915,7 @@ typing/typecore.cmx : \
     typing/errortrace_report.cmx \
     typing/errortrace.cmx \
     typing/env.cmx \
+    typing/discourse_types.cmx \
     typing/data_types.cmx \
     typing/ctype.cmx \
     file_formats/cmt_format.cmx \
@@ -1847,6 +1936,7 @@ typing/typecore.cmi : \
     typing/ident.cmi \
     typing/errortrace.cmi \
     typing/env.cmi \
+    typing/discourse_types.cmi \
     typing/data_types.cmi \
     parsing/asttypes.cmi
 typing/typedecl.cmo : \
@@ -1881,6 +1971,7 @@ typing/typedecl.cmo : \
     typing/errortrace_report.cmi \
     typing/errortrace.cmi \
     typing/env.cmi \
+    typing/discourse_types.cmi \
     typing/data_types.cmi \
     typing/ctype.cmi \
     utils/config.cmi \
@@ -1924,6 +2015,7 @@ typing/typedecl.cmx : \
     typing/errortrace_report.cmx \
     typing/errortrace.cmx \
     typing/env.cmx \
+    typing/discourse_types.cmx \
     typing/data_types.cmx \
     typing/ctype.cmx \
     utils/config.cmx \
@@ -2144,6 +2236,8 @@ typing/typemod.cmo : \
     utils/format_doc.cmi \
     typing/errortrace.cmi \
     typing/env.cmi \
+    typing/discourse_types.cmi \
+    typing/discourse.cmi \
     typing/ctype.cmi \
     file_formats/cmt_format.cmi \
     typing/cmt2annot.cmi \
@@ -2186,6 +2280,8 @@ typing/typemod.cmx : \
     utils/format_doc.cmx \
     typing/errortrace.cmx \
     typing/env.cmx \
+    typing/discourse_types.cmx \
+    typing/discourse.cmx \
     typing/ctype.cmx \
     file_formats/cmt_format.cmx \
     typing/cmt2annot.cmx \
@@ -2209,6 +2305,7 @@ typing/typemod.cmi : \
     typing/includemod.cmi \
     typing/ident.cmi \
     typing/env.cmi \
+    typing/discourse_types.cmi \
     file_formats/cmi_format.cmi
 typing/typeopt.cmo : \
     typing/types.cmi \
@@ -2251,9 +2348,11 @@ typing/types.cmo : \
     typing/path.cmi \
     parsing/parsetree.cmi \
     utils/misc.cmi \
+    parsing/longident.cmi \
     parsing/location.cmi \
     utils/local_store.cmi \
     typing/ident.cmi \
+    typing/discourse_types.cmi \
     utils/config.cmi \
     parsing/asttypes.cmi \
     typing/types.cmi
@@ -2264,9 +2363,11 @@ typing/types.cmx : \
     typing/path.cmx \
     parsing/parsetree.cmi \
     utils/misc.cmx \
+    parsing/longident.cmx \
     parsing/location.cmx \
     utils/local_store.cmx \
     typing/ident.cmx \
+    typing/discourse_types.cmx \
     utils/config.cmx \
     parsing/asttypes.cmx \
     typing/types.cmi
@@ -2276,8 +2377,10 @@ typing/types.cmi : \
     typing/primitive.cmi \
     typing/path.cmi \
     parsing/parsetree.cmi \
+    parsing/longident.cmi \
     parsing/location.cmi \
     typing/ident.cmi \
+    typing/discourse_types.cmi \
     parsing/asttypes.cmi
 typing/typetexp.cmo : \
     utils/warnings.cmi \
@@ -2285,6 +2388,7 @@ typing/typetexp.cmo : \
     typing/typing_recovery.cmi \
     typing/types.cmi \
     typing/typedtree.cmi \
+    typing/shape.cmi \
     typing/printtyp.cmi \
     typing/predef.cmi \
     parsing/pprintast.cmi \
@@ -2301,6 +2405,8 @@ typing/typetexp.cmo : \
     typing/errortrace_report.cmi \
     typing/errortrace.cmi \
     typing/env.cmi \
+    typing/discourse_types.cmi \
+    typing/discourse.cmi \
     typing/ctype.cmi \
     utils/clflags.cmi \
     parsing/builtin_attributes.cmi \
@@ -2314,6 +2420,7 @@ typing/typetexp.cmx : \
     typing/typing_recovery.cmx \
     typing/types.cmx \
     typing/typedtree.cmx \
+    typing/shape.cmx \
     typing/printtyp.cmx \
     typing/predef.cmx \
     parsing/pprintast.cmx \
@@ -2330,6 +2437,8 @@ typing/typetexp.cmx : \
     typing/errortrace_report.cmx \
     typing/errortrace.cmx \
     typing/env.cmx \
+    typing/discourse_types.cmx \
+    typing/discourse.cmx \
     typing/ctype.cmx \
     utils/clflags.cmx \
     parsing/builtin_attributes.cmx \
@@ -2346,6 +2455,7 @@ typing/typetexp.cmi : \
     parsing/location.cmi \
     typing/errortrace.cmi \
     typing/env.cmi \
+    typing/discourse_types.cmi \
     parsing/asttypes.cmi
 typing/typing_recovery.cmo : \
     typing/types.cmi \
@@ -7897,6 +8007,7 @@ toplevel/native/topeval.cmo : \
     typing/ident.cmi \
     typing/env.cmi \
     otherlibs/dynlink/dynlink.cmi \
+    typing/discourse_types.cmi \
     utils/config.cmi \
     driver/compmisc.cmi \
     middle_end/compilenv.cmi \
@@ -7925,6 +8036,7 @@ toplevel/native/topeval.cmx : \
     typing/ident.cmx \
     typing/env.cmx \
     otherlibs/dynlink/dynlink.cmx \
+    typing/discourse_types.cmx \
     utils/config.cmx \
     driver/compmisc.cmx \
     middle_end/compilenv.cmx \
@@ -8206,6 +8318,7 @@ tools/lintapidiff.cmx : \
     tools/lintapidiff.cmi
 tools/lintapidiff.cmi :
 tools/objinfo.cmo : \
+    typing/types.cmi \
     typing/typedtree.cmi \
     bytecomp/symtable.cmi \
     middle_end/symbol.cmi \
@@ -8213,12 +8326,15 @@ tools/objinfo.cmo : \
     typing/shape.cmi \
     middle_end/printclambda.cmi \
     parsing/pprintast.cmi \
+    typing/path.cmi \
     utils/misc.cmi \
+    parsing/longident.cmi \
     parsing/location.cmi \
     middle_end/linkage_name.cmi \
     typing/ident.cmi \
     utils/format_doc.cmi \
     middle_end/flambda/export_info.cmi \
+    typing/discourse_types.cmi \
     utils/config.cmi \
     middle_end/compilation_unit.cmi \
     file_formats/cmxs_format.cmi \
@@ -8231,6 +8347,7 @@ tools/objinfo.cmo : \
     utils/binutils.cmi \
     tools/objinfo.cmi
 tools/objinfo.cmx : \
+    typing/types.cmx \
     typing/typedtree.cmx \
     bytecomp/symtable.cmx \
     middle_end/symbol.cmx \
@@ -8238,12 +8355,15 @@ tools/objinfo.cmx : \
     typing/shape.cmx \
     middle_end/printclambda.cmx \
     parsing/pprintast.cmx \
+    typing/path.cmx \
     utils/misc.cmx \
+    parsing/longident.cmx \
     parsing/location.cmx \
     middle_end/linkage_name.cmx \
     typing/ident.cmx \
     utils/format_doc.cmx \
     middle_end/flambda/export_info.cmx \
+    typing/discourse_types.cmx \
     utils/config.cmx \
     middle_end/compilation_unit.cmx \
     file_formats/cmxs_format.cmi \

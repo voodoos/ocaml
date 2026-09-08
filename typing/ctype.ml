@@ -1603,6 +1603,7 @@ let new_local_type ?(loc = Location.none) ?manifest_and_scope origin =
     type_immediate = Unknown;
     type_unboxed_default = false;
     type_uid = Uid.mk ~current_unit:(Env.get_current_unit ());
+    type_discourse = Discourse_types.empty;
   }
 
 let existential_name name_counter ty =
@@ -6662,6 +6663,7 @@ let nondep_type_decl env mid is_covariant decl =
     type_immediate = decl.type_immediate;
     type_unboxed_default = decl.type_unboxed_default;
     type_uid = decl.type_uid;
+    type_discourse = Discourse_types.empty;
   }
 
 (* Preserve sharing inside extension constructors. *)
@@ -6740,6 +6742,7 @@ let nondep_class_declaration env ids decl =
     cty_loc = decl.cty_loc;
     cty_attributes = decl.cty_attributes;
     cty_uid = decl.cty_uid;
+    cty_discourse = decl.cty_discourse;
   }
 
 let nondep_cltype_declaration env ids decl =
@@ -6753,6 +6756,7 @@ let nondep_cltype_declaration env ids decl =
     clty_loc = decl.clty_loc;
     clty_attributes = decl.clty_attributes;
     clty_uid = decl.clty_uid;
+    clty_discourse = decl.clty_discourse;
   }
 
 (* collapse conjunctive types in class parameters *)

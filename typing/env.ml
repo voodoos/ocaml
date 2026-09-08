@@ -814,7 +814,8 @@ let strengthen =
 
 let md md_type =
   {md_type; md_attributes=[]; md_loc=Location.none
-  ;md_uid = Uid.internal_not_actually_unique}
+  ;md_uid = Uid.internal_not_actually_unique
+  ;md_discourse = Discourse_types.empty; md_discourse_alias = None}
 
 (* Print addresses *)
 
@@ -952,6 +953,8 @@ let sign_of_cmi ~freshen { Persistent_env.Persistent_signature.cmi; _ } =
       md_loc = Location.none;
       md_attributes = [];
       md_uid = Uid.of_compilation_unit_id id;
+      md_discourse = Discourse_types.empty;
+      md_discourse_alias = None;
     }
   in
   let mda_address = Lazy_backtrack.create_forced (Aident id) in
@@ -2372,7 +2375,9 @@ let add_module_lazy ~update_summary id presence mty env =
   let md = Subst.Lazy.{mdl_type = mty;
                        mdl_attributes = [];
                        mdl_loc = Location.none;
-                       mdl_uid = Uid.internal_not_actually_unique}
+                       mdl_uid = Uid.internal_not_actually_unique;
+                       mdl_discourse = Discourse_types.empty;
+                       mdl_discourse_alias = None}
   in
   add_module_declaration_lazy ~update_summary id presence md env
 
