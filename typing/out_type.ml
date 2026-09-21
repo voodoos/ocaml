@@ -1854,6 +1854,7 @@ let dummy =
     type_immediate = Unknown;
     type_unboxed_default = false;
     type_uid = Uid.internal_not_actually_unique;
+    type_discourse = Discourse_types.empty;
   }
 
 (** we hide items being defined from short-path to avoid shortening

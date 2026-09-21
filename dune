@@ -56,10 +56,10 @@
    asttypes parsetree
 
    ;; TYPING
-   ident path primitive shape shape_reduce types btype oprint subst predef
+   ident path primitive shape discourse_types shape_reduce types btype oprint subst predef
    datarepr cmi_format persistent_env env type_immediacy errortrace
    typedtree printtyped ctype printtyp rawprinttyp includeclass mtype envaux
-   includecore tast_iterator tast_mapper signature_group cmt_format untypeast
+   includecore tast_iterator tast_mapper signature_group cmt_format untypeast discourse
    includemod signature_matching includemod_errorprinter errortrace_report
    typetexp patterns printpat parmatch stypes typeopt typedecl value_rec_check
    typecore

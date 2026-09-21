@@ -252,6 +252,48 @@ let is_big obj =
     with _ -> true
   end
 
+(* The discourse fields only matter to Merlin: they should not count towards
+   the size of the module types when deciding whether to elide them. *)
+let rec strip_discourse_mty : Types.module_type -> Types.module_type =
+  function
+  | (Mty_ident _ | Mty_alias _) as mty -> mty
+  | Mty_signature sg -> Mty_signature (List.map strip_discourse_item sg)
+  | Mty_functor (Unit, res) -> Mty_functor (Unit, strip_discourse_mty res)
+  | Mty_functor (Named (id, arg), res) ->
+      Mty_functor (Named (id, strip_discourse_mty arg), strip_discourse_mty res)
+and strip_discourse_item : Types.signature_item -> Types.signature_item =
+  let empty = Discourse_types.empty in
+  function
+  | Sig_value (id, vd, vis) ->
+      Sig_value (id, { vd with val_discourse = empty }, vis)
+  | Sig_type (id, td, rs, vis) -> Sig_type (id, strip_discourse_td td, rs, vis)
+  | Sig_typext _ as item -> item
+  | Sig_module (id, pres, md, rs, vis) ->
+      Sig_module (id, pres, strip_discourse_md md, rs, vis)
+  | Sig_modtype (id, mtd, vis) -> Sig_modtype (id, strip_discourse_mtd mtd, vis)
+  | Sig_class (id, cd, rs, vis) ->
+      Sig_class (id, { cd with cty_discourse = empty }, rs, vis)
+  | Sig_class_type (id, ctd, rs, vis) ->
+      Sig_class_type (id, { ctd with clty_discourse = empty }, rs, vis)
+and strip_discourse_td (td : Types.type_declaration) =
+  let type_kind : Types.type_decl_kind = match td.type_kind with
+    | Type_variant (cstrs, rep) ->
+        Type_variant
+          (List.map
+             (fun (cd : Types.constructor_declaration) ->
+                { cd with cd_discourse = Discourse_types.empty }) cstrs,
+           rep)
+    | kind -> kind
+  in
+  { td with type_kind; type_discourse = Discourse_types.empty }
+and strip_discourse_md (md : Types.module_declaration) =
+  { md with md_type = strip_discourse_mty md.md_type;
+            md_discourse = Discourse_types.empty;
+            md_discourse_alias = None }
+and strip_discourse_mtd (mtd : Types.modtype_declaration) =
+  { mtd with mtd_type = Option.map strip_discourse_mty mtd.mtd_type;
+             mtd_discourse = Discourse_types.empty }
+
 let show_loc msg ppf loc =
   let pos = loc.Location.loc_start in
   if List.mem pos.Lexing.pos_fname [""; "_none_"; "//toplevel//"] then ()
@@ -651,8 +693,8 @@ let with_context ?loc ctx printer diff =
 let dwith_context ?loc ctx printer =
   Location.msg ?loc "%a%t" Context.pp (List.rev ctx) printer
 
-let dwith_context_and_elision ?loc ctx printer diff =
-  if is_big (diff.got,diff.expected) then
+let dwith_context_and_elision ?loc ~strip ctx printer diff =
+  if is_big (strip diff.got, strip diff.expected) then
     Location.msg ?loc "..."
   else
     dwith_context ?loc ctx (printer diff)
@@ -847,7 +889,8 @@ let rec module_type ~expansion_token ~eqmode ~env ~before ~ctx diff =
                It is thus better to avoid eliding the current error message.
             *)
             dwith_context ctx (inner diff)
-        | _ -> dwith_context_and_elision ctx inner diff
+        | _ ->
+            dwith_context_and_elision ~strip:strip_discourse_mty ctx inner diff
       in
       let before = next :: before in
       module_type_symptom ~eqmode ~expansion_token ~env ~before ~ctx
@@ -931,7 +974,8 @@ and sigitem ~expansion_token ~env ~before ~ctx (name,s) = match s with
       module_type_decl ~expansion_token ~env ~before ~ctx name diff
 and module_type_decl ~expansion_token ~env ~before ~ctx id diff =
   let next =
-    dwith_context_and_elision ctx (module_type_declarations id) diff in
+    dwith_context_and_elision ~strip:strip_discourse_mtd ctx
+      (module_type_declarations id) diff in
   let before = next :: before in
   match diff.symptom with
   | Not_less_than mts ->
