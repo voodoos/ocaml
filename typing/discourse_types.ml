@@ -171,12 +171,24 @@ module Lid_trie = struct
       (to_seq t)
 end
 
-type t = Paths.t
-let empty = Paths.empty
-let singleton = Paths.singleton
-let add = Paths.add
-let union = Paths.union
-let pp = pp_paths
+type t = { local: Paths.t; extern: Paths.t}
+let empty = { local = Paths.empty; extern = Paths.empty }
+
+let add ?(predef = false) ((_, path) as item) t =
+  let heads = Path.heads path in
+  if not predef && List.for_all Ident.is_predef heads then t
+  else if List.for_all Ident.global heads then
+    { t with extern = Paths.add item t.extern }
+  else
+    { t with local = Paths.add item t.local }
+
+let singleton i = add i empty
+
+let union t t' = {
+  local = Paths.union t.local t'.local;
+  extern = Paths.union t.extern t'.extern }
+
+let pp fmt t = pp_paths fmt (Paths.union t.local t.extern)
 
 type discourse = { paths : Lid_trie.t; substs : Lid_set.t Lid_map.t }
 

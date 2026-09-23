@@ -238,11 +238,13 @@ module Lid_trie :
     val pp_lid_paths : Format.formatter -> Longident.t * Paths.t -> unit
     val pp_seq : Format.formatter -> t -> unit
   end
-type t = Paths.t
-val empty : Paths.t
-val singleton : Paths.elt -> Paths.t
-val add : Paths.elt -> Paths.t -> Paths.t
-val union : Paths.t -> Paths.t -> Paths.t
-val pp : Format.formatter -> Paths.t -> unit
+
+type t = { local: Paths.t; extern: Paths.t}
+val empty : t
+val singleton : Paths.elt -> t
+val add : ?predef:bool -> Item.t -> t -> t
+val union : t -> t -> t
+val pp : Format.formatter -> t -> unit
+
 type discourse = { paths : Lid_trie.t; substs : Lid_set.t Lid_map.t; }
 val pp_map : Format.formatter -> Paths.t Lid_map.t -> unit

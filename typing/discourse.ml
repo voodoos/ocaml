@@ -59,12 +59,14 @@ We call D the domain of discourse:
       substituting the m for n in p is also in D.
 *)
 
-let trie_of_paths paths =
+[@@@ocaml.warning "-32"]
+
+let trie_of_paths d =
   let open Discourse_types in
   Paths.fold
     (fun (kind, path) acc ->
       Lid_trie.add (Untypeast.lident_of_path path) (kind, path) acc)
-    paths Lid_trie.empty
+    (Paths.union d.local d.extern) Lid_trie.empty
 
 let pp_d fmt d =
   let open Discourse_types in
