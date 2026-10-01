@@ -256,7 +256,7 @@ val add : ?predef:bool -> Item.t -> t -> t
     files. *)
 
 
-val singleton : Paths.elt -> t
+val singleton : ?predef:bool -> Paths.elt -> t
 (** [singleton ?predef i] is [add ?predef i empty] *)
 
 val union : t -> t -> t
