@@ -239,7 +239,10 @@ module Lid_trie :
     val pp_seq : Format.formatter -> t -> unit
   end
 
-type t = { local: Paths.t; extern: Paths.t}
+type t = { local: Item.t array; extern: Item.t array }
+(** The discourse of a declaration: the paths the user wrote in its description.
+    Both arrays are sorted by [Item.compare] and free of duplicates. *)
+
 val empty : t
 
 val with_nesting : (unit -> 'a) -> 'a
@@ -260,6 +263,14 @@ val singleton : ?predef:bool -> Paths.elt -> t
 (** [singleton ?predef i] is [add ?predef i empty] *)
 
 val union : t -> t -> t
+
+val fold : (Item.t -> 'a -> 'a) -> t -> 'a -> 'a
+(** Folds over the [local] items, then the [extern] ones. *)
+
+val filter : (Item.t -> bool) -> Item.t array -> Item.t array
+val filter_map : (Item.t -> Item.t option) -> Item.t array -> Item.t array
+(** [filter_map] sorts its result and removes duplicates *)
+
 val pp : Format.formatter -> t -> unit
 
 type discourse = { paths : Lid_trie.t; substs : Lid_set.t Lid_map.t; }

@@ -63,10 +63,10 @@ We call D the domain of discourse:
 
 let trie_of_paths d =
   let open Discourse_types in
-  Paths.fold
+  fold
     (fun (kind, path) acc ->
       Lid_trie.add (Untypeast.lident_of_path path) (kind, path) acc)
-    (Paths.union d.local d.extern) Lid_trie.empty
+    d Lid_trie.empty
 
 let pp_d fmt d =
   let open Discourse_types in
