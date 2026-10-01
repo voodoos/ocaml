@@ -16,7 +16,7 @@ homepage: "https://github.com/ocaml/ocaml/"
 bug-reports: "https://github.com/ocaml/ocaml/issues"
 depends: [
   # This is OCaml 5.5.0
-  "ocaml" {= "5.5.1" & post}
+  "ocaml" {= "5.5.2" & post}
 
   # General base- packages
   "base-unix" {post}
