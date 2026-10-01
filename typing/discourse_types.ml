@@ -212,7 +212,7 @@ let insert_uniq item items =
   end
 
 (* On ties the item of the first argument is kept. *)
-let merge a b =
+let merge_sorted a b =
   let la = Array.length a and lb = Array.length b in
   if la = 0 then b
   else if lb = 0 then a
@@ -277,10 +277,10 @@ let add ?(predef = false) ((_, path) as item) t =
 let singleton ?predef i = add ?predef i empty
 
 let union t t' = {
-  local = merge t.local t'.local;
-  extern = merge t.extern t'.extern }
+  local = merge_sorted t.local t'.local;
+  extern = merge_sorted t.extern t'.extern }
 
-let pp fmt t = pp_items fmt (merge t.local t.extern)
+let pp fmt t = pp_items fmt (merge_sorted t.local t.extern)
 
 type discourse = { paths : Lid_trie.t; substs : Lid_set.t Lid_map.t }
 
