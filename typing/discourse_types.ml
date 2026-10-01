@@ -174,15 +174,38 @@ end
 type t = { local: Paths.t; extern: Paths.t}
 let empty = { local = Paths.empty; extern = Paths.empty }
 
+(* We record the stamp at the time of entering a new struct or sig during
+   typing. This allows us to filter out siblings of the currently typed item
+   from its discourse. *)
+let current_nesting = Local_store.s_ref None
+
+let with_nesting f =
+  let saved = !current_nesting in
+  current_nesting := Some (Ident.current_stamp ());
+  Misc.try_finally f ~always:(fun () -> current_nesting := saved)
+
+let is_sibling (path : Path.t) =
+  match path with
+  | Pident id ->
+      (* A sibling must be an ident *)
+      begin match !current_nesting with
+      | None -> false
+      | Some nesting_stamp ->
+        (* Global and predef always have stamp 0 *)
+        Ident.stamp id > nesting_stamp
+      end
+  | Pdot _ | Papply _ | Pextra_ty _ -> false
+
 let add ?(predef = false) ((_, path) as item) t =
   let heads = Path.heads path in
   if not predef && List.for_all Ident.is_predef heads then t
+  else if is_sibling path then t
   else if List.for_all Ident.global heads then
     { t with extern = Paths.add item t.extern }
   else
     { t with local = Paths.add item t.local }
 
-let singleton i = add i empty
+let singleton ?predef i = add ?predef i empty
 
 let union t t' = {
   local = Paths.union t.local t'.local;

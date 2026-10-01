@@ -241,8 +241,24 @@ module Lid_trie :
 
 type t = { local: Paths.t; extern: Paths.t}
 val empty : t
-val singleton : Paths.elt -> t
+
+val with_nesting : (unit -> 'a) -> 'a
+(** Records the current ident stamp so that we can skip adding "siblings" into
+    an item's discourse. These items should land in the discourse already via
+    other rules. *)
+
 val add : ?predef:bool -> Item.t -> t -> t
+(** Adds a path to the discourse if it is not a predef (unless [predef] is set
+     to [true]) or a direct child of the struct / sig being typed.
+
+    It is crucial to keep the discourse as small as possible to reduce the cost
+    of applying substitutions and of storing additional information in the cmi
+    files. *)
+
+
+val singleton : Paths.elt -> t
+(** [singleton ?predef i] is [add ?predef i empty] *)
+
 val union : t -> t -> t
 val pp : Format.formatter -> t -> unit
 

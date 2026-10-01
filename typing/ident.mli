@@ -51,6 +51,9 @@ val same: t -> t -> bool
             [create_*], or if they are both persistent and have the same
             name. *)
 
+val stamp: t -> int
+        (** The creation stamp, 0 for [Global] and [Predef]. *)
+
 val compare_stamp: t -> t -> int
         (** Compare only the internal stamps, 0 if absent *)
 
@@ -68,6 +71,8 @@ val highest_scope: int
 
 
 val reinit: unit -> unit
+
+val current_stamp: unit -> int
 
 (**
     Unscoped defines a notion of identifier that are bound locally inside a

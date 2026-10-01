@@ -1638,6 +1638,7 @@ and transl_with ~loc env remove_aliases (rev_tconstraints, sg, discourse)
 
 
 and transl_signature env sg =
+  Discourse_types.with_nesting @@ fun () ->
   let names = Signature_names.create () in
   let rec transl_sig env sg =
     match sg with
@@ -2801,6 +2802,7 @@ and type_open_decl_aux ?used_slot ?toplevel ~funct_body names env od =
     open_descr, sg, newenv
 
 and type_structure ?(toplevel = false) ~funct_body anchor env sstr =
+  Discourse_types.with_nesting @@ fun () ->
   let names = Signature_names.create () in
   let rec type_struct env shape_map sstr =
     match sstr with

@@ -231,6 +231,8 @@ let reinit () =
   then reinit_level := !currentstamp
   else currentstamp := !reinit_level
 
+let current_stamp () = !currentstamp
+
 let global = function
   | Local _
   | Unscoped _
