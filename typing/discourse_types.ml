@@ -181,7 +181,7 @@ let current_nesting = Local_store.s_ref None
 
 let with_nesting f =
   let saved = !current_nesting in
-  current_nesting := Some (Ident.current_stamp ());
+  current_nesting := Some (Ident.get_currentstamp ());
   Misc.try_finally f ~always:(fun () -> current_nesting := saved)
 
 let is_sibling (path : Path.t) =

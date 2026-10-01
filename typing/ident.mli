@@ -72,7 +72,7 @@ val highest_scope: int
 
 val reinit: unit -> unit
 
-val current_stamp: unit -> int
+val get_currentstamp: unit -> int
 
 (**
     Unscoped defines a notion of identifier that are bound locally inside a

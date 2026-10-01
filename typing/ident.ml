@@ -231,7 +231,7 @@ let reinit () =
   then reinit_level := !currentstamp
   else currentstamp := !reinit_level
 
-let current_stamp () = !currentstamp
+let get_currentstamp () = !currentstamp
 
 let global = function
   | Local _
