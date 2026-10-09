@@ -1661,6 +1661,7 @@ and transl_signature env sg =
             in
             List.iter (fun td ->
               Signature_names.check_type names td.typ_loc td.typ_id;
+              Discourse.define_type td.typ_id;
             ) decls;
             let (trem, rem, final_env) = transl_sig newenv srem in
             let sg =
@@ -1756,6 +1757,7 @@ and transl_signature env sg =
                 let id, newenv =
                   Env.enter_module_declaration ~scope name pres md env
                 in
+                Discourse.define_module md id;
                 Signature_names.check_module names pmd.pmd_name.loc id;
                 Some id, newenv
             in
@@ -1819,8 +1821,16 @@ and transl_signature env sg =
                 | Some id -> Some (id, md, uid)
               ) tdecls
             in
-            List.iter (fun (id, md, _uid) ->
+            List.iter (fun (id, md, uid) ->
               Signature_names.check_module names md.md_loc id;
+              Discourse.define_module
+                {Types.md_type = md.md_type.mty_type;
+                 md_attributes = md.md_attributes;
+                 md_loc = md.md_loc;
+                 md_uid = uid;
+                 md_discourse = Discourse_types.empty;
+                 md_discourse_alias = None;
+                } id
             ) decls;
             let (trem, rem, final_env) = transl_sig newenv srem in
             mksig (Tsig_recmodule (List.map (fun (md, _, _) -> md) tdecls))
@@ -1876,6 +1886,7 @@ and transl_signature env sg =
             let scope = Ctype.create_scope () in
             let sg, newenv = Env.enter_signature ~scope
                        (extract_sig env smty.pmty_loc mty) env in
+            let () = Discourse.define_signature sg in
             Signature_group.iter
               (Signature_names.check_sig_item names item.psig_loc)
               sg;
@@ -2447,6 +2458,7 @@ and type_module_aux ~alias ~strengthen ~funct_body anchor env smod =
         if alias && aliasable then
           (Env.add_required_global (Path.head path); md)
         else begin
+          Discourse.use_module env lid path;
           let mty =
             if strengthen then
               Env.find_strengthened_module ~aliasable path env
@@ -3047,6 +3059,7 @@ and type_str_item ~names ~toplevel ~funct_body anchor env shape_map
                        md_discourse_alias = discourse.alias;
                      }
                    in
+                   Discourse.define_module mdecl id;
                    Env.add_module_declaration ~check:true ~shape
                      id Mp_present mdecl env
             )
